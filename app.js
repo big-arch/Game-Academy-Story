@@ -4,6 +4,9 @@ import { createMusicPlayer } from './music-player.js?v=2';
 import { createSoundEffects } from './sound-effects.js?v=3';
 const $ = s => document.querySelector(s);
 const KEY = 'workshop-stories-v1';
+// Cloud copy is best-effort: the local save stays the source of truth and the game works offline.
+let cloudTimer;
+function saveToCloud(snapshot) { clearTimeout(cloudTimer); cloudTimer = setTimeout(() => { import('./supabase-client.js?v=1').then(m => m.saveProgress(snapshot)).catch(() => {}); }, 1500); }
 let state = initialState();
 try { const saved = JSON.parse(localStorage.getItem(KEY)); if (saved && ['intro','work','ending'].includes(saved.stage)) { state = { ...state, ...saved }; if (!Number.isSafeInteger(saved.coins) || saved.coins < 0) state.coins = saved.stage === 'ending' && !saved.upgrade ? 120 : 0; if (saved.cassetteDiagnosed === undefined && saved.order === 'cassette' && (saved.tapeClipFixed || saved.beltReplaced || saved.headCleaned)) state.cassetteDiagnosed = true; } } catch {}
 // Earlier versions stored only counts; keep those repairs playable after upgrading.
@@ -104,7 +107,7 @@ function render() {
   $('#actions').replaceChildren(...actions.map(([id,label],i) => { const b=document.createElement('button');b.textContent=label;if(i===0||id==='finish')b.className='primary';b.onclick=()=>{effects.play('click');dispatch(id);};return b; }));
   $('.lamp').style.color = s.upgrade ? '#ffd883' : '#d4a06a';
 }
-function dispatch(action, target) { if(action.startsWith('diagnose-')) { target=action.slice('diagnose-'.length); action='cassette-diagnose'; } if(action==='next-order'){ menuOpen=true; render(); $('#order-select').hidden=false; return; } if(action==='replay'){ const {upgrade,coins}=state, order=state.order || 'laptop'; state={...initialState(),upgrade,coins}; const result=act(state,order==='cassette'?'cassette-accept':'accept');state=result.state;note('Заказ начат заново. Улучшения мастерской сохранены.'); } else { const result=act(state,action,target);state=result.state;note(result.message); } try{localStorage.setItem(KEY,JSON.stringify(state));}catch{} render(); }
+function dispatch(action, target) { if(action.startsWith('diagnose-')) { target=action.slice('diagnose-'.length); action='cassette-diagnose'; } if(action==='next-order'){ menuOpen=true; render(); $('#order-select').hidden=false; return; } if(action==='replay'){ const {upgrade,coins}=state, order=state.order || 'laptop'; state={...initialState(),upgrade,coins}; const result=act(state,order==='cassette'?'cassette-accept':'accept');state=result.state;note('Заказ начат заново. Улучшения мастерской сохранены.'); } else { const result=act(state,action,target);state=result.state;note(result.message); } try{localStorage.setItem(KEY,JSON.stringify(state));}catch{} saveToCloud(state); render(); }
 function note(text){$('#message').textContent=text;$('#bench-message').textContent=text;$('#cassette-message').textContent=text;}
 document.querySelectorAll('#bench-laptop [data-tool]').forEach(b => b.onclick=()=>{ effects.play('tool');tool=b.dataset.tool; document.querySelectorAll('#bench-laptop [data-tool]').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); $('#tool-name').textContent=`Выбран: ${b.querySelector('span').textContent.toLowerCase()}`; });
 document.querySelectorAll('#bench-laptop [data-screw]').forEach(b=>b.onclick=()=>{ if(tool==='screw'){effects.play('repair');dispatch('screw',Number(b.dataset.screw));} else note('Для винта нужна отвёртка.'); });

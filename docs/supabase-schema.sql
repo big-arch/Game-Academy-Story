@@ -1,113 +1,65 @@
 -- Supabase Schema для "Мастерская историй"
--- Выполните этот SQL в SQL Editor Supabase Dashboard
+-- Применено миграцией workshop_stories_init в проекте big-arch's Project (renbakjudvdnkjvjujti).
+-- Проект общий с другими приложениями, поэтому таблицы игры имеют префикс ws_.
+-- Игрок входит анонимно (Authentication → Anonymous sign-ins) или через привязанный способ входа.
 
--- Таблица профилей игроков
-create table profiles (
-  id uuid references auth.users(id) on delete cascade primary key,
-  nickname text,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
-
--- Таблица игровых сохранений (один слот на аккаунт)
-create table saves (
+create table public.ws_saves (
   id uuid default gen_random_uuid() primary key,
-  user_id uuid references auth.users(id) on delete cascade not null,
+  user_id uuid not null references auth.users(id) on delete cascade,
   data jsonb not null default '{}'::jsonb,
   version text not null default 'v1',
-  created_at timestamptz default now(),
-  updated_at timestamptz default now(),
-  constraint saves_user_id_version_unique unique (user_id, version)
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint ws_saves_user_version_unique unique (user_id, version),
+  constraint ws_saves_data_size check (pg_column_size(data) < 65536)
 );
 
--- Таблица настроек игрока
-create table player_settings (
-  id uuid default gen_random_uuid() primary key,
-  user_id uuid references auth.users(id) on delete cascade not null,
+create table public.ws_player_settings (
+  user_id uuid primary key references auth.users(id) on delete cascade,
   music_enabled boolean not null default true,
   effects_enabled boolean not null default true,
   fullscreen boolean not null default false,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now(),
-  constraint player_settings_user_id_unique unique (user_id)
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
--- Таблица статистики (события)
-create table game_events (
+create table public.ws_game_events (
   id uuid default gen_random_uuid() primary key,
-  user_id uuid references auth.users(id) on delete set null,
-  event_type text not null,
-  data jsonb not null default '{}'::jsonb,
-  created_at timestamptz default now()
+  user_id uuid not null references auth.users(id) on delete cascade,
+  event_type text not null check (char_length(event_type) between 1 and 64),
+  data jsonb not null default '{}'::jsonb check (pg_column_size(data) < 4096),
+  created_at timestamptz not null default now()
 );
 
--- Row Level Security policies
-alter table profiles enable row level security;
-alter table saves enable row level security;
-alter table player_settings enable row level security;
-alter table game_events enable row level security;
+create index ws_game_events_user_id_idx on public.ws_game_events(user_id);
+create index ws_game_events_type_created_idx on public.ws_game_events(event_type, created_at);
 
--- Policies для profiles
-create policy "Пользователь видит свой профиль"
-  on profiles for select using (auth.uid() = id);
+alter table public.ws_saves enable row level security;
+alter table public.ws_player_settings enable row level security;
+alter table public.ws_game_events enable row level security;
 
-create policy "Пользователь обновляет свой профиль"
-  on profiles for update using (auth.uid() = id);
+create policy "ws_saves own select" on public.ws_saves for select to authenticated using ((select auth.uid()) = user_id);
+create policy "ws_saves own insert" on public.ws_saves for insert to authenticated with check ((select auth.uid()) = user_id);
+create policy "ws_saves own update" on public.ws_saves for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+create policy "ws_saves own delete" on public.ws_saves for delete to authenticated using ((select auth.uid()) = user_id);
 
-create policy "Пользователь создаёт свой профиль"
-  on profiles for insert with check (auth.uid() = id);
+create policy "ws_settings own select" on public.ws_player_settings for select to authenticated using ((select auth.uid()) = user_id);
+create policy "ws_settings own insert" on public.ws_player_settings for insert to authenticated with check ((select auth.uid()) = user_id);
+create policy "ws_settings own update" on public.ws_player_settings for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 
--- Policies для saves
-create policy "Пользователь видит свои сохранения"
-  on saves for select using (auth.uid() = user_id);
+-- События: игрок только добавляет свои; читать сырые события может только сервер (service_role)
+create policy "ws_events own insert" on public.ws_game_events for insert to authenticated with check ((select auth.uid()) = user_id);
 
-create policy "Пользователь создаёт сохранение"
-  on saves for insert with check (auth.uid() = user_id);
-
-create policy "Пользователь обновляет своё сохранение"
-  on saves for update using (auth.uid() = user_id);
-
-create policy "Пользователь удаляет своё сохранение"
-  on saves for delete using (auth.uid() = user_id);
-
--- Policies для player_settings
-create policy "Пользователь видит свои настройки"
-  on player_settings for select using (auth.uid() = user_id);
-
-create policy "Пользователь создаёт настройки"
-  on player_settings for insert with check (auth.uid() = user_id);
-
-create policy "Пользователь обновляет свои настройки"
-  on player_settings for update using (auth.uid() = user_id);
-
--- Policies для game_events
-create policy "Видеть события своего пользователя"
-  on game_events for select using (auth.uid() = user_id or auth.uid() is null);
-
-create policy "Добавлять события"
-  on game_events for insert with check (true);
-
--- Триггеры для updated_at
-create or replace function update_updated_at()
-returns trigger as $$
+create or replace function public.ws_touch_updated_at()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
 begin
   new.updated_at = now();
   return new;
 end;
-$$ language plpgsql;
+$$;
 
-create trigger profiles_updated_at before update on profiles
-  for each row execute function update_updated_at();
-
-create trigger saves_updated_at before update on saves
-  for each row execute function update_updated_at();
-
-create trigger player_settings_updated_at before update on player_settings
-  for each row execute function update_updated_at();
-
--- Индексы для производительности
-create index idx_saves_user_id on saves(user_id);
-create index idx_player_settings_user_id on player_settings(user_id);
-create index idx_game_events_user_id on game_events(user_id);
-create index idx_game_events_type on game_events(event_type);
-create index idx_game_events_created on game_events(created_at);
+create trigger ws_saves_updated_at before update on public.ws_saves for each row execute function public.ws_touch_updated_at();
+create trigger ws_player_settings_updated_at before update on public.ws_player_settings for each row execute function public.ws_touch_updated_at();

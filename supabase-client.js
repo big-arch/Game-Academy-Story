@@ -1,47 +1,51 @@
 // Supabase client integration for "Мастерская историй"
-// Для подключения замените PROJECT_URL и ANON_KEY на ваши значения из Supabase Dashboard
+// Проект big-arch's Project, таблицы игры с префиксом ws_ (см. docs/supabase-schema.sql).
+// Publishable key публичный по назначению: доступ ограничен политиками RLS.
 
-const SUPABASE_URL = 'YOUR_PROJECT_URL';
-const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
+const SUPABASE_URL = 'https://renbakjudvdnkjvjujti.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_tJ2cQXwiFEv-1r6wHRwndg_5hEN-h4C';
+const SAVE_VERSION = 'v1';
 
 let client = null;
+let signInFailed = false;
 
-try {
-  // Используем динамический импорт Supabase
-  import('https://esm.sh/@supabase/supabase-js')
-    .then(({ createClient }) => {
-      client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    })
-    .catch(err => {
-      console.warn('[Supabase] Не удалось инициализировать клиент:', err);
-    });
-} catch (err) {
-  console.warn('[Supabase] Supabase недоступен:', err);
+const ready = import('https://esm.sh/@supabase/supabase-js@2.45.4')
+  .then(({ createClient }) => {
+    client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    return client;
+  })
+  .catch(err => {
+    console.warn('[Supabase] Не удалось инициализировать клиент:', err);
+    return null;
+  });
+
+// Текущий игрок. Если входа нет, пробуем анонимный вход
+// (включается в Dashboard → Authentication → Sign In / Providers → Anonymous sign-ins).
+async function currentUser() {
+  if (!(await ready)) return null;
+  const { data: { session } } = await client.auth.getSession();
+  if (session?.user) return session.user;
+  if (signInFailed) return null;
+  const { data, error } = await client.auth.signInAnonymously();
+  if (error) {
+    signInFailed = true;
+    console.log('[Supabase] Вход не выполнен, облачное сохранение пропущено:', error.message);
+    return null;
+  }
+  return data.user;
 }
 
 export async function saveProgress(gameState) {
-  if (!client) {
-    console.log('[Supabase] Клиент не инициализирован, сохранение пропущено.');
-    return false;
-  }
   try {
-    const { data: { user } } = await client.auth.getUser();
-    if (!user) {
-      console.log('[Supabase] Пользователь не авторизован.');
-      return false;
-    }
+    const user = await currentUser();
+    if (!user) return false;
     const { error } = await client
-      .from('saves')
-      .upsert({
-        user_id: user.id,
-        data: gameState,
-        version: 'v1'
-      }, { onConflict: 'user_id,version' });
+      .from('ws_saves')
+      .upsert({ user_id: user.id, data: gameState, version: SAVE_VERSION }, { onConflict: 'user_id,version' });
     if (error) {
       console.error('[Supabase] Ошибка сохранения:', error);
       return false;
     }
-    console.log('[Supabase] Сохранение отправлено.');
     return true;
   } catch (err) {
     console.error('[Supabase] Исключение при сохранении:', err);
@@ -50,25 +54,17 @@ export async function saveProgress(gameState) {
 }
 
 export async function loadProgress() {
-  if (!client) {
-    console.log('[Supabase] Клиент не инициализирован.');
-    return null;
-  }
   try {
-    const { data: { user } } = await client.auth.getUser();
+    const user = await currentUser();
     if (!user) return null;
     const { data, error } = await client
-      .from('saves')
+      .from('ws_saves')
       .select('data, updated_at')
       .eq('user_id', user.id)
-      .eq('version', 'v1')
-      .single();
-    if (error || !data) {
-      console.log('[Supabase] Сохранений не найдено.');
-      return null;
-    }
-    console.log('[Supabase] Загружено из облака. Обновлено:', data.updated_at);
-    return data.data;
+      .eq('version', SAVE_VERSION)
+      .maybeSingle();
+    if (error || !data) return null;
+    return data;
   } catch (err) {
     console.error('[Supabase] Исключение при загрузке:', err);
     return null;
@@ -76,16 +72,12 @@ export async function loadProgress() {
 }
 
 export async function saveSettings(settings) {
-  if (!client) return false;
   try {
-    const { data: { user } } = await client.auth.getUser();
+    const user = await currentUser();
     if (!user) return false;
     const { error } = await client
-      .from('player_settings')
-      .upsert({
-        user_id: user.id,
-        ...settings
-      }, { onConflict: 'user_id' });
+      .from('ws_player_settings')
+      .upsert({ user_id: user.id, ...settings }, { onConflict: 'user_id' });
     if (error) {
       console.error('[Supabase] Ошибка сохранения настроек:', error);
       return false;
@@ -98,15 +90,14 @@ export async function saveSettings(settings) {
 }
 
 export async function loadSettings() {
-  if (!client) return null;
   try {
-    const { data: { user } } = await client.auth.getUser();
+    const user = await currentUser();
     if (!user) return null;
     const { data, error } = await client
-      .from('player_settings')
-      .select('*')
+      .from('ws_player_settings')
+      .select('music_enabled, effects_enabled, fullscreen')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
     if (error || !data) return null;
     return data;
   } catch (err) {
@@ -116,14 +107,10 @@ export async function loadSettings() {
 }
 
 export async function trackEvent(eventType, eventData = {}) {
-  if (!client) return false;
   try {
-    const { data: { user } } = await client.auth.getUser();
-    const { error } = await client.from('game_events').insert({
-      user_id: user?.id,
-      event_type: eventType,
-      data: eventData
-    });
+    const user = await currentUser();
+    if (!user) return false;
+    const { error } = await client.from('ws_game_events').insert({ user_id: user.id, event_type: eventType, data: eventData });
     if (error) {
       console.error('[Supabase] Ошибка события:', error);
       return false;
@@ -136,8 +123,8 @@ export async function trackEvent(eventType, eventData = {}) {
 }
 
 export async function signOut() {
-  if (!client) return;
+  if (!(await ready)) return;
   await client.auth.signOut();
 }
 
-export { client, SUPABASE_URL, SUPABASE_ANON_KEY };
+export { SUPABASE_URL };
