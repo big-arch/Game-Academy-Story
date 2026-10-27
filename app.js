@@ -1,5 +1,6 @@
-import { initialState, act } from './game.js?v=8';
+import { initialState, act } from './game.js?v=10';
 import { startAmbience } from './ambience.js?v=3';
+import { startCityLife } from './city-life.js?v=1';
 import { createMusicPlayer } from './music-player.js?v=2';
 import { createSoundEffects } from './sound-effects.js?v=4';
 import { createCat } from './cat.js?v=1';
@@ -82,6 +83,11 @@ document.querySelectorAll('#bench-remote [data-grime]').forEach(b => { b.onclick
 $('#remote-keypad').onclick = () => { if (tool === 'clean') { effects.play('tool'); dispatch('remote-keypad'); } else note('Клавиатуру нужно протереть спиртом.'); };
 // Preload the remote's states so swapping open/repaired views never flashes an empty mat.
 for (const part of ['view-open', 'view-repaired', 'front-shell', 'keypad']) new Image().src = `assets/devices/remote/parts/${part}.png`;
+// С инструментом «Осмотр» касание устройства осматривает его — так же, как кнопка «Осмотр» вверху.
+// Перехват на стадии захвата, чтобы обработчики отдельных деталей не отвечали «нужна отвёртка».
+for (const [device, action] of [['#cassette-device', 'cassette-inspect'], ['#remote-device', 'remote-inspect']]) {
+  $(device).addEventListener('click', e => { if (tool !== 'inspect' || e.target.closest('#tape-clip')) return; e.stopPropagation(); effects.play('tool'); dispatch(action); }, true);
+}
 const ORDER_ACCEPT = { laptop: 'accept', cassette: 'cassette-accept', remote: 'remote-accept' };
 const BENCHES = { laptop: '#bench-laptop', cassette: '#bench-cassette', remote: '#bench-remote' };
 const storyToggle = document.createElement('button');
@@ -188,7 +194,7 @@ $('#menu-effects').onclick=()=>{effects.setEnabled(!effects.enabled);const b=$('
 $('#menu-continue').onclick=()=>{effects.play();menuOpen=false;render();};
 updateSoundButton();
 render();
-document.querySelectorAll('.mat').forEach(mat => startAmbience(mat, () => effects.playThunder()));
+document.querySelectorAll('.mat').forEach(mat => { startAmbience(mat, () => effects.playThunder()); startCityLife(mat.querySelector('.ambience'), { isMusicOn: () => soundOn }); });
 document.addEventListener('visibilitychange',syncCats);
 // Частицы: пыль
 function spawnDust() {

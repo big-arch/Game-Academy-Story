@@ -10,3 +10,6 @@
 .coin-gain{position:fixed;z-index:61;pointer-events:none;color:#ffe08a;font:700 22px/1 Consolas,monospace;text-shadow:0 2px 0 #3b220c,0 0 8px #ffb84d;animation:coin-gain 1.4s ease-out forwards}
 @keyframes coin-gain{0%{opacity:0;transform:translate(-50%,0) scale(.7)}20%{opacity:1;transform:translate(-50%,-14px) scale(1.1)}100%{opacity:0;transform:translate(-50%,-60px) scale(1)}}
 @media(prefers-reduced-motion:reduce){.coin-counter.bump,.coin-gain{animation:none}}
+/* Иконки инструментов (assets/ui/tools/*.svg из Illustrator). */
+.bench .tools .tool-icon{display:block;width:26px;height:26px;margin:0 auto}
+.bench .tools button[aria-pressed=true] .tool-icon{transform:scale(1.12);filter:drop-shadow(0 0 4px #ffdf95aa)}

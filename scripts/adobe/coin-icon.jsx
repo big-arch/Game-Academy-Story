@@ -1,5 +1,5 @@
 // Illustrator: векторная иконка монеты для счётчика заработка.
-// Ожидает глобальный CFG = { svg, ai } — пути результата (подставляет run-illustrator.ps1).
+// Ожидает глобальный CFG = { root, done } (подставляет run-illustrator.ps1).
 #target illustrator
 (function () {
   app.userInteractionLevel = UserInteractionLevel.DONTDISPLAYALERTS;
@@ -26,7 +26,9 @@
   var h = doc.pathItems.ellipse(64 - 10, 17, 10, 5); h.filled = true; h.fillColor = rgb('fff6d6'); h.stroked = false; h.opacity = 70; h.rotate(-30);
 
   var svg = new ExportOptionsSVG(); svg.embedRasterImages = true; svg.fontSubsetting = SVGFontSubsetting.None; svg.documentEncoding = SVGDocumentEncoding.UTF8;
-  doc.exportFile(new File(CFG.svg), ExportType.SVG, svg);
-  doc.saveAs(new File(CFG.ai), new IllustratorSaveOptions());
+  new Folder(CFG.root + 'assets/ui/source').create();
+  doc.exportFile(new File(CFG.root + 'assets/ui/coin.svg'), ExportType.SVG, svg);
+  doc.saveAs(new File(CFG.root + 'assets/ui/source/coin.ai'), new IllustratorSaveOptions());
   doc.close(SaveOptions.DONOTSAVECHANGES);
+  var done = new File(CFG.done); done.open('w'); done.write('coin.svg'); done.close();
 })();

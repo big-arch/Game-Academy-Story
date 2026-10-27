@@ -23,3 +23,18 @@
 
 .lamp-upgraded .lamp-glow{background:radial-gradient(ellipse at 49% 43%,#fffbe0 0,#ffe08acc 12%,#ffd27a55 38%,transparent 72%)}
 .lamp-upgraded .lamp-pool{background:radial-gradient(ellipse at 66% 45%,#ffd47a66,transparent 72%)}
+
+/* Жизнь города и стола (city-life.js): гаснущие окна, огни на крышах, радио, пылинки в луче лампы. */
+.city-lights{position:absolute;inset:0;pointer-events:none}
+.city-window{position:absolute;background:#17202c;opacity:0;transition:opacity .6s ease}
+.city-window.off{opacity:.93}
+.city-beacon{position:absolute;width:.6%;aspect-ratio:1;margin:-.3% 0 0 -.3%;border-radius:50%;background:#ff4a3a;box-shadow:0 0 6px 2px #ff3a2a88;animation:city-beacon 2.4s steps(1,end) infinite}
+@keyframes city-beacon{50%{opacity:.15;box-shadow:none}}
+.radio-glow{position:absolute;background:radial-gradient(ellipse at 50% 50%,#ffb54a70,transparent 70%);mix-blend-mode:screen;opacity:0;transition:opacity .8s}
+.music-on .radio-glow{opacity:1;animation:radio-pulse .85s ease-in-out infinite alternate}
+@keyframes radio-pulse{to{transform:scale(1.18);filter:brightness(1.35)}}
+.radio-notes{position:absolute;width:0;height:0}
+.radio-notes span{position:absolute;left:0;top:0;color:#ffe2a6;font:700 15px/1 Georgia,serif;text-shadow:0 1px 0 #3b220c,0 0 6px #ffb54a99;animation:note-rise 3s ease-out forwards}
+@keyframes note-rise{0%{opacity:0;transform:translate(0,0) scale(.7)}15%{opacity:1}100%{opacity:0;transform:translate(var(--drift),-64px) scale(1.1) rotate(-12deg)}}
+.lamp-motes{position:absolute;left:52%;top:10%;width:48%;height:38%;pointer-events:none;mix-blend-mode:screen}
+@media(prefers-reduced-motion:reduce){.city-beacon,.music-on .radio-glow{animation:none}.radio-notes,.lamp-motes{display:none}}

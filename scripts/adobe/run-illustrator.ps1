@@ -1,18 +1,21 @@
-# Рисует векторную иконку монеты в Illustrator: assets/ui/coin.svg и исходник assets/ui/source/coin.ai.
-#   pwsh scripts/adobe/run-illustrator.ps1
-# Как и с Photoshop, .jsx передаётся Illustrator.exe файлом (COM для Illustrator не зарегистрирован).
-param([string]$Illustrator = 'C:\Program Files\Adobe\Adobe Illustrator 2023\Support Files\Contents\Windows\Illustrator.exe')
+# Запускает скрипт Illustrator из scripts/adobe и ждёт, пока он закончит.
+#   pwsh scripts/adobe/run-illustrator.ps1               — монета: assets/ui/coin.svg (+ source/coin.ai)
+#   pwsh scripts/adobe/run-illustrator.ps1 tool-icons    — иконки инструментов: assets/ui/tools/*.svg
+# Скрипт получает CFG = { root, done }: root — корень проекта, done — файл-метка, который он создаёт в конце.
+# COM для Illustrator не зарегистрирован, поэтому .jsx передаётся Illustrator.exe файлом.
+param([string]$Script = 'coin-icon', [string]$Illustrator = 'C:\Program Files\Adobe\Adobe Illustrator 2023\Support Files\Contents\Windows\Illustrator.exe')
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path "$PSScriptRoot/../..").Path -replace '\\', '/'
-New-Item -ItemType Directory -Force "$root/assets/ui/source" | Out-Null
-$job = [ordered]@{ svg = "$root/assets/ui/coin.svg"; ai = "$root/assets/ui/source/coin.ai" }
-Remove-Item -Force -ErrorAction SilentlyContinue $job.svg, $job.ai
+$done = Join-Path ([IO.Path]::GetTempPath()) "$Script.done"
+Remove-Item -Force -ErrorAction SilentlyContinue $done
+$job = [ordered]@{ root = "$root/"; done = $done -replace '\\', '/' }
+# Не-ASCII (кириллица в пути проекта) уходит в скрипт как \uXXXX.
 $json = $job | ConvertTo-Json -Compress -EscapeHandling EscapeNonAscii
-$jsx = Join-Path ([IO.Path]::GetTempPath()) 'coin-icon.jsx'
-$body = Get-Content "$PSScriptRoot/coin-icon.jsx" -Raw -Encoding utf8
+$jsx = Join-Path ([IO.Path]::GetTempPath()) "$Script.jsx"
+$body = Get-Content "$PSScriptRoot/$Script.jsx" -Raw -Encoding utf8
 [IO.File]::WriteAllText($jsx, "var CFG = $json;`n$body", [Text.UTF8Encoding]::new($true))
 Start-Process -FilePath $Illustrator -ArgumentList "`"$jsx`""
 $deadline = (Get-Date).AddMinutes(6)
-while (-not (Test-Path $job.ai) -and (Get-Date) -lt $deadline) { Start-Sleep -Seconds 3 }
-if (-not (Test-Path $job.ai)) { throw 'Illustrator не сохранил файл за 6 минут — проверьте окно Illustrator на ошибки.' }
-"SVG: $($job.svg)"
+while (-not (Test-Path $done) -and (Get-Date) -lt $deadline) { Start-Sleep -Seconds 2 }
+if (-not (Test-Path $done)) { throw "Illustrator не завершил $Script за 6 минут — проверьте окно Illustrator на ошибки." }
+Get-Content $done
