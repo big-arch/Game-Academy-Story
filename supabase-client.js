@@ -9,7 +9,8 @@ const SAVE_VERSION = 'v1';
 let client = null;
 let signInFailed = false;
 
-const ready = import('https://esm.sh/@supabase/supabase-js@2.45.4')
+// Локальная копия (scripts/build.mjs): магазины не любят код, загружаемый из сети, и игра работает офлайн.
+const ready = import('./vendor/supabase.js')
   .then(({ createClient }) => {
     client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     return client;

@@ -6,7 +6,7 @@ const $ = s => document.querySelector(s);
 const KEY = 'workshop-stories-v1';
 // Cloud copy is best-effort: the local save stays the source of truth and the game works offline.
 let cloudTimer;
-function saveToCloud(snapshot) { clearTimeout(cloudTimer); cloudTimer = setTimeout(() => { import('./supabase-client.js?v=1').then(m => m.saveProgress(snapshot)).catch(() => {}); }, 1500); }
+function saveToCloud(snapshot) { clearTimeout(cloudTimer); cloudTimer = setTimeout(() => { import('./supabase-client.js?v=2').then(m => m.saveProgress(snapshot)).catch(() => {}); }, 1500); }
 let state = initialState();
 try { const saved = JSON.parse(localStorage.getItem(KEY)); if (saved && ['intro','work','ending'].includes(saved.stage)) { state = { ...state, ...saved }; if (!Number.isSafeInteger(saved.coins) || saved.coins < 0) state.coins = saved.stage === 'ending' && !saved.upgrade ? 120 : 0; if (saved.cassetteDiagnosed === undefined && saved.order === 'cassette' && (saved.tapeClipFixed || saved.beltReplaced || saved.headCleaned)) state.cassetteDiagnosed = true; } } catch {}
 // Earlier versions stored only counts; keep those repairs playable after upgrading.

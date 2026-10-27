@@ -6,6 +6,17 @@
 
 Требуется Node.js 20.11 или новее. В папке проекта выполните `npm start`, затем откройте http://127.0.0.1:4173. Управление мышью или касанием. Прогресс хранится в браузере. При переходе в главное меню состояние заказа сохраняется.
 
+Перед первым запуском выполните `npm install`: `npm start` упаковывает `supabase-js` в `vendor/supabase.js`, и игра загружает его локально, без CDN.
+
+## Мобильная сборка (Capacitor)
+
+- `npm run build` — собрать `www/`: только файлы, нужные игре; `models/`, `temp/` и исходники музыки туда не попадают.
+- `npm run cap:sync` — собрать и скопировать в `android/` и `ios/`.
+- `npm run android` / `npm run ios` — открыть проект в Android Studio / Xcode. Для iOS нужен Mac.
+- `npm run assets` — пересоздать иконки и сплэш из `resources/` (`icon-only.png`, `icon-foreground.png`, `icon-background.png` — 1024×1024, `splash.png` и `splash-dark.png` — 2732×2732).
+
+Идентификатор приложения — `com.bigarch.workshopstories` (`capacitor.config.json`). Ориентация закреплена портретная.
+
 Проверка: `npm test`. Лицензии музыки, плейлист и звуки описаны в `music/README.md`.
 
 Вдохновение: [Assemble with Care — заметки разработчиков](https://ustwogames.co.uk/news/building-assemble-with-care/), [рекомендации по размерам элементов управления](https://gameaccessibilityguidelines.com/ensure-interactive-elements-virtual-controls-are-large-and-well-spaced-particularly-on-small-or-touch-screens/). Это оригинальный прототип, игровые материалы из источников не используются.

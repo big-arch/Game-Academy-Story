@@ -17,3 +17,7 @@ Thumbs.db
 # Build
 dist/
 build/
+
+# Capacitor build output (npm run build)
+www/
+vendor/

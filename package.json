@@ -1,1 +1,27 @@
-{"name":"workshop-stories","version":"0.1.0","private":true,"type":"module","scripts":{"start":"node server.js","test":"node --test"}}
+{
+  "name": "workshop-stories",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prestart": "node scripts/build.mjs vendor",
+    "start": "node server.js",
+    "test": "node --test",
+    "build": "node scripts/build.mjs",
+    "assets": "capacitor-assets generate --assetPath resources --iconBackgroundColor #2d211a --iconBackgroundColorDark #2d211a --splashBackgroundColor #2d211a --splashBackgroundColorDark #2d211a",
+    "cap:sync": "npm run build && cap sync",
+    "android": "npm run cap:sync && cap open android",
+    "ios": "npm run cap:sync && cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/ios": "8.5.3",
+    "@supabase/supabase-js": "2.118.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "3.0.5",
+    "@capacitor/cli": "8.5.3",
+    "esbuild": "0.28.2"
+  }
+}
