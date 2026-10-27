@@ -1,12 +1,4 @@
-/* Aseprite source: the user-provided 64 × 64 cat sheet, rows 0, 4 and 12. */
-.mat .bench-cat{position:absolute;top:27%;left:-8%;right:auto;width:30%;height:auto;aspect-ratio:1;border:0;background:transparent;box-shadow:none;z-index:3;opacity:1;animation:none;transform-origin:bottom center}
-.mat .bench-cat::after{content:'';position:absolute;inset:0;background:url('assets/sprites/cat-sit.png') 0 0/100% 100% no-repeat;image-rendering:pixelated}
-.mat .bench-cat .ears,.mat .bench-cat .face,.mat .bench-cat .tail{display:none}
-.mat .bench-cat.walking{animation:cat-stroll 8s linear both}
-@keyframes cat-stroll{0%,100%{transform:translateX(0)}50%{transform:translateX(15%)}}
-.mat .bench-cat.walking::after{background-image:url('assets/sprites/cat-walk-right.png');background-size:600% 100%;animation:walk-frames .9s steps(6) infinite, cat-turn 8s steps(1,end) both}
-.mat .bench-cat.washing::after{background-image:url('assets/sprites/cat-wash.png');background-size:800% 100%;animation:wash-frames 1.2s steps(8) 2}
-@keyframes cat-turn{0%{transform:scaleX(-1)}50%{transform:scaleX(1)}}
-@keyframes walk-frames{to{background-position:120% 0}}@keyframes wash-frames{to{background-position:114.2857% 0}}
-@keyframes cat-enter{0%,15%{opacity:0;transform:translateX(35px)}30%{opacity:1}100%{opacity:1;transform:translateX(0)}}
-@media(prefers-reduced-motion:reduce){.mat .bench-cat{animation:none;opacity:1}.mat .bench-cat.walking::after,.mat .bench-cat.washing::after{animation:none;background-image:url('assets/sprites/cat-sit.png');background-size:100% 100%}}
+/* Кот рабочего стола: позиция и кадры задаёт cat.js, здесь только размер и привязка лап к полу. */
+.mat .bench-cat{position:absolute;z-index:3;left:50%;top:auto;right:auto;bottom:calc(100% - var(--cat-floor));width:var(--cat-size);height:auto;aspect-ratio:48/34;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;transform:translateX(-50%);animation:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mat .bench-cat .cat-sprite{position:absolute;inset:0;background:url('assets/sprites/cat/idle.png') 0 0/1100% 100% no-repeat;image-rendering:pixelated;filter:drop-shadow(0 3px 0 #0006)}
+.mat .bench-cat:focus-visible{outline:3px solid #ffe5a7;outline-offset:2px}

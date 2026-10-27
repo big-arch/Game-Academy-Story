@@ -31,10 +31,12 @@
 .mat-cassette .cassette-body::before{content:"STEREO  •  AUTO REVERSE";position:absolute;left:19%;right:19%;top:13%;height:16%;text-align:center;color:#d8c7a6;border:2px solid #918579;background:#24262a;font:700 clamp(6px,1.4vw,10px)/1.5 Consolas,monospace;pointer-events:none}
 
 /* Individual cassette artwork; controls remain separate accessible buttons. */
-.mat-cassette .device-cassette{left:29%;top:48%;width:42%;height:37%;border:0;background:transparent;box-shadow:none}
+/* Рамка повторяет пропорции кадра листа (395×724), иначе плеер растягивается. */
+.mat-cassette .device-cassette{left:31.9%;top:48%;width:36.2%;height:37%;border:0;background:transparent;box-shadow:none}
 .mat-cassette .cassette-body,.mat-cassette .cassette-parts{border:0;box-shadow:none;background-image:url('assets/devices/cassette-player/concept-states.png');background-size:550% 100%;background-repeat:no-repeat;background-position:0 0;background-color:transparent}
 .mat-cassette .cassette-body::before{display:none}
-.mat-cassette .cassette-parts{background-position:25% 0}
+/* При ширине фона 550% кадр N начинается на N/4.5 × 100%. */
+.mat-cassette .cassette-parts{background-position:22.222% 0}
 .mat-cassette .cassette-load{top:46%;max-width:90%;font-size:10px;white-space:normal}
 .mat-cassette .reel{background:#222c;border-color:#777a;width:25%;height:23%;line-height:normal}
 .mat-cassette .reel-label,.mat-cassette .battery{display:none}
@@ -46,6 +48,7 @@
 .mat-cassette .cassette-body .screw{font-size:13px;text-shadow:1px 1px #2e2420}
 .mat-cassette .cassette-body .screw:before{inset:15px;border-width:2px}
 .mat-cassette .cassette-body .screw.removed{font-size:0}
-.mat-cassette .cassette-body .screw-0{left:calc(14% - 22px);top:calc(14% - 22px)}
-.mat-cassette .cassette-body .screw-1{right:auto;left:calc(86% - 22px);top:calc(14% - 22px)}
-.mat-cassette .cassette-body .screw-2{left:calc(14% - 22px);bottom:auto;top:calc(86% - 22px)}
+/* Центры винтов — углы лицевой панели нарисованного корпуса (в % кадра). */
+.mat-cassette .cassette-body .screw-0{left:calc(30% - 22px);top:calc(19% - 22px)}
+.mat-cassette .cassette-body .screw-1{right:auto;left:calc(91% - 22px);top:calc(19% - 22px)}
+.mat-cassette .cassette-body .screw-2{left:calc(30% - 22px);bottom:auto;top:calc(81% - 22px)}

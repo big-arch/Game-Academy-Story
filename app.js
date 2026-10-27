@@ -1,7 +1,8 @@
 import { initialState, act } from './game.js?v=7';
-import { startAmbience } from './ambience.js?v=2';
+import { startAmbience } from './ambience.js?v=3';
 import { createMusicPlayer } from './music-player.js?v=2';
 import { createSoundEffects } from './sound-effects.js?v=3';
+import { createCat } from './cat.js?v=1';
 const $ = s => document.querySelector(s);
 const KEY = 'workshop-stories-v1';
 // Cloud copy is best-effort: the local save stays the source of truth and the game works offline.
@@ -72,6 +73,9 @@ $('.panel-top').append(storyToggle);
 const backMenu = document.createElement('button'); backMenu.type='button'; backMenu.className='back-menu'; backMenu.textContent='☰'; backMenu.setAttribute('aria-label','Главное меню'); backMenu.title='Главное меню';
 backMenu.onclick=()=>{effects.play();menuOpen=true;render();};
 $('.panel .bottom').prepend(backMenu);
+const benchCats = { 'bench-cat': createCat($('#bench-cat')), 'bench-cat-cassette': createCat($('#bench-cat-cassette')) };
+// Only the cat on the visible bench runs its animation loop.
+function syncCats() { const work = !menuOpen && state.stage === 'work' && !document.hidden; benchCats['bench-cat'].setActive(work && state.order === 'laptop'); benchCats['bench-cat-cassette'].setActive(work && state.order === 'cassette'); }
 let soundOn = false;
 const music = createMusicPlayer(()=>{ soundOn=false;updateSoundButton();note('Не удалось воспроизвести музыку. Попробуй включить её ещё раз.'); });
 function render() {
@@ -106,6 +110,7 @@ function render() {
   const actions = s.stage === 'intro' ? [['accept','Принять заказ']] : s.stage === 'ending' ? [['next-order','Следующий заказ'], ...(s.upgrade ? [] : [['upgrade','Улучшить лампу · 120 монет']]), ['replay','Повторить заказ']] : s.order === 'cassette' ? [['cassette-inspect','Осмотр'],['cassette-test','Проверить'], ...(s.cassetteOpen && s.cassetteInteriorInspected && !s.cassetteDiagnosed ? [['diagnose-battery','Причина: батарея'],['diagnose-head','Причина: головка'],['diagnose-belt','Причина: ремень']] : []), ...(s.cassetteOpen ? [['cassette-cover','Закрыть крышку']] : []), ...(s.cassetteRepaired ? [['cassette-finish','Вернуть клиенту']] : [])] : [['inspect','Осмотр'],['test','Диагностика'],['power',s.poweredOff?'Включить питание':'Выключить питание'], ...(s.open ? [['cover','Закрыть крышку']] : []), ...(s.repaired ? [['finish','Вернуть клиенту']] : [])];
   $('#actions').replaceChildren(...actions.map(([id,label],i) => { const b=document.createElement('button');b.textContent=label;if(i===0||id==='finish')b.className='primary';b.onclick=()=>{effects.play('click');dispatch(id);};return b; }));
   $('.lamp').style.color = s.upgrade ? '#ffd883' : '#d4a06a';
+  syncCats();
 }
 function dispatch(action, target) { if(action.startsWith('diagnose-')) { target=action.slice('diagnose-'.length); action='cassette-diagnose'; } if(action==='next-order'){ menuOpen=true; render(); $('#order-select').hidden=false; return; } if(action==='replay'){ const {upgrade,coins}=state, order=state.order || 'laptop'; state={...initialState(),upgrade,coins}; const result=act(state,order==='cassette'?'cassette-accept':'accept');state=result.state;note('Заказ начат заново. Улучшения мастерской сохранены.'); } else { const result=act(state,action,target);state=result.state;note(result.message); } try{localStorage.setItem(KEY,JSON.stringify(state));}catch{} saveToCloud(state); render(); }
 function note(text){$('#message').textContent=text;$('#bench-message').textContent=text;$('#cassette-message').textContent=text;}
@@ -116,8 +121,8 @@ $('#lid-open').onclick=()=>{effects.play();dispatch('cover');};
 $('#wire').onclick=()=>{ if(state.fanConnected)note('Разъём вентилятора подключён.'); else {effects.play();dispatch('connect');} };
 $('#radiator').onclick=()=>{effects.play();if(tool==='inspect')dispatch('thermal');else if(tool==='paste')dispatch('paste');else note('Осмотри радиатор или выбери термопасту.');};
 $('#fan').onclick=()=>note('Для ремонта используй рабочий стол ниже.'); $('#connector').onclick=()=>note('Для ремонта используй рабочий стол ниже.');
-let catWashTimer;
-for (const cat of [$('#cat'), $('#bench-cat'), $('#bench-cat-cassette')]) cat.onclick=()=>{ effects.play('purr');note('Мурзик довольно жмурится и умывается рядом с тобой.'); cat.classList.remove('walking','washing'); void cat.offsetWidth; cat.classList.add('washing'); clearTimeout(catWashTimer);catWashTimer=setTimeout(()=>cat.classList.remove('washing'),2400); };
+$('#cat').onclick=()=>{ effects.play('purr');note('Мурзик довольно жмурится рядом с тобой.'); };
+for (const [id,cat] of Object.entries(benchCats)) $('#'+id).onclick=()=>{ effects.play('purr'); note(cat.pet()==='wake'?'Мурзик просыпается и сладко потягивается.':'Мурзик довольно жмурится и умывается рядом с тобой.'); };
 $('#reset').onclick=()=>{if(confirm('Начать историю заново? Сохранённый прогресс будет удалён.')){state=initialState();try{localStorage.removeItem(KEY);}catch{}$('#message').textContent='На улице дождь. В мастерской ждёт первый заказ.';render();}};
 function updateSoundButton(){const b=$('#sound');b.textContent=soundOn?'♪ ЗВУК ВКЛ.':'♪ ЗВУК ВЫКЛ.';b.setAttribute('aria-label',soundOn?'Выключить музыку':'Включить музыку');b.setAttribute('aria-pressed',String(soundOn));b.title=soundOn?'Выключить музыку':'Включить музыку';const m=$('#menu-music');m.textContent=soundOn?'♪ Музыка: вкл.':'♪ Музыка: выкл.';m.setAttribute('aria-pressed',String(soundOn));}
 async function toggleMusic(){if(soundOn){music.disable();soundOn=false;}else soundOn=await music.enable();updateSoundButton();}
@@ -127,12 +132,7 @@ $('#menu-continue').onclick=()=>{effects.play();menuOpen=false;render();};
 updateSoundButton();
 render();
 document.querySelectorAll('.mat').forEach(mat => startAmbience(mat, () => effects.playThunder()));
-setInterval(() => {
-  if (menuOpen || state.stage !== 'work' || document.hidden || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const cat = state.order === 'cassette' ? $('#bench-cat-cassette') : $('#bench-cat');
-  if (cat.classList.contains('washing')) return;
-  cat.classList.add('walking'); setTimeout(() => cat.classList.remove('walking'), 8000);
-}, 14000);
+document.addEventListener('visibilitychange',syncCats);
 // Частицы: пыль
 function spawnDust() {
   const p = document.createElement('div');
@@ -162,5 +162,5 @@ const dayCycles = ['day-night-dawn', 'day-night-day', 'day-night-dusk', 'day-nig
 let dayPhase = 0;
 setInterval(() => {
   dayPhase = (dayPhase + 1) % dayCycles.length;
-  document.body.className = dayCycles[dayPhase] + (document.body.classList.contains('fullscreen') ? ' fullscreen' : '');
+  document.body.classList.remove(...dayCycles); document.body.classList.add(dayCycles[dayPhase]);
 }, 60000);

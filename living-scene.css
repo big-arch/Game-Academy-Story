@@ -4,25 +4,22 @@
 .rain-canvas{position:absolute;left:28%;top:0;width:59%;height:19%;display:block;opacity:1;clip-path:polygon(0 0,100% 0,100% 20%,84% 20%,78% 42%,72% 77%,0 100%)}
 .plant-motion{position:absolute;left:0;top:0;width:25%;height:22%;background-image:url('assets/workshop-pixel.png');background-size:400% 454.55%;background-position:left top;background-repeat:no-repeat;clip-path:polygon(0 0,100% 0,94% 46%,76% 72%,52% 83%,0 81%);transform-origin:32% 92%;animation:leaf-sway 6.7s ease-in-out infinite alternate;opacity:.95}
 @keyframes leaf-sway{0%,100%{transform:rotate(-1.4deg)}45%{transform:rotate(1.8deg)}70%{transform:rotate(.7deg)}}
-.lamp-glow{position:absolute;right:1%;top:7%;width:28%;height:21%;background:radial-gradient(ellipse at 60% 51%,#ffcc6148,transparent 66%);opacity:.75;transition:opacity 100ms ease-out;mix-blend-mode:screen}
-.lamp-flicker .lamp-glow{opacity:.12}
+/* Лампа: центр абажура около (85.5%, 19.5%) коврика. --lamp (0…1) задаёт ambience.js. */
+.lamp-glow{position:absolute;left:55%;top:4%;width:62%;height:36%;background:radial-gradient(ellipse at 49% 43%,#fff0b8 0,#ffc864aa 9%,#ffb2483d 32%,transparent 68%);mix-blend-mode:screen;opacity:var(--lamp,1)}
+.lamp-pool{position:absolute;left:38%;top:27%;width:64%;height:24%;background:radial-gradient(ellipse at 66% 45%,#ffbf5c40,transparent 70%);mix-blend-mode:screen;opacity:var(--lamp,1)}
+.lamp-bulb{position:absolute;left:73%;top:13%;width:26%;height:13%;background:radial-gradient(ellipse at 50% 50%,#1b0e06 0,#1b0e06cc 40%,transparent 72%);mix-blend-mode:multiply;opacity:calc(.85 - var(--lamp,1) * .85)}
 .tea-steam{position:absolute;left:5.5%;top:34%;width:12%;height:5%;overflow:visible}
 .tea-steam i{position:absolute;bottom:0;left:35%;width:4px;height:15px;background:#f5e6cc;opacity:0;filter:blur(1px);animation:tea-rise 3.8s ease-out infinite}
 .tea-steam i:nth-child(2){left:58%;animation-delay:1.3s;animation-duration:4.4s}.tea-steam i:nth-child(3){left:42%;animation-delay:2.8s;animation-duration:3.3s}
 @keyframes tea-rise{0%{opacity:0;transform:translate(0,0) scale(.7)}24%{opacity:.85}100%{opacity:0;transform:translate(8px,-27px) scale(1.6)}}
-.cat,.mat .bench-cat{width:74px;height:78px;padding:0;border:0;border-radius:0;box-shadow:none;background:transparent url('assets/cat-tabby.png') center/contain no-repeat;image-rendering:pixelated}
+.cat{width:74px;height:78px;padding:0;border:0;border-radius:0;box-shadow:none;background:transparent url('assets/cat-tabby.png') center/contain no-repeat;image-rendering:pixelated}
 .cat .ears,.cat .face,.cat .tail{display:none}
-.mat .bench-cat{top:31%;right:0;transform:none;transform-origin:bottom center;animation:cat-arrival 12s ease-out both,cat-breathe 4.5s ease-in-out 12s infinite}
-@keyframes cat-arrival{0%,55%{opacity:0;transform:translateX(45px)}72%,100%{opacity:1;transform:translateX(0)}}
-@keyframes cat-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.025,.985)}}
-.mat .bench-cat.petted{animation:cat-happy .45s ease 2,cat-breathe 4.5s ease-in-out 1s infinite}
-@keyframes cat-happy{50%{transform:translateY(-5px) rotate(-3deg)}}
-@media(max-width:400px){.mat .bench-cat{width:62px;height:66px}}
-@media(prefers-reduced-motion:reduce){.plant-motion,.tea-steam i,.mat .bench-cat,.mat .bench-cat.petted{animation:none}.mat .bench-cat{opacity:1}.tea-steam i{opacity:.2}.lamp-glow{transition:none}}
+@media(prefers-reduced-motion:reduce){.plant-motion,.tea-steam i{animation:none}.tea-steam i{opacity:.2}}
 .bench .panel .text-button[aria-pressed="false"]:before{content:'♪̸';opacity:.65}
 
 .lightning-flash{position:absolute;left:28%;top:0;width:59%;height:19%;background:#d5eaff;opacity:0;clip-path:polygon(0 0,100% 0,100% 20%,84% 20%,78% 42%,72% 77%,0 100%)}
 .lightning .lightning-flash{animation:lightning-flash .45s steps(1,end)}
 @keyframes lightning-flash{0%{opacity:.65}22%{opacity:.08}45%{opacity:.4}100%{opacity:0}}
 
-.lamp-upgraded .lamp-glow{background:radial-gradient(ellipse at 60% 51%,#ffdb8888,transparent 70%);opacity:1}
+.lamp-upgraded .lamp-glow{background:radial-gradient(ellipse at 49% 43%,#fffbe0 0,#ffe08acc 12%,#ffd27a55 38%,transparent 72%)}
+.lamp-upgraded .lamp-pool{background:radial-gradient(ellipse at 66% 45%,#ffd47a66,transparent 72%)}

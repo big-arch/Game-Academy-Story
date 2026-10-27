@@ -6,7 +6,6 @@
 .bench-header h2{color:#f2d4a1}.bench-help{color:#e0c7a2}
 .mat{position:relative;padding:0;border:4px solid #34211c;aspect-ratio:936/1681;background:#33261c url('assets/workshop-pixel.png') center/100% 100% no-repeat;overflow:hidden;image-rendering:pixelated}
 .mat:before{content:'';position:absolute;left:28%;top:0;width:59%;height:19%;background:repeating-linear-gradient(105deg,transparent 0 14px,#b9dce733 15px 16px,transparent 17px 27px);animation:rain 1.2s linear infinite;pointer-events:none}
-.mat .bench-cat{right:8%;bottom:auto;top:23%;z-index:3;transform:scale(.75);transform-origin:top right}
 .device{position:absolute;left:10%;top:61%;width:79%;height:21%;max-width:none;margin:0;background:transparent;border:0;box-shadow:none}
 .lid{inset:0;background:linear-gradient(155deg,#a08c71,#625b50);border:6px solid #3a302b;box-shadow:inset 0 0 0 4px #bb9e76}
 .lid-label{font-size:clamp(10px,2vw,14px);color:#f0dbb2;text-shadow:2px 2px #44362e}
