@@ -29,3 +29,4 @@
 - `pwsh scripts/adobe/run-illustrator.ps1` — рисует в Illustrator векторную монету `assets/ui/coin.svg` (исходник `assets/ui/source/coin.ai`).
 
 COM-регистрация Photoshop и Illustrator на этой машине пустая, поэтому скрипты `.jsx` передаются программам как файлы. Photoshop и Illustrator при этом открываются на экране.
+- Кот в Aseprite: `assets/sprites/cat/source/cat.aseprite` — анимация на таймлайне, теги `idle`, `walk`, `wash`, `sleep`, `stretch` (скорость как в `cat.js`). После правок в Aseprite выполните `pwsh scripts/aseprite/export-cat.ps1` — теги выгрузятся в `assets/sprites/cat/<тег>.png`, которые читает игра. Если меняете число кадров в теге, поправьте `ANIMS` в `cat.js`. `-Build` заново собирает `.aseprite` из текущих PNG.
