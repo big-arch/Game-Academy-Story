@@ -1,4 +1,5 @@
-import { initialState, act } from './game.js?v=10';
+import { initialState, act } from './game.js?v=11';
+import { clientFor, pickClient } from './stories.js?v=2';
 import { startAmbience } from './ambience.js?v=3';
 import { startCityLife } from './city-life.js?v=1';
 import { createMusicPlayer } from './music-player.js?v=2';
@@ -37,15 +38,13 @@ document.querySelectorAll('.order-btn').forEach(btn => {
     effects.play('click');
     const order = btn.dataset.order;
     if (state.stage === 'work' && !confirm('Начать новый заказ? Текущий незавершённый ремонт будет сброшен.')) return;
-    const { upgrade, coins } = state;
+    const { upgrade, coins } = state, previous = state.order === order ? state.client : null;
     state = { ...initialState(), upgrade, coins };
     tool = 'inspect';
     document.querySelectorAll('[data-tool]').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.tool === 'inspect')));
     $('#order-select').hidden = true;
     menuOpen = false;
-    if (order === 'laptop') { dispatch('accept'); }
-    else if (order === 'cassette') { dispatch('cassette-accept'); }
-    else if (order === 'remote') { dispatch('remote-accept'); }
+    dispatch(ORDER_ACCEPT[order], pickClient(order, previous));
   };
 });
 // Выбор инструмента кассетного плеера
@@ -86,9 +85,43 @@ for (const part of ['view-open', 'view-repaired', 'front-shell', 'keypad']) new 
 // С инструментом «Осмотр» касание устройства осматривает его — так же, как кнопка «Осмотр» вверху.
 // Перехват на стадии захвата, чтобы обработчики отдельных деталей не отвечали «нужна отвёртка».
 for (const [device, action] of [['#cassette-device', 'cassette-inspect'], ['#remote-device', 'remote-inspect']]) {
-  $(device).addEventListener('click', e => { if (tool !== 'inspect' || e.target.closest('#tape-clip')) return; e.stopPropagation(); effects.play('tool'); dispatch(action); }, true);
+  $(device).addEventListener('click', e => { if (tool !== 'inspect' || e.target.closest('#tape-clip, .story-mark')) return; e.stopPropagation(); effects.play('tool'); dispatch(action); }, true);
 }
 const ORDER_ACCEPT = { laptop: 'accept', cassette: 'cassette-accept', remote: 'remote-accept' };
+const ACCEPT_ORDER = Object.fromEntries(Object.entries(ORDER_ACCEPT).map(([order, action]) => [action, order]));
+// Следы истории рисуются на закрытом корпусе; при открытии корпуса они скрываются вместе с ним.
+const MARK_HOSTS = { laptop: '#lid', cassette: '#cassette-body', remote: '#remote-body' };
+let marksKey = '';
+function renderMarks(s) {
+  const client = s.stage === 'work' ? clientFor(s.order, s.client) : null, key = client ? `${s.order}:${client.id}` : '';
+  if (key !== marksKey) {
+    marksKey = key;
+    document.querySelectorAll('.story-mark').forEach(m => m.remove());
+    for (const mark of client?.marks || []) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'story-mark'; b.dataset.clue = mark.id;
+      b.setAttribute('aria-label', 'След на корпусе — рассмотреть');
+      Object.assign(b.style, { left: `${mark.x}%`, top: `${mark.y}%`, width: `${mark.size}%` });
+      b.innerHTML = `<img src="assets/ui/marks/${mark.kind}.svg" alt="">`;
+      b.onclick = e => {
+        e.stopPropagation();
+        if (tool !== 'inspect') { note('Присмотрись к этому следу — выбери «Осмотр».'); return; }
+        effects.play('tool'); dispatch('clue', mark.id); note(mark.text);
+      };
+      $(MARK_HOSTS[s.order]).append(b);
+    }
+  }
+  document.querySelectorAll('.story-mark').forEach(b => b.classList.toggle('found', s.clues.includes(b.dataset.clue)));
+}
+// Снятые винты лежат в лотке на коврике: видно, сколько снято и что их нужно вернуть.
+const TRAYS = { laptop: ['#bench-laptop', 4, 'screwMask'], cassette: ['#bench-cassette', 3, 'cScrewMask'], remote: ['#bench-remote', 3, 'rScrewMask'] };
+for (const [order, [bench, count]] of Object.entries(TRAYS)) {
+  const tray = document.createElement('div'); tray.className = `screw-tray tray-${order}`; tray.setAttribute('aria-hidden', 'true');
+  for (let i = 0; i < count; i++) tray.append(document.createElement('i'));
+  $(`${bench} .mat`).append(tray);
+}
+function renderTrays(s) {
+  for (const [order, [bench, , maskKey]] of Object.entries(TRAYS)) $(`${bench} .screw-tray`).querySelectorAll('i').forEach((slot, i) => slot.classList.toggle('on', Boolean(s[maskKey] & (1 << i))));
+}
 const BENCHES = { laptop: '#bench-laptop', cassette: '#bench-cassette', remote: '#bench-remote' };
 const storyToggle = document.createElement('button');
 storyToggle.type = 'button'; storyToggle.className = 'story-toggle'; storyToggle.textContent = 'История'; storyToggle.setAttribute('aria-expanded', 'false'); storyToggle.setAttribute('aria-controls', 'story');
@@ -99,6 +132,8 @@ $('.panel-top').append(coinCounter, storyToggle);
 const backMenu = document.createElement('button'); backMenu.type='button'; backMenu.className='back-menu'; backMenu.textContent='☰'; backMenu.setAttribute('aria-label','Главное меню'); backMenu.title='Главное меню';
 backMenu.onclick=()=>{effects.play();menuOpen=true;render();};
 $('.panel .bottom').prepend(backMenu);
+// Всё управление — в нижней панели, чтобы окно и комната сверху были открыты.
+for (const bench of document.querySelectorAll('.bench')) { const dock = document.createElement('div'); dock.className = 'dock'; dock.append(bench.querySelector('.bench-message'), bench.querySelector('.tools')); bench.append(dock); }
 const benchCats = { 'bench-cat': createCat($('#bench-cat')), 'bench-cat-cassette': createCat($('#bench-cat-cassette')), 'bench-cat-remote': createCat($('#bench-cat-remote')) };
 const CAT_BY_ORDER = { laptop: 'bench-cat', cassette: 'bench-cat-cassette', remote: 'bench-cat-remote' };
 // Only the cat on the visible bench runs its animation loop.
@@ -130,7 +165,7 @@ function render() {
   $('.scene').hidden = menuOpen || s.stage === 'work';
   if (s.stage === 'work') {
     const bench = $(BENCHES[s.order] || BENCHES.laptop);
-    bench.insertBefore($('.panel'), bench.querySelector('.mat'));
+    bench.querySelector('.dock').prepend($('.panel'));
   } else $('.app').insertBefore($('.panel'), $('footer'));
   storyToggle.hidden = s.stage !== 'work';
   backMenu.hidden = menuOpen;
@@ -140,15 +175,17 @@ function render() {
   $('#belt').classList.toggle('connected',s.beltReplaced);$('#head').classList.toggle('connected',s.headCleaned);$('#tape-clip').classList.toggle('connected',s.tapeClipFixed);
   $('#wire').classList.toggle('connected', s.fanConnected); $('#radiator').classList.toggle('fixed', s.paste); $('.fan-art').classList.toggle('clean', s.dustCleaned);
   $('#display').textContent = s.repaired ? 'ПРОВЕРКА ПРОЙДЕНА' : s.poweredOff ? 'ПИТАНИЕ ОТКЛЮЧЕНО' : s.tested ? 'ТЕМПЕРАТУРА: ВЫСОКАЯ' : 'ОЖИДАНИЕ';
-  $('#heading').textContent = s.stage === 'ending' ? 'История продолжается' : s.order === 'cassette' ? 'Музыка на плёнке' : s.order === 'remote' ? 'Вечер у телевизора' : 'Письма из прошлого';
-  $('#story').textContent = s.order === 'remote' ? (s.stage === 'ending' ? '«Работает! Дедушка снова сам переключает свои передачи и больше не зовёт меня каждые пять минут. Спасибо!»' : '«Дедушка пролил чай на пульт, и теперь половина кнопок не нажимается. Он без него как без рук — посмотрите, пожалуйста?»') : s.order === 'cassette' ? (s.stage === 'ending' ? '«Плеер снова работает. Теперь я смогу послушать старую запись. Спасибо!»' : '«Этот плеер не протягивает ленту. На кассете важная для меня запись. Поможете?»') : (s.stage === 'ending' ? '«Он снова работает… Смотрите, это дедушкины фотографии с моря! Я думала, что больше никогда их не увижу. Спасибо вам.»' : '«Это ноутбук моего дедушки. Он включается, но быстро выключается. Там наши семейные фотографии… Пожалуйста, помогите их сохранить.»');
+  const client = clientFor(s.order, s.client);
+  $('#heading').textContent = client ? `${client.name} · ${client.title}` : s.stage === 'ending' ? 'История продолжается' : s.order === 'cassette' ? 'Музыка на плёнке' : s.order === 'remote' ? 'Вечер у телевизора' : 'Письма из прошлого';
+  $('#story').textContent = client ? [s.stage === 'ending' ? client.ending : client.intro, ...client.marks.filter(m => s.clues.includes(m.id)).map(m => `• ${m.text}`), ...(s.stage === 'work' && s.clues.length < client.marks.length ? [`Следов на корпусе ещё не найдено: ${client.marks.length - s.clues.length}.`] : [])].join('\n') : s.order === 'remote' ? (s.stage === 'ending' ? '«Работает! Дедушка снова сам переключает свои передачи и больше не зовёт меня каждые пять минут. Спасибо!»' : '«Дедушка пролил чай на пульт, и теперь половина кнопок не нажимается. Он без него как без рук — посмотрите, пожалуйста?»') : s.order === 'cassette' ? (s.stage === 'ending' ? '«Плеер снова работает. Теперь я смогу послушать старую запись. Спасибо!»' : '«Этот плеер не протягивает ленту. На кассете важная для меня запись. Поможете?»') : (s.stage === 'ending' ? '«Он снова работает… Смотрите, это дедушкины фотографии с моря! Я думала, что больше никогда их не увижу. Спасибо вам.»' : '«Это ноутбук моего дедушки. Он включается, но быстро выключается. Там наши семейные фотографии… Пожалуйста, помогите их сохранить.»');
   $('#status').textContent = s.stage === 'ending' ? `● БАЛАНС: ${s.coins} МОНЕТ` : s.repaired ? '● УСТРОЙСТВО ИСПРАВНО' : s.stage === 'work' ? '● ЗАКАЗ В РАБОТЕ' : '● НОВЫЙ ЗАКАЗ';
   const actions = s.stage === 'intro' ? [['accept','Принять заказ']] : s.stage === 'ending' ? [['next-order','Следующий заказ'], ...(s.upgrade ? [] : [['upgrade','Улучшить лампу · 120 монет']]), ['replay','Повторить заказ']] : s.order === 'remote' ? [['remote-inspect','Осмотр'],['remote-test','Проверить'], ...(s.rOpen && s.rInspectedInside && !s.rDiagnosed ? [['rdiag-battery','Причина: батарейки'],['rdiag-led','Причина: светодиод'],['rdiag-contacts','Причина: контакты']] : []), ...(s.rOpen ? [['remote-cover','Закрыть корпус']] : []), ...(s.rRepaired ? [['remote-finish','Вернуть клиенту']] : [])] : s.order === 'cassette' ? [['cassette-inspect','Осмотр'],['cassette-test','Проверить'], ...(s.cassetteOpen && s.cassetteInteriorInspected && !s.cassetteDiagnosed ? [['diagnose-battery','Причина: батарея'],['diagnose-head','Причина: головка'],['diagnose-belt','Причина: ремень']] : []), ...(s.cassetteOpen ? [['cassette-cover','Закрыть крышку']] : []), ...(s.cassetteRepaired ? [['cassette-finish','Вернуть клиенту']] : [])] : [['inspect','Осмотр'],['test','Диагностика'],['power',s.poweredOff?'Включить питание':'Выключить питание'], ...(s.open ? [['cover','Закрыть крышку']] : []), ...(s.repaired ? [['finish','Вернуть клиенту']] : [])];
   $('#actions').replaceChildren(...actions.map(([id,label],i) => { const b=document.createElement('button');b.textContent=label;if(i===0||id.endsWith('finish'))b.className='primary';b.onclick=()=>{effects.play('click');dispatch(id);};return b; }));
   $('.lamp').style.color = s.upgrade ? '#ffd883' : '#d4a06a';
+  renderMarks(s); renderTrays(s);
   syncCats();
 }
-function dispatch(action, target) { const coinsBefore = state.coins; if(action.startsWith('diagnose-')) { target=action.slice('diagnose-'.length); action='cassette-diagnose'; } if(action.startsWith('rdiag-')) { target=action.slice('rdiag-'.length); action='remote-diagnose'; } if(action==='next-order'){ menuOpen=true; render(); $('#order-select').hidden=false; return; } if(action==='replay'){ const {upgrade,coins}=state, order=state.order || 'laptop'; state={...initialState(),upgrade,coins}; const result=act(state,ORDER_ACCEPT[order]);state=result.state;note('Заказ начат заново. Улучшения мастерской сохранены.'); } else { const result=act(state,action,target);state=result.state;note(result.message); } try{localStorage.setItem(KEY,JSON.stringify(state));}catch{} saveToCloud(state); const source = rewardSource(), gained = state.coins - coinsBefore; if (gained > 0) coinFlight++; render(); if (gained > 0) flyCoins(gained, source); }
+function dispatch(action, target) { const coinsBefore = state.coins; if(action.startsWith('diagnose-')) { target=action.slice('diagnose-'.length); action='cassette-diagnose'; } if(action.startsWith('rdiag-')) { target=action.slice('rdiag-'.length); action='remote-diagnose'; } if(action==='next-order'){ menuOpen=true; render(); $('#order-select').hidden=false; return; } if(ACCEPT_ORDER[action] && target === undefined) target = pickClient(ACCEPT_ORDER[action], state.client); if(action==='replay'){ const {upgrade,coins,client}=state, order=state.order || 'laptop'; state={...initialState(),upgrade,coins}; const result=act(state,ORDER_ACCEPT[order],client);state=result.state;note('Заказ начат заново. Улучшения мастерской сохранены.'); } else { const result=act(state,action,target);state=result.state;note(result.message); } try{localStorage.setItem(KEY,JSON.stringify(state));}catch{} saveToCloud(state); const source = rewardSource(), gained = state.coins - coinsBefore; if (gained > 0) coinFlight++; render(); if (gained > 0) flyCoins(gained, source); }
 function note(text){$('#message').textContent=text;$('#bench-message').textContent=text;$('#cassette-message').textContent=text;$('#remote-message').textContent=text;}
 // Награда: монеты вылетают из устройства и по одной долетают до счётчика, число растёт вместе с ними.
 let coinFlight = 0;

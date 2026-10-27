@@ -1,0 +1,19 @@
+/* Нижняя панель: шапка заказа, действия, подсказка и инструменты собраны внизу, комната сверху открыта.
+   Сцена поднята на 8%, чтобы низ устройств (ноутбук до 83% высоты) не уходил под панель. */
+.bench .mat{transform:translateY(-8%)}
+.bench .dock{position:absolute;z-index:5;left:0;right:0;bottom:0;display:flex;flex-direction:column;gap:4px;padding:5px 0 env(safe-area-inset-bottom);background:linear-gradient(#251c18e6,#241b18fa 30%);border-top:2px solid #b28a5f}
+.bench .dock .panel{position:relative;inset:auto;margin:0;padding:0 8px;background:none;box-shadow:none}
+.bench .dock .panel-top{min-height:32px;padding-right:84px}
+.bench .dock .panel-top h2{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.bench .dock .panel .bottom{position:absolute;right:4px;top:-4px}
+.bench .dock .panel .actions{margin-top:2px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.bench .dock .panel .actions::-webkit-scrollbar{display:none}
+.bench .dock .panel .actions button{flex:1 0 auto;min-height:38px;white-space:nowrap}
+/* История открывается над панелью и не сдвигает кнопки. */
+.bench .dock .panel.story-open p{position:absolute;left:8px;right:8px;bottom:calc(100% + 10px);margin:0;padding:10px 12px;background:#2c211df2;border:1px solid #a7835f;box-shadow:0 6px 18px #0008;max-height:40vh;overflow:auto}
+.bench .dock .bench-message{position:static;margin:0 8px;padding:6px 10px;min-height:32px;font-size:12px}
+.bench .dock .tools{position:static;padding:4px 8px 7px;background:none;border:0}
+.bench .dock .tools button{min-height:50px}
+@media(max-height:640px){.bench .dock .tools button{min-height:44px}.bench .dock .panel .actions button{min-height:34px}}
+.bench .dock .panel-top>div{flex:1;min-width:0}
+.bench .dock .panel-top{padding-right:92px}

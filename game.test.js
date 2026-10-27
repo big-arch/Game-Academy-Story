@@ -81,3 +81,13 @@ test('remote needs diagnosis, cleaning and reassembly before it passes the test'
   run('remote-finish'); assert.equal(s.stage,'ending'); assert.equal(s.coins,80);
   run('remote-finish'); assert.equal(s.coins,80);
 });
+
+test('story clues are counted once and paid as tips on return', () => {
+  let s = act(initialState(), 'remote-accept', 'zoya').state;
+  assert.equal(s.client, 'zoya');
+  s = act(s, 'clue', 'heart').state; s = act(s, 'clue', 'heart').state; s = act(s, 'clue', 'tape').state;
+  assert.deepEqual(s.clues, ['heart', 'tape']);
+  const done = act({ ...s, rRepaired: true }, 'remote-finish');
+  assert.equal(done.state.coins, 80 + 20);
+  assert.match(done.message, /20 чаевых/);
+});
