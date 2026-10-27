@@ -19,7 +19,6 @@ layer.name = "cat"
 local index = 0
 for _, a in ipairs(anims) do
   local strip = Image{ fromFile = dir .. "/" .. a.name .. ".png" }
-  local first = index + 1
   for i = 0, a.frames - 1 do
     index = index + 1
     local frame = index == 1 and sprite.frames[1] or sprite:newEmptyFrame()
@@ -28,8 +27,14 @@ for _, a in ipairs(anims) do
     img:drawImage(strip, Point(-i * W, 0))
     sprite:newCel(layer, frame, img, Point(0, 0))
   end
-  local tag = sprite:newTag(first, index)
+end
+-- Add tags only after all frames exist: appending frames at a tag's end
+-- otherwise expands that tag into the following animations.
+local first = 1
+for _, a in ipairs(anims) do
+  local tag = sprite:newTag(first, first + a.frames - 1)
   tag.name = a.name
+  first = first + a.frames
 end
 sprite:saveAs(dir .. "/source/cat.aseprite")
 print(("cat.aseprite: %d frames, %d tags"):format(#sprite.frames, #sprite.tags))
