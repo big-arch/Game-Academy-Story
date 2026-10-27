@@ -1,0 +1,22 @@
+/* Effects are bounded to the painted scene and never intercept a touch. */
+.mat:before{display:none}
+.ambience{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:1}
+.rain-canvas{position:absolute;left:28%;top:0;width:59%;height:19%;display:block;opacity:.75}
+.plant-motion{position:absolute;left:0;top:0;width:25%;height:22%;background-image:url('assets/workshop-pixel.png');background-size:400% 454.55%;background-position:left top;background-repeat:no-repeat;clip-path:polygon(0 0,100% 0,94% 46%,76% 72%,52% 83%,0 81%);transform-origin:32% 92%;animation:leaf-sway 6.7s ease-in-out infinite alternate;opacity:.95}
+@keyframes leaf-sway{0%,100%{transform:rotate(-.35deg)}45%{transform:rotate(.5deg)}70%{transform:rotate(.15deg)}}
+.lamp-glow{position:absolute;right:1%;top:7%;width:28%;height:21%;background:radial-gradient(ellipse at 60% 51%,#ffcc6148,transparent 66%);opacity:.75;transition:opacity 100ms ease-out;mix-blend-mode:screen}
+.lamp-flicker .lamp-glow{opacity:.12}
+.tea-steam{position:absolute;left:5.5%;top:35%;width:12%;height:7%;overflow:visible}
+.tea-steam i{position:absolute;bottom:0;left:35%;width:5px;height:12px;background:#f5e6cc;opacity:0;filter:blur(3px);animation:tea-rise 3.8s ease-out infinite}
+.tea-steam i:nth-child(2){left:58%;animation-delay:1.3s;animation-duration:4.4s}.tea-steam i:nth-child(3){left:42%;animation-delay:2.8s;animation-duration:3.3s}
+@keyframes tea-rise{0%{opacity:0;transform:translate(0,0) scale(.7)}24%{opacity:.52}100%{opacity:0;transform:translate(8px,-27px) scale(1.6)}}
+.cat,.mat .bench-cat{width:74px;height:78px;padding:0;border:0;border-radius:0;box-shadow:none;background:transparent url('assets/cat-tabby.png') center/contain no-repeat;image-rendering:pixelated}
+.cat .ears,.cat .face,.cat .tail{display:none}
+.mat .bench-cat{top:31%;right:0;transform:none;transform-origin:bottom center;animation:cat-arrival 12s ease-out both,cat-breathe 4.5s ease-in-out 12s infinite}
+@keyframes cat-arrival{0%,55%{opacity:0;transform:translateX(45px)}72%,100%{opacity:1;transform:translateX(0)}}
+@keyframes cat-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.025,.985)}}
+.mat .bench-cat.petted{animation:cat-happy .45s ease 2,cat-breathe 4.5s ease-in-out 1s infinite}
+@keyframes cat-happy{50%{transform:translateY(-5px) rotate(-3deg)}}
+@media(max-width:400px){.mat .bench-cat{width:62px;height:66px}}
+@media(prefers-reduced-motion:reduce){.plant-motion,.tea-steam i,.mat .bench-cat,.mat .bench-cat.petted{animation:none}.mat .bench-cat{opacity:1}.tea-steam i{opacity:.2}.lamp-glow{transition:none}}
+.bench .panel .text-button[aria-pressed="false"]:before{content:'♪̸';opacity:.65}

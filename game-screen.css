@@ -1,0 +1,18 @@
+/* Portrait game canvas: the workshop, controls and feedback share one surface. */
+.app:has(.bench:not([hidden])){width:100%;max-width:none;padding:0;min-height:100dvh;display:grid;place-items:center;background:#171319}
+.app:has(.bench:not([hidden]))>header,.app:has(.bench:not([hidden]))>footer{display:none}
+.app:has(.bench:not([hidden])) .bench{position:relative;display:block;width:min(100vw,55.68dvh);height:min(100dvh,179.59vw);max-width:none;margin:0;padding:0;overflow:hidden;border:0;background:#2b201c;box-shadow:0 0 0 3px #41322b,0 12px 35px #0009}
+.bench .mat{position:absolute;inset:0;width:100%;height:100%;margin:0;border:0;aspect-ratio:auto;background-size:100% 100%}
+.bench .panel{position:absolute;z-index:5;inset:0 0 auto;margin:0;padding:max(8px,env(safe-area-inset-top)) 10px 8px;color:#f9ebcf;background:linear-gradient(#221b1cf2,#221b1cda);border:0;box-shadow:none}
+.bench .panel-top{align-items:center;gap:8px}.bench .panel-top .eyebrow,.bench .number{display:none}.bench .panel-top h2{font:700 14px/1.3 Consolas,monospace;margin:0;color:#f4d5a5}.bench .panel p{display:none;font:14px/1.4 Georgia,serif;margin:8px 0;color:#f7e8cb}.bench .panel.story-open p{display:block}
+.story-toggle{flex:none;border:1px solid #c09d72;background:#554135;color:#f3ddbb;padding:0 10px;min-height:40px;font:700 11px Consolas,monospace;cursor:pointer}.story-toggle:focus-visible{outline:2px solid #ffdda0;outline-offset:2px}
+.bench .panel .actions{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}.bench .panel .actions button{flex:1 1 auto;min-width:0;min-height:40px;padding:5px 6px;color:#f9e3bc;background:#584333;border:1px solid #a37d56;font:700 10px/1.2 Consolas,monospace}.bench .panel .actions .primary{background:#b98958;color:#211b1b}.bench .panel .bottom{position:absolute;right:12px;top:12px;margin:0;padding:0;border:0}.bench .panel #status{display:none}.bench .panel .text-button{font-size:0;min-width:40px;min-height:40px}.bench .panel .text-button:before{content:'♪';font:20px/1 Consolas;color:#f6d6a5}
+.bench .panel-top{padding-right:45px}
+.bench .bench-message{position:absolute;z-index:4;left:8px;right:8px;bottom:calc(73px + env(safe-area-inset-bottom));min-height:0;margin:0;padding:8px 10px;background:#2c211de8;border:1px solid #a7835f;color:#f7e5c2;font:12px/1.35 Consolas,monospace;pointer-events:none}
+.bench .tools{position:absolute;z-index:5;left:0;right:0;bottom:0;max-width:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin:0;padding:7px 8px calc(7px + env(safe-area-inset-bottom));background:#37271dea;border-top:2px solid #b28a5f}
+.bench .tools button{width:100%;min-width:0;min-height:52px;margin:0;padding:4px;background:#795d45;border:1px solid #d6b484;color:#ffebc8;font:700 20px/1 Consolas,monospace;cursor:pointer}.bench .tools button span{display:block;margin-top:3px;font:700 10px/1 Consolas,monospace}.bench .tools button[aria-pressed=true]{outline:2px solid #ffdf95;outline-offset:-3px;background:#b78654}
+.bench .lid-open{min-height:40px}.bench .mat button:focus-visible,.bench .tools button:focus-visible{outline:3px solid #ffe5a7;outline-offset:1px}
+.bench .screw{transition:transform 180ms ease-out,color 180ms ease-out}.bench .screw.removed{transform:rotate(90deg) scale(.84)}
+.bench .dust{display:block;transition:opacity 180ms ease-out,transform 180ms ease-out}.bench .dust.removed{opacity:0;transform:scale(.7);pointer-events:none}
+@media(prefers-reduced-motion:reduce){.bench .screw,.bench .dust{transition:none}}
+@media(max-height:580px){.bench .panel p{font-size:12px}.bench .panel .actions button{min-height:36px}.bench .tools button{min-height:44px}.bench .bench-message{bottom:60px;font-size:11px}}

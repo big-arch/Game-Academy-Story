@@ -1,0 +1,36 @@
+/* Original pixel-art background; controls remain independent, accessible elements. */
+.scene{background:#261c1d url('assets/workshop-pixel.png') center 19%/cover no-repeat}
+.scene>.window,.scene>.shelf,.scene>.lamp,.scene>.desk,.scene>.laptop,.scene>.mug,.scene>.plant{display:none}
+.scene .cat{right:8%;bottom:24px}
+.bench{max-width:560px;margin:14px auto 0;background:#251f21;border-color:#9c734f}
+.bench-header h2{color:#f2d4a1}.bench-help{color:#e0c7a2}
+.mat{position:relative;padding:0;border:4px solid #34211c;aspect-ratio:936/1681;background:#33261c url('assets/workshop-pixel.png') center/100% 100% no-repeat;overflow:hidden;image-rendering:pixelated}
+.mat:before{content:'';position:absolute;left:28%;top:0;width:59%;height:19%;background:repeating-linear-gradient(105deg,transparent 0 14px,#b9dce733 15px 16px,transparent 17px 27px);animation:rain 1.2s linear infinite;pointer-events:none}
+.mat .bench-cat{right:8%;bottom:auto;top:23%;z-index:3;transform:scale(.75);transform-origin:top right}
+.device{position:absolute;left:10%;top:61%;width:79%;height:21%;max-width:none;margin:0;background:transparent;border:0;box-shadow:none}
+.lid{inset:0;background:linear-gradient(155deg,#a08c71,#625b50);border:6px solid #3a302b;box-shadow:inset 0 0 0 4px #bb9e76}
+.lid-label{font-size:clamp(10px,2vw,14px);color:#f0dbb2;text-shadow:2px 2px #44362e}
+.screw{color:#efcf9d;text-shadow:2px 2px #2e2420}.screw.removed{color:#332b25}
+.components,.device.is-open .components{border:0;background:transparent}
+.fan-art{left:16%;top:7%;width:42%;height:68%;border:0;background:transparent;border-radius:0;font-size:0;line-height:normal}
+.fan-art>span{display:none}.fan-art.clean>span{display:none}
+.dust{background:#aa9f80bd;color:#534638;border:2px solid #d1b78c;opacity:.9}.dust-0{left:8%;top:7%}.dust-1{right:8%;top:22%}.dust-2{left:38%;bottom:4%}
+.wire,.radiator{min-width:48px;min-height:44px;font-size:9px;border:2px solid #ffe3a4;background:#342a25dc;color:#ffe5a6;box-shadow:0 0 0 2px #392c24}
+.wire{left:58%;top:4%}.radiator{left:61%;bottom:5%}.wire.connected,.radiator.fixed{background:#344a32dc;color:#d8efc3;border-color:#b8dba1}
+.memory,.disc{display:none}
+.tools button{background:#584334;border-color:#bd9870;color:#ffe3ad}.tools button[aria-pressed=true]{background:#a8794b;outline-color:#ffdd8a}
+@media(max-width:550px){.bench{padding:10px}.device{height:21%}.fan-art{width:42%;height:68%}.wire,.radiator{min-width:44px;font-size:8px}}
+@media(prefers-reduced-motion:reduce){.mat:before{animation:none}}
+/* Keep the story, repair controls and artwork together in one game surface. */
+.app:has(.bench:not([hidden])){max-width:600px;padding-top:12px}
+.app:has(.bench:not([hidden])) header{margin-bottom:8px}
+.app:has(.bench:not([hidden])) header h1{font-size:22px}
+.bench .bench-header,.bench .bench-help{display:none}
+.bench .panel{margin:0 0 10px;padding:12px;background:#352922;border:1px solid #806247;box-shadow:none}
+.bench .panel-top h2{font-size:16px;margin:3px 0 5px}.bench .panel-top .eyebrow,.bench .number{font-size:8px}
+.bench .panel p{font-size:13px;line-height:1.3}.bench .panel #message{display:none}
+.bench .panel .actions{gap:5px;margin-top:8px}.bench .panel .actions button{min-height:38px;padding:6px 10px;font-size:10px;flex:1 1 auto}
+.bench .panel .bottom{margin-top:7px;padding-top:7px;font-size:9px}
+.mat{width:min(100%,calc(48svh * 936 / 1681));margin:0 auto}
+.bench-message{max-width:480px;margin:auto}.tools{max-width:480px;margin:8px auto 0}
+@media(max-width:550px){.app:has(.bench:not([hidden])){padding:8px}.bench{margin-top:0}.bench .panel{padding:9px}.mat{width:min(100%,calc(45svh * 936 / 1681))}.tools button{flex:1 1 22%;min-width:0;font-size:16px}}
