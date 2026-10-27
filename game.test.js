@@ -58,3 +58,26 @@ test('rewards are awarded once and lamp costs saved coins', () => {
   assert.equal(broke.upgrade, false);
   assert.equal(broke.coins, 0);
 });
+
+test('remote needs diagnosis, cleaning and reassembly before it passes the test', () => {
+  let s=initialState(); const run=(a,t)=>{s=act(s,a,t).state;};
+  run('remote-accept'); assert.equal(s.order,'remote');
+  run('remote-cover'); assert.equal(s.rOpen,false);
+  for(let i=0;i<3;i++)run('remote-screw',i);
+  run('remote-cover'); assert.equal(s.rOpen,true);
+  run('remote-clean',0); assert.equal(s.rGrimeMask,0);
+  run('remote-diagnose','contacts'); assert.equal(s.rDiagnosed,false);
+  run('remote-inspect'); run('remote-diagnose','battery'); assert.equal(s.rDiagnosed,false);
+  run('remote-diagnose','contacts'); assert.equal(s.rDiagnosed,true);
+  for(let i=0;i<3;i++)run('remote-clean',i);
+  run('remote-cover'); run('remote-test'); assert.equal(s.rRepaired,false);
+  for(let i=0;i<3;i++)run('remote-screw',i);
+  run('remote-test'); assert.equal(s.rRepaired,false);
+  run('remote-cover'); assert.equal(s.rOpen,false);
+  for(let i=0;i<3;i++)run('remote-screw',i);
+  run('remote-cover'); run('remote-keypad'); run('remote-cover');
+  for(let i=0;i<3;i++)run('remote-screw',i);
+  run('remote-test'); assert.equal(s.rRepaired,true);
+  run('remote-finish'); assert.equal(s.stage,'ending'); assert.equal(s.coins,80);
+  run('remote-finish'); assert.equal(s.coins,80);
+});

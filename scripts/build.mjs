@@ -22,7 +22,7 @@ if (process.argv[2] === 'vendor') process.exit(0);
 
 // Только то, что игра загружает в рантайме. Исходники моделей, музыки и temp/ в сборку не попадают.
 const files = (await readdir(root)).filter(f => (f.endsWith('.js') || f.endsWith('.css') || f === 'index.html') && !f.endsWith('.test.js') && f !== 'server.js');
-const dirs = ['vendor', 'assets/sprites', 'assets/devices/cassette-player','music/menu', 'music/gameplay', 'sounds/ambience'];
+const dirs = ['vendor', 'assets/sprites', 'assets/devices/cassette-player', 'assets/devices/remote/parts', 'assets/ui/coin.svg', 'music/menu', 'music/gameplay', 'sounds/ambience'];
 const audioDirs = ['assets/kenney-interface-sounds/Audio', 'assets/kenney-rpg-sfx/OGG'];
 
 await rm(out, { recursive: true, force: true });

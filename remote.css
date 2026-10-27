@@ -1,0 +1,33 @@
+/* Рабочий стол пульта: детали вырезаны из assets/devices/remote/concept-states.png (scripts/split-parts.py).
+   Размеры в % коврика подобраны под пропорции кадров (вид пульта 283×665). */
+.bench .mat.mat-remote{background:#2b201c url('assets/workshop-cassette.png') center/100% 100% no-repeat}
+.mat-remote .device-remote{position:absolute;z-index:4;left:34.7%;top:46%;width:30.6%;height:40%;transition:left .45s ease-out}
+.mat-remote .device-remote.is-open{left:12%}
+.mat-remote .remote-body,.mat-remote .remote-inside{position:absolute;inset:0;background:center/100% 100% no-repeat;filter:drop-shadow(4px 6px 0 #0007)}
+.mat-remote .remote-body{background-image:url('assets/devices/remote/parts/view-closed.png')}
+.mat-remote .device-remote.repaired .remote-body{background-image:url('assets/devices/remote/parts/view-repaired.png')}
+.mat-remote .remote-inside{display:none;background-image:url('assets/devices/remote/parts/view-open.png')}
+.mat-remote .device-remote.is-open .remote-body{display:none}
+.mat-remote .device-remote.is-open .remote-inside{display:block}
+
+/* Винты: верх по центру и нижние углы корпуса. */
+.mat-remote .remote-body .screw{font-size:13px;text-shadow:1px 1px #2e2420}
+.mat-remote .remote-body .screw:before{inset:15px;border-width:2px}
+.mat-remote .remote-body .screw.removed{font-size:0}
+.mat-remote .remote-body .screw-0{left:calc(50% - 22px);top:calc(4% - 22px)}
+.mat-remote .remote-body .screw-1{left:calc(17% - 22px);right:auto;top:calc(94% - 22px);bottom:auto}
+.mat-remote .remote-body .screw-2{left:calc(83% - 22px);right:auto;top:calc(94% - 22px);bottom:auto}
+.mat-remote .remote-open{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:92%;min-height:40px;padding:6px 8px;background:#26211eea;border:1px solid #c4a57a;color:#ffe9bb;font:700 10px/1.2 Consolas,monospace;cursor:pointer}
+
+/* Липкие пятна на плате открытого пульта. */
+.mat-remote .grime{position:absolute;width:44px;height:44px;margin:-22px 0 0 -22px;padding:0;border:0;background:radial-gradient(circle at 40% 36%,#ffd88a99 0 7%,transparent 12%),radial-gradient(ellipse 46% 40% at 50% 52%,#3a1f06f2 0 55%,#8a5a1acc 75%,transparent 100%);cursor:pointer;transition:opacity .25s ease-out,transform .25s ease-out}
+.mat-remote .grime-0{left:32%;top:24%}.mat-remote .grime-1{left:68%;top:29%}.mat-remote .grime-2{left:42%;top:44%}
+.mat-remote .grime.removed{opacity:0;transform:scale(.6);pointer-events:none}
+
+/* Снятая передняя панель и резиновая клавиатура лежат рядом на коврике. */
+.mat-remote .remote-shell,.mat-remote .remote-keypad{display:none;position:absolute;z-index:4;background:center/100% 100% no-repeat;filter:drop-shadow(3px 5px 0 #0007)}
+.mat-remote.open .remote-shell,.mat-remote.open .remote-keypad{display:block}
+.mat-remote .remote-shell{left:50%;top:47%;width:22.8%;height:31.6%;background-image:url('assets/devices/remote/parts/front-shell.png');transform:rotate(4deg)}
+.mat-remote .remote-keypad{left:76%;top:51%;width:15.6%;height:11.2%;padding:0;border:0;background-image:url('assets/devices/remote/parts/keypad.png');transform:rotate(-7deg);cursor:pointer;filter:sepia(.7) brightness(.8) drop-shadow(3px 5px 0 #0007)}
+.mat-remote .remote-keypad.clean{filter:drop-shadow(3px 5px 0 #0007)}
+@media(prefers-reduced-motion:reduce){.mat-remote .device-remote,.mat-remote .grime{transition:none}}

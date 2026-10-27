@@ -1,4 +1,6 @@
-export const initialState = () => ({ stage: 'intro', inspected: false, tested: false, poweredOff: false, open: false, screws: 0, screwMask: 0, assembling: false, dust: 0, dustMask: 0, dustCleaned: false, fanConnected: false, thermalChecked: false, paste: false, repaired: false, upgrade: false, coins: 0, order: null, cassetteOpen: false, cScrews: 0, cScrewMask: 0, cassetteAssembling: false, tapeClipFixed: false, beltReplaced: false, headCleaned: false, cassetteTested: false, cassetteInteriorInspected: false, cassetteDiagnosed: false, cassetteRepaired: false });
+export const initialState = () => ({ stage: 'intro', inspected: false, tested: false, poweredOff: false, open: false, screws: 0, screwMask: 0, assembling: false, dust: 0, dustMask: 0, dustCleaned: false, fanConnected: false, thermalChecked: false, paste: false, repaired: false, upgrade: false, coins: 0, order: null, cassetteOpen: false, cScrews: 0, cScrewMask: 0, cassetteAssembling: false, tapeClipFixed: false, beltReplaced: false, headCleaned: false, cassetteTested: false, cassetteInteriorInspected: false, cassetteDiagnosed: false, cassetteRepaired: false, rOpen: false, rScrewMask: 0, rAssembling: false, rInspectedInside: false, rDiagnosed: false, rGrimeMask: 0, rKeypadClean: false, rRepaired: false });
+export const REWARDS = { laptop: 120, cassette: 120, remote: 80 };
+const bits = mask => mask.toString(2).replaceAll('0', '').length;
 export function act(s, action, target) {
   const n = { ...s };
   let message = '';
@@ -24,7 +26,7 @@ export function act(s, action, target) {
     case 'connect': if (!n.open) message = 'Разъём находится под крышкой.'; else { n.fanConnected = true; message = 'Провод вентилятора подключён.'; } break;
     case 'thermal': if (!n.open) message = 'Радиатор находится под крышкой.'; else { n.thermalChecked = true; message = 'Старая термопаста высохла и потрескалась.'; } break;
     case 'paste': if (!n.open || !n.thermalChecked) message = 'Сначала осмотри радиатор.'; else { n.paste = true; message = 'Старая паста удалена, нанесён тонкий новый слой.'; } break;
-    case 'finish': if (n.stage === 'work' && n.order === 'laptop' && n.repaired) { n.stage = 'ending'; n.coins += 120; message = 'Заказ завершён! Получено 120 монет.'; } else message = 'Сначала добейся успешной проверки устройства.'; break;
+    case 'finish': if (n.stage === 'work' && n.order === 'laptop' && n.repaired) { n.stage = 'ending'; n.coins += REWARDS.laptop; message = `Заказ завершён! Получено ${REWARDS.laptop} монет.`; } else message = 'Сначала добейся успешной проверки устройства.'; break;
     case 'upgrade': if (n.upgrade) message = 'Лампа уже улучшена.'; else if (n.coins < 120) message = 'Для улучшения лампы нужно 120 монет.'; else { n.coins -= 120; n.upgrade = true; message = 'Новая лампа куплена. В мастерской стало теплее.'; } break;
     // Кассетный плеер
     case 'cassette-accept': n.stage = 'work'; n.order = 'cassette'; message = 'Заказ принят: кассетный плеер не протягивает ленту.'; break;
@@ -36,7 +38,24 @@ export function act(s, action, target) {
     case 'cassette-belt': if (!n.cassetteOpen) { message = 'Сначала открой корпус.'; break; } if (!n.cassetteDiagnosed) { message = 'Сначала осмотри механизм и определи причину неисправности.'; break; } if (!n.tapeClipFixed) { message = 'Сначала почини клип ленты.'; break; } n.beltReplaced = true; message = 'Новый приводной ремень установлен. Механизм протяжки работает!'; break;
     case 'cassette-head': if (!n.cassetteOpen) { message = 'Сначала открой корпус.'; break; } n.headCleaned = true; message = 'Головка очищена. Звук станет чище.'; break;
     case 'cassette-test': if (n.cassetteAssembling && n.cScrewMask) { message = 'Сначала закрепи винты корпуса.'; break; } if (n.cassetteOpen) { message = 'Сначала закрой корпус.'; break; } if (!n.beltReplaced || !n.tapeClipFixed || !n.headCleaned) { message = 'Плеер ещё работает неправильно. Проверь механизм и головку.'; break; } n.cassetteTested = true; n.cassetteRepaired = true; message = 'Плеер работает! Кассета протягивается, звук чистый.'; break;
-    case 'cassette-finish': if (n.stage === 'work' && n.order === 'cassette' && n.cassetteRepaired) { n.stage = 'ending'; n.repaired = true; n.coins += 120; message = 'Заказ завершён! Получено 120 монет.'; } else message = 'Сначала пройдите проверку.'; break;
+    case 'cassette-finish': if (n.stage === 'work' && n.order === 'cassette' && n.cassetteRepaired) { n.stage = 'ending'; n.repaired = true; n.coins += REWARDS.cassette; message = `Заказ завершён! Получено ${REWARDS.cassette} монет.`; } else message = 'Сначала пройдите проверку.'; break;
+    // Пульт: западают кнопки из-за липкого налёта на контактах
+    case 'remote-accept': n.stage = 'work'; n.order = 'remote'; message = 'Заказ принят: у пульта не работает половина кнопок.'; break;
+    case 'remote-inspect': if (n.rOpen) { n.rInspectedInside = true; message = 'На плате под кнопками липкие пятна — похоже, пролили сладкий чай. Светодиод и батарейки выглядят целыми.'; } else message = 'Красная кнопка работает: светодиод мигает. Цифры и стрелки не отвечают и слегка липнут.'; break;
+    case 'remote-screw': {
+      if (n.rOpen) { message = 'Сначала закрой корпус.'; break; }
+      if (!Number.isInteger(target) || target < 0 || target > 2) { message = 'Выбери один из винтов.'; break; }
+      const bit = 1 << target;
+      if (n.rAssembling) { if (!(n.rScrewMask & bit)) { message = 'Этот винт уже закреплён.'; break; } n.rScrewMask &= ~bit; message = n.rScrewMask ? `Закреплено винтов: ${3 - bits(n.rScrewMask)} из 3.` : 'Все винты закреплены. Можно проверить пульт.'; if (!n.rScrewMask) n.rAssembling = false; }
+      else { if (n.rScrewMask & bit) { message = 'Этот винт уже снят.'; break; } n.rScrewMask |= bit; message = `Винты сняты: ${bits(n.rScrewMask)} из 3.`; }
+      break;
+    }
+    case 'remote-cover': if (!n.rOpen && (n.rAssembling || n.rScrewMask !== 7)) { message = 'Сначала открути все три винта.'; break; } n.rOpen = !n.rOpen; n.rAssembling = !n.rOpen; message = n.rOpen ? 'Передняя панель снята вместе с резиновой клавиатурой. Осмотри плату.' : 'Корпус закрыт. Закрути три винта.'; break;
+    case 'remote-diagnose': if (!n.rOpen || !n.rInspectedInside) { message = 'Сначала открой корпус и осмотри плату.'; break; } if (target === 'contacts') { n.rDiagnosed = true; message = 'Верно: липкий налёт мешает кнопкам замыкать контакты. Очисти плату и клавиатуру спиртом.'; } else if (target === 'battery') message = 'Красная кнопка работает, значит питание есть. Дело не в батарейках.'; else if (target === 'led') message = 'Светодиод мигает от красной кнопки — он исправен.'; else message = 'Выбери предполагаемую причину.'; break;
+    case 'remote-clean': if (!n.rOpen) { message = 'Плата под крышкой.'; break; } if (!n.rDiagnosed) { message = 'Сначала определи причину неисправности.'; break; } if (!Number.isInteger(target) || target < 0 || target > 2) { message = 'Выбери пятно на плате.'; break; } { const bit = 1 << target; if (n.rGrimeMask & bit) { message = 'Здесь уже чисто.'; break; } n.rGrimeMask |= bit; message = n.rGrimeMask === 7 ? 'Контакты на плате чистые.' : `Очищено пятен: ${bits(n.rGrimeMask)} из 3.`; } break;
+    case 'remote-keypad': if (!n.rOpen) { message = 'Клавиатура внутри корпуса.'; break; } if (!n.rDiagnosed) { message = 'Сначала определи причину неисправности.'; break; } n.rKeypadClean = true; message = 'Резиновая клавиатура протёрта, кнопки больше не липнут.'; break;
+    case 'remote-test': if (n.rOpen) { message = 'Сначала закрой корпус.'; break; } if (n.rAssembling) { message = 'Сначала закрути винты корпуса.'; break; } if (n.rGrimeMask !== 7 || !n.rKeypadClean) { message = n.rDiagnosed ? 'Часть кнопок всё ещё не отвечает. Проверь плату и клавиатуру.' : 'Цифры и стрелки по-прежнему не работают. Загляни внутрь.'; break; } n.rRepaired = true; message = 'Все кнопки отвечают! Светодиод мигает на каждое нажатие.'; break;
+    case 'remote-finish': if (n.stage === 'work' && n.order === 'remote' && n.rRepaired) { n.stage = 'ending'; n.repaired = true; n.coins += REWARDS.remote; message = `Заказ завершён! Получено ${REWARDS.remote} монет.`; } else message = 'Сначала проверь пульт.'; break;
     default: message = 'Неизвестное действие.';
   }
   return { state: n, message };

@@ -1,0 +1,12 @@
+/* Счётчик монет (иконка — assets/ui/coin.svg из Illustrator) и полёт монет при награде. */
+.coin-counter{display:inline-flex;align-items:center;gap:5px;flex:none;min-height:32px;padding:2px 9px 2px 4px;border:1px solid #a7835f;background:#2c211dd9;color:#ffe2a6;font:700 13px/1 Consolas,monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
+.coin-counter img{width:24px;height:24px;display:block}
+.coin-counter.bump{animation:coin-bump .32s ease-out}
+@keyframes coin-bump{40%{transform:scale(1.2);color:#fff3c4}}
+.bench .panel-top .coin-counter{margin-left:auto}
+.menu-balance{display:inline-flex;align-items:center;gap:6px}
+.menu-balance img{width:22px;height:22px}
+.flying-coin{position:fixed;left:0;top:0;z-index:60;width:28px;height:28px;pointer-events:none;filter:drop-shadow(0 2px 0 #0008)}
+.coin-gain{position:fixed;z-index:61;pointer-events:none;color:#ffe08a;font:700 22px/1 Consolas,monospace;text-shadow:0 2px 0 #3b220c,0 0 8px #ffb84d;animation:coin-gain 1.4s ease-out forwards}
+@keyframes coin-gain{0%{opacity:0;transform:translate(-50%,0) scale(.7)}20%{opacity:1;transform:translate(-50%,-14px) scale(1.1)}100%{opacity:0;transform:translate(-50%,-60px) scale(1)}}
+@media(prefers-reduced-motion:reduce){.coin-counter.bump,.coin-gain{animation:none}}

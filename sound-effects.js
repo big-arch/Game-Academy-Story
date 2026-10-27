@@ -7,6 +7,7 @@ export function createSoundEffects() {
     tool: 'assets/kenney-interface-sounds/Audio/switch_001.ogg',
     repair: 'assets/kenney-interface-sounds/Audio/close_001.ogg',
     purr: 'assets/kenney-interface-sounds/Audio/glass_001.ogg',
+    coin: 'assets/kenney-rpg-sfx/OGG/handleCoins.ogg',
   };
   // Fallback: Kenney RPG SFX
   const fallbackFiles = {
@@ -35,7 +36,7 @@ export function createSoundEffects() {
     unlockAudio();
     const src = files[name] || fallbackFiles[name] || files.click;
     const sound = new Audio(src);
-    sound.volume = name === 'purr' ? .25 : .18;
+    sound.volume = name === 'purr' ? .25 : name === 'coin' ? .12 : .18;
     sound.play().catch(()=>{
       // If Kenney sound fails, try original path
       if (files[name]) {
