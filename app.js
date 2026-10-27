@@ -1,5 +1,6 @@
-import { initialState, act } from './game.js?v=11';
-import { clientFor, pickClient } from './stories.js?v=2';
+import { initialState, act } from './game.js?v=12';
+import { clientFor, pickClient } from './stories.js?v=3';
+import { DEVICES, viewSrc } from './devices.js?v=2';
 import { startAmbience } from './ambience.js?v=3';
 import { startCityLife } from './city-life.js?v=1';
 import { createMusicPlayer } from './music-player.js?v=2';
@@ -30,7 +31,12 @@ $('#menu-fullscreen').onclick = async () => {
   } catch { note('Не удалось включить полноэкранный режим.'); }
 };
 document.addEventListener('fullscreenchange',()=>document.body.classList.toggle('fullscreen',Boolean(document.fullscreenElement)));
-// Выбор заказа
+// Выбор заказа. Устройства из devices.js добавляют свои кнопки сами.
+for (const [id, cfg] of Object.entries(DEVICES)) {
+  const b = document.createElement('button'); b.className = 'order-btn'; b.dataset.order = id;
+  b.innerHTML = `<span class="order-icon">${cfg.icon}</span><span class="order-title">${cfg.title}</span><span class="order-desc">${cfg.desc} · ${cfg.reward} монет</span>`;
+  $('.order-options').append(b);
+}
 $('#menu-new-order').onclick = () => { effects.play('click'); $('#order-select').hidden = false; };
 $('#order-back-btn').onclick = () => { effects.play('click'); $('#order-select').hidden = true; };
 document.querySelectorAll('.order-btn').forEach(btn => {
@@ -44,7 +50,8 @@ document.querySelectorAll('.order-btn').forEach(btn => {
     document.querySelectorAll('[data-tool]').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.tool === 'inspect')));
     $('#order-select').hidden = true;
     menuOpen = false;
-    dispatch(ORDER_ACCEPT[order], pickClient(order, previous));
+    if (DEVICES[order]) dispatch('dev-accept', { order, client: pickClient(order, previous) });
+    else dispatch(ORDER_ACCEPT[order], pickClient(order, previous));
   };
 });
 // Выбор инструмента кассетного плеера
@@ -84,8 +91,8 @@ $('#remote-keypad').onclick = () => { if (tool === 'clean') { effects.play('tool
 for (const part of ['view-open', 'view-repaired', 'front-shell', 'keypad']) new Image().src = `assets/devices/remote/parts/${part}.png`;
 // С инструментом «Осмотр» касание устройства осматривает его — так же, как кнопка «Осмотр» вверху.
 // Перехват на стадии захвата, чтобы обработчики отдельных деталей не отвечали «нужна отвёртка».
-for (const [device, action] of [['#cassette-device', 'cassette-inspect'], ['#remote-device', 'remote-inspect']]) {
-  $(device).addEventListener('click', e => { if (tool !== 'inspect' || e.target.closest('#tape-clip, .story-mark')) return; e.stopPropagation(); effects.play('tool'); dispatch(action); }, true);
+for (const [device, action] of [['#cassette-device', 'cassette-inspect'], ['#remote-device', 'remote-inspect'], ['#dev-device', 'dev-inspect']]) {
+  $(device).addEventListener('click', e => { if (tool !== 'inspect' || e.target.closest('#tape-clip, .story-mark, #dev-open')) return; e.stopPropagation(); effects.play('tool'); dispatch(action); }, true);
 }
 const ORDER_ACCEPT = { laptop: 'accept', cassette: 'cassette-accept', remote: 'remote-accept' };
 const ACCEPT_ORDER = Object.fromEntries(Object.entries(ORDER_ACCEPT).map(([order, action]) => [action, order]));
@@ -107,7 +114,7 @@ function renderMarks(s) {
         if (tool !== 'inspect') { note('Присмотрись к этому следу — выбери «Осмотр».'); return; }
         effects.play('tool'); dispatch('clue', mark.id); note(mark.text);
       };
-      $(MARK_HOSTS[s.order]).append(b);
+      $(MARK_HOSTS[s.order] || '#dev-body').append(b);
     }
   }
   document.querySelectorAll('.story-mark').forEach(b => b.classList.toggle('found', s.clues.includes(b.dataset.clue)));
@@ -119,10 +126,58 @@ for (const [order, [bench, count]] of Object.entries(TRAYS)) {
   for (let i = 0; i < count; i++) tray.append(document.createElement('i'));
   $(`${bench} .mat`).append(tray);
 }
+const devTray = document.createElement('div'); devTray.className = 'screw-tray tray-device'; devTray.setAttribute('aria-hidden', 'true'); $('#bench-device .mat').append(devTray);
 function renderTrays(s) {
+  if (DEVICES[s.order] && s.dev) {
+    const count = DEVICES[s.order].screws.length;
+    if (devTray.children.length !== count) devTray.replaceChildren(...Array.from({ length: count }, () => document.createElement('i')));
+    devTray.querySelectorAll('i').forEach((slot, i) => slot.classList.toggle('on', Boolean(s.dev.screwMask & (1 << i))));
+  }
   for (const [order, [bench, , maskKey]] of Object.entries(TRAYS)) $(`${bench} .screw-tray`).querySelectorAll('i').forEach((slot, i) => slot.classList.toggle('on', Boolean(s[maskKey] & (1 << i))));
 }
 const BENCHES = { laptop: '#bench-laptop', cassette: '#bench-cassette', remote: '#bench-remote' };
+const benchFor = order => BENCHES[order] || (DEVICES[order] ? '#bench-device' : BENCHES.laptop);
+const TOOL_LABELS = { inspect: 'Осмотр', screw: 'Отвёртка', clean: 'Спирт', hand: 'Руки', brush: 'Кисть', paste: 'Термопаста', belt: 'Ремень' };
+const MAT_RATIO = 1681 / 936; // высота коврика к ширине
+let devBuilt = '';
+function buildDevice(order) {
+  const cfg = DEVICES[order], [w, h] = cfg.size, box = $('#dev-device'), body = $('#dev-body');
+  devBuilt = order;
+  Object.assign(box.style, { height: `${cfg.height}%`, width: `${cfg.height * MAT_RATIO * w / h}%`, top: `${cfg.top}%` });
+  $('#dev-inside').style.backgroundImage = `url('${viewSrc(order, 'open')}')`;
+  for (const view of ['open', 'repaired']) new Image().src = viewSrc(order, view);
+  body.querySelectorAll('.screw').forEach(b => b.remove());
+  cfg.screws.forEach(([x, y], i) => {
+    const b = document.createElement('button'); b.className = 'screw'; b.dataset.screw = i; b.textContent = '✚';
+    Object.assign(b.style, { left: `calc(${x}% - 22px)`, top: `calc(${y}% - 22px)` });
+    b.onclick = () => { if (tool === 'screw') { effects.play('repair'); dispatch('dev-screw', i); } else note('Для винтов нужна отвёртка.'); };
+    body.prepend(b);
+  });
+  $('#dev-inside').replaceChildren(...cfg.fixes.map(f => {
+    const b = document.createElement('button'); b.className = 'dev-fix'; b.dataset.fix = f.id; b.title = f.label; b.setAttribute('aria-label', f.label);
+    Object.assign(b.style, { left: `${f.x}%`, top: `${f.y}%` });
+    b.onclick = () => { if (tool !== f.tool) { note(`${f.label}: здесь нужен инструмент «${TOOL_LABELS[f.tool]}».`); return; } effects.play('tool'); dispatch('dev-fix', f.id); };
+    return b;
+  }));
+  tool = 'inspect';
+  $('#dev-tools').replaceChildren(...cfg.tools.map(t => {
+    const b = document.createElement('button'); b.dataset.tool = t; b.setAttribute('aria-pressed', String(t === 'inspect'));
+    b.innerHTML = `<img class="tool-icon" src="assets/ui/tools/${t}.svg" alt=""><span>${TOOL_LABELS[t]}</span>`;
+    b.onclick = () => { effects.play('tool'); tool = t; $('#dev-tools').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); };
+    return b;
+  }));
+}
+function renderDevice(s) {
+  if (!DEVICES[s.order] || !s.dev) return;
+  if (devBuilt !== s.order) buildDevice(s.order);
+  const cfg = DEVICES[s.order], d = s.dev, box = $('#dev-device');
+  box.classList.toggle('is-open', d.open); box.classList.toggle('diagnosed', d.diagnosed);
+  $('#dev-body').style.backgroundImage = `url('${viewSrc(s.order, d.repaired ? 'repaired' : 'closed')}')`;
+  $('#dev-open').hidden = d.open || d.assembling || d.screwMask !== (1 << cfg.screws.length) - 1;
+  $('#dev-body').querySelectorAll('.screw').forEach(b => b.classList.toggle('removed', Boolean(d.screwMask & (1 << Number(b.dataset.screw)))));
+  $('#dev-inside').querySelectorAll('.dev-fix').forEach(b => { const done = d.fixed.includes(b.dataset.fix); b.classList.toggle('done', done); b.disabled = done; });
+}
+$('#dev-open').onclick = () => { effects.play(); dispatch('dev-cover'); };
 const storyToggle = document.createElement('button');
 storyToggle.type = 'button'; storyToggle.className = 'story-toggle'; storyToggle.textContent = 'История'; storyToggle.setAttribute('aria-expanded', 'false'); storyToggle.setAttribute('aria-controls', 'story');
 storyToggle.onclick = () => { const open = $('.panel').classList.toggle('story-open'); storyToggle.setAttribute('aria-expanded', String(open)); };
@@ -136,8 +191,9 @@ $('.panel .bottom').prepend(backMenu);
 for (const bench of document.querySelectorAll('.bench')) { const dock = document.createElement('div'); dock.className = 'dock'; dock.append(bench.querySelector('.bench-message'), bench.querySelector('.tools')); bench.append(dock); }
 const benchCats = { 'bench-cat': createCat($('#bench-cat')), 'bench-cat-cassette': createCat($('#bench-cat-cassette')), 'bench-cat-remote': createCat($('#bench-cat-remote')) };
 const CAT_BY_ORDER = { laptop: 'bench-cat', cassette: 'bench-cat-cassette', remote: 'bench-cat-remote' };
+benchCats['bench-cat-device'] = createCat($('#bench-cat-device'));
 // Only the cat on the visible bench runs its animation loop.
-function syncCats() { const work = !menuOpen && state.stage === 'work' && !document.hidden; for (const [order, id] of Object.entries(CAT_BY_ORDER)) benchCats[id].setActive(work && state.order === order); }
+function syncCats() { const work = !menuOpen && state.stage === 'work' && !document.hidden; for (const [order, id] of Object.entries(CAT_BY_ORDER)) benchCats[id].setActive(work && state.order === order); benchCats['bench-cat-device'].setActive(work && Boolean(DEVICES[state.order])); }
 let soundOn = false;
 const music = createMusicPlayer(()=>{ soundOn=false;updateSoundButton();note('Не удалось воспроизвести музыку. Попробуй включить её ещё раз.'); });
 function render() {
@@ -153,6 +209,8 @@ function render() {
   $('#bench-laptop').hidden = menuOpen || s.stage !== 'work' || s.order !== 'laptop';
   $('#bench-cassette').hidden = menuOpen || s.stage !== 'work' || s.order !== 'cassette';
   $('#bench-remote').hidden = menuOpen || s.stage !== 'work' || s.order !== 'remote';
+  $('#bench-device').hidden = menuOpen || s.stage !== 'work' || !DEVICES[s.order];
+  renderDevice(s);
   if (s.order === 'laptop') { $('#device').classList.toggle('is-open', s.open); }
   if (s.order === 'cassette') { $('#cassette-device').classList.toggle('is-open', s.cassetteOpen); }
   if (s.order === 'remote') {
@@ -164,7 +222,7 @@ function render() {
   }
   $('.scene').hidden = menuOpen || s.stage === 'work';
   if (s.stage === 'work') {
-    const bench = $(BENCHES[s.order] || BENCHES.laptop);
+    const bench = $(benchFor(s.order));
     bench.querySelector('.dock').prepend($('.panel'));
   } else $('.app').insertBefore($('.panel'), $('footer'));
   storyToggle.hidden = s.stage !== 'work';
@@ -179,14 +237,40 @@ function render() {
   $('#heading').textContent = client ? `${client.name} · ${client.title}` : s.stage === 'ending' ? 'История продолжается' : s.order === 'cassette' ? 'Музыка на плёнке' : s.order === 'remote' ? 'Вечер у телевизора' : 'Письма из прошлого';
   $('#story').textContent = client ? [s.stage === 'ending' ? client.ending : client.intro, ...client.marks.filter(m => s.clues.includes(m.id)).map(m => `• ${m.text}`), ...(s.stage === 'work' && s.clues.length < client.marks.length ? [`Следов на корпусе ещё не найдено: ${client.marks.length - s.clues.length}.`] : [])].join('\n') : s.order === 'remote' ? (s.stage === 'ending' ? '«Работает! Дедушка снова сам переключает свои передачи и больше не зовёт меня каждые пять минут. Спасибо!»' : '«Дедушка пролил чай на пульт, и теперь половина кнопок не нажимается. Он без него как без рук — посмотрите, пожалуйста?»') : s.order === 'cassette' ? (s.stage === 'ending' ? '«Плеер снова работает. Теперь я смогу послушать старую запись. Спасибо!»' : '«Этот плеер не протягивает ленту. На кассете важная для меня запись. Поможете?»') : (s.stage === 'ending' ? '«Он снова работает… Смотрите, это дедушкины фотографии с моря! Я думала, что больше никогда их не увижу. Спасибо вам.»' : '«Это ноутбук моего дедушки. Он включается, но быстро выключается. Там наши семейные фотографии… Пожалуйста, помогите их сохранить.»');
   $('#status').textContent = s.stage === 'ending' ? `● БАЛАНС: ${s.coins} МОНЕТ` : s.repaired ? '● УСТРОЙСТВО ИСПРАВНО' : s.stage === 'work' ? '● ЗАКАЗ В РАБОТЕ' : '● НОВЫЙ ЗАКАЗ';
-  const actions = s.stage === 'intro' ? [['accept','Принять заказ']] : s.stage === 'ending' ? [['next-order','Следующий заказ'], ...(s.upgrade ? [] : [['upgrade','Улучшить лампу · 120 монет']]), ['replay','Повторить заказ']] : s.order === 'remote' ? [['remote-inspect','Осмотр'],['remote-test','Проверить'], ...(s.rOpen && s.rInspectedInside && !s.rDiagnosed ? [['rdiag-battery','Причина: батарейки'],['rdiag-led','Причина: светодиод'],['rdiag-contacts','Причина: контакты']] : []), ...(s.rOpen ? [['remote-cover','Закрыть корпус']] : []), ...(s.rRepaired ? [['remote-finish','Вернуть клиенту']] : [])] : s.order === 'cassette' ? [['cassette-inspect','Осмотр'],['cassette-test','Проверить'], ...(s.cassetteOpen && s.cassetteInteriorInspected && !s.cassetteDiagnosed ? [['diagnose-battery','Причина: батарея'],['diagnose-head','Причина: головка'],['diagnose-belt','Причина: ремень']] : []), ...(s.cassetteOpen ? [['cassette-cover','Закрыть крышку']] : []), ...(s.cassetteRepaired ? [['cassette-finish','Вернуть клиенту']] : [])] : [['inspect','Осмотр'],['test','Диагностика'],['power',s.poweredOff?'Включить питание':'Выключить питание'], ...(s.open ? [['cover','Закрыть крышку']] : []), ...(s.repaired ? [['finish','Вернуть клиенту']] : [])];
+  const actions = s.stage === 'intro' ? [['accept','Принять заказ']] : s.stage === 'ending' ? [['next-order','Следующий заказ'], ...(s.upgrade ? [] : [['upgrade','Улучшить лампу · 120 монет']]), ['replay','Повторить заказ']] : DEVICES[s.order] && s.dev ? [['dev-inspect','Осмотр'],['dev-test','Проверить'], ...(s.dev.open && s.dev.inside && !s.dev.diagnosed ? DEVICES[s.order].causes.map(c => ['ddiag-' + c.id, 'Причина: ' + c.label]) : []), ...(s.dev.open ? [['dev-cover','Закрыть крышку']] : []), ...(s.dev.repaired ? [['dev-finish','Вернуть клиенту']] : [])] : s.order === 'remote' ? [['remote-inspect','Осмотр'],['remote-test','Проверить'], ...(s.rOpen && s.rInspectedInside && !s.rDiagnosed ? [['rdiag-battery','Причина: батарейки'],['rdiag-led','Причина: светодиод'],['rdiag-contacts','Причина: контакты']] : []), ...(s.rOpen ? [['remote-cover','Закрыть корпус']] : []), ...(s.rRepaired ? [['remote-finish','Вернуть клиенту']] : [])] : s.order === 'cassette' ? [['cassette-inspect','Осмотр'],['cassette-test','Проверить'], ...(s.cassetteOpen && s.cassetteInteriorInspected && !s.cassetteDiagnosed ? [['diagnose-battery','Причина: батарея'],['diagnose-head','Причина: головка'],['diagnose-belt','Причина: ремень']] : []), ...(s.cassetteOpen ? [['cassette-cover','Закрыть крышку']] : []), ...(s.cassetteRepaired ? [['cassette-finish','Вернуть клиенту']] : [])] : [['inspect','Осмотр'],['test','Диагностика'],['power',s.poweredOff?'Включить питание':'Выключить питание'], ...(s.open ? [['cover','Закрыть крышку']] : []), ...(s.repaired ? [['finish','Вернуть клиенту']] : [])];
   $('#actions').replaceChildren(...actions.map(([id,label],i) => { const b=document.createElement('button');b.textContent=label;if(i===0||id.endsWith('finish'))b.className='primary';b.onclick=()=>{effects.play('click');dispatch(id);};return b; }));
   $('.lamp').style.color = s.upgrade ? '#ffd883' : '#d4a06a';
   renderMarks(s); renderTrays(s);
   syncCats();
 }
-function dispatch(action, target) { const coinsBefore = state.coins; if(action.startsWith('diagnose-')) { target=action.slice('diagnose-'.length); action='cassette-diagnose'; } if(action.startsWith('rdiag-')) { target=action.slice('rdiag-'.length); action='remote-diagnose'; } if(action==='next-order'){ menuOpen=true; render(); $('#order-select').hidden=false; return; } if(ACCEPT_ORDER[action] && target === undefined) target = pickClient(ACCEPT_ORDER[action], state.client); if(action==='replay'){ const {upgrade,coins,client}=state, order=state.order || 'laptop'; state={...initialState(),upgrade,coins}; const result=act(state,ORDER_ACCEPT[order],client);state=result.state;note('Заказ начат заново. Улучшения мастерской сохранены.'); } else { const result=act(state,action,target);state=result.state;note(result.message); } try{localStorage.setItem(KEY,JSON.stringify(state));}catch{} saveToCloud(state); const source = rewardSource(), gained = state.coins - coinsBefore; if (gained > 0) coinFlight++; render(); if (gained > 0) flyCoins(gained, source); }
-function note(text){$('#message').textContent=text;$('#bench-message').textContent=text;$('#cassette-message').textContent=text;$('#remote-message').textContent=text;}
+function dispatch(action, target) { const coinsBefore = state.coins; if(action.startsWith('diagnose-')) { target=action.slice('diagnose-'.length); action='cassette-diagnose'; } if(action.startsWith('rdiag-')) { target=action.slice('rdiag-'.length); action='remote-diagnose'; } if(action.startsWith('ddiag-')) { target=action.slice('ddiag-'.length); action='dev-diagnose'; } if(action==='next-order'){ menuOpen=true; render(); $('#order-select').hidden=false; return; } if(ACCEPT_ORDER[action] && target === undefined) target = pickClient(ACCEPT_ORDER[action], state.client); if(action==='replay'){ const {upgrade,coins,client}=state, order=state.order || 'laptop'; state={...initialState(),upgrade,coins}; const result=DEVICES[order] ? act(state,'dev-accept',{order,client}) : act(state,ORDER_ACCEPT[order],client);state=result.state;note('Заказ начат заново. Улучшения мастерской сохранены.'); } else { const result=act(state,action,target);state=result.state;note(result.message); } try{localStorage.setItem(KEY,JSON.stringify(state));}catch{} saveToCloud(state); const source = rewardSource(), gained = state.coins - coinsBefore; if (gained > 0) coinFlight++; render(); if (gained > 0) flyCoins(gained, source); if (ACCEPT_ORDER[action] || action === 'dev-accept') showDialog('hello'); else if (action.endsWith('finish') && state.stage === 'ending') setTimeout(() => showDialog('bye'), 1300); }
+function note(text){$('#message').textContent=text;$('#bench-message').textContent=text;$('#cassette-message').textContent=text;$('#remote-message').textContent=text;$('#device-message').textContent=text;}
+// Диалог с клиентом: приходит с историей (можно расспросить), а при возврате реагирует на найденные следы.
+let typing = 0;
+function showDialog(kind) {
+  const client = clientFor(state.order, state.client); if (!client) return;
+  const box = $('#dialog'), text = $('#dialog-text'), choices = $('#dialog-choices'), asked = new Set();
+  $('#dialog-name').textContent = `${client.name} · ${client.title}`;
+  const say = line => {
+    clearInterval(typing); text.textContent = line;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let shown = 0; text.textContent = '';
+    typing = setInterval(() => { shown += 2; text.textContent = line.slice(0, shown); if (shown >= line.length) clearInterval(typing); }, 22);
+    text.onclick = () => { clearInterval(typing); text.textContent = line; };
+  };
+  const options = () => {
+    const list = kind === 'hello' ? client.questions.filter(q => !asked.has(q)).map(q => [q.q, () => { asked.add(q); say(q.a); options(); }]) : [];
+    list.push([kind === 'hello' ? 'Беру в работу' : 'До встречи!', () => { clearInterval(typing); box.hidden = true; }]);
+    choices.replaceChildren(...list.map(([label, fn], i) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; if (i === list.length - 1) b.className = 'primary'; b.onclick = () => { effects.play('click'); fn(); }; return b; }));
+  };
+  if (kind === 'hello') say(client.intro);
+  else {
+    const found = client.marks.filter(m => state.clues.includes(m.id)).length;
+    const thanks = found && found === client.marks.length ? '«Вы даже это заметили? Спасибо, что отнеслись к вещи так бережно.»' : found ? '«Вы заметили, да? Это наша маленькая история.»' : '';
+    say([client.ending, thanks].filter(Boolean).join('\n\n'));
+  }
+  options(); box.hidden = false;
+}
 // Награда: монеты вылетают из устройства и по одной долетают до счётчика, число растёт вместе с ними.
 let coinFlight = 0;
 function rewardSource() { const device = document.querySelector('.bench:not([hidden]) .mat > [id$="device"]'); const r = device?.getBoundingClientRect(); return r && r.width ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : { x: innerWidth / 2, y: innerHeight * .55 }; }

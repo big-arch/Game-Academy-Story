@@ -1,0 +1,37 @@
+/* Общий рабочий стол для устройств из devices.js и диалог с клиентом. */
+.bench .mat.mat-device{background:#2b201c url('assets/workshop-cassette.png') center/100% 100% no-repeat}
+.mat-device .device-generic{position:absolute;z-index:4;left:50%;transform:translateX(-50%)}
+.mat-device .dev-body,.mat-device .dev-inside{position:absolute;inset:0;background:center/100% 100% no-repeat;filter:drop-shadow(4px 6px 0 #0007)}
+.mat-device .dev-inside{display:none}
+.mat-device .device-generic.is-open .dev-body{display:none}
+.mat-device .device-generic.is-open .dev-inside{display:block}
+.mat-device .dev-body .screw{font-size:13px;text-shadow:1px 1px #2e2420;right:auto;bottom:auto}
+.mat-device .dev-body .screw:before{inset:15px;border-width:2px}
+.mat-device .dev-body .screw.removed{font-size:0}
+.mat-device .dev-open{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:92%;min-height:40px;padding:6px 10px;background:#26211eea;border:1px solid #c4a57a;color:#ffe9bb;font:700 11px/1.2 Consolas,monospace;cursor:pointer}
+/* Точки ремонта видны, когда причина найдена; до этого касание объясняет, что делать сначала. */
+.mat-device .dev-fix{position:absolute;width:46px;height:46px;margin:-23px 0 0 -23px;padding:0;border:2px dashed #ffe08acc;border-radius:50%;background:#ffd27a1f;cursor:pointer;opacity:0;transition:opacity .3s}
+.mat-device .device-generic.diagnosed .dev-fix{opacity:1;animation:fix-pulse 1.6s ease-in-out infinite}
+.mat-device .dev-fix.done{opacity:1;border:2px solid #a4be89;background:#a4be8930;animation:none}
+.mat-device .dev-fix.done::after{content:'✓';color:#d7efc9;font:700 18px/42px Consolas,monospace;text-shadow:0 1px 0 #1d2a17}
+@keyframes fix-pulse{50%{transform:scale(1.12);box-shadow:0 0 10px #ffe08a88}}
+.tray-device{left:6%;top:77%;width:18%;height:6%}
+
+/* Следы: спокойные, а блик-подсказка — только когда выбран «Осмотр». */
+.story-mark:not(.found){animation:none;opacity:.92}
+.bench:has(.tools button[data-tool="inspect"][aria-pressed="true"]) .story-mark:not(.found){animation:mark-glint 4.5s ease-in-out infinite}
+
+/* Диалог с клиентом поверх рабочего стола. */
+.dialog{position:fixed;inset:0;z-index:70;display:flex;align-items:flex-end;justify-content:center;padding:0 0 calc(24dvh + env(safe-area-inset-bottom));background:linear-gradient(#0000 30%,#0b080acc)}
+.dialog[hidden]{display:none}
+.dialog-card{position:relative;width:min(calc(100vw - 24px),calc(55.68dvh - 24px));padding:18px 16px 14px;background:linear-gradient(#3a2b22,#2a1f19);border:2px solid #c09d72;box-shadow:0 0 0 3px #1d1511,0 12px 30px #000a;color:#f7e8cb;animation:dialog-in .3s ease-out}
+.dialog-name{position:absolute;left:12px;top:-14px;padding:4px 10px;background:#b98958;color:#211b1b;font:700 12px/1.2 Consolas,monospace;border:2px solid #1d1511;max-width:calc(100% - 24px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dialog-text{margin:4px 0 12px;min-height:3.6em;font:15px/1.45 Georgia,serif;white-space:pre-line;cursor:pointer}
+.dialog-choices{display:flex;flex-direction:column;gap:6px}
+.dialog-choices button{min-height:42px;padding:8px 10px;text-align:left;background:#584333;border:1px solid #a37d56;color:#f9e3bc;font:700 12px/1.25 Consolas,monospace;cursor:pointer}
+.dialog-choices button::before{content:'› ';color:#ffd27a}
+.dialog-choices button.primary{background:#b98958;color:#211b1b;text-align:center}
+.dialog-choices button.primary::before{content:''}
+.dialog-choices button:focus-visible{outline:2px solid #ffe5a7;outline-offset:2px}
+@keyframes dialog-in{from{opacity:0;transform:translateY(16px)}}
+@media(prefers-reduced-motion:reduce){.dialog-card,.mat-device .device-generic.diagnosed .dev-fix{animation:none}}

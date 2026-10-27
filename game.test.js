@@ -91,3 +91,19 @@ test('story clues are counted once and paid as tips on return', () => {
   assert.equal(done.state.coins, 80 + 20);
   assert.match(done.message, /20 чаевых/);
 });
+
+test('data-driven devices follow screws, diagnosis, ordered fixes and reassembly', () => {
+  let s = initialState(); const run = (a, t) => { s = act(s, a, t).state; };
+  run('dev-accept', { order: 'pager', client: 'sveta' }); assert.equal(s.order, 'pager'); assert.equal(s.client, 'sveta');
+  run('dev-cover'); assert.equal(s.dev.open, false);
+  run('dev-screw', 0); run('dev-screw', 1); run('dev-cover'); assert.equal(s.dev.open, true);
+  run('dev-fix', 'contacts'); assert.deepEqual(s.dev.fixed, []);
+  run('dev-inspect'); run('dev-diagnose', 'screen'); assert.equal(s.dev.diagnosed, false);
+  run('dev-diagnose', 'cell'); assert.equal(s.dev.diagnosed, true);
+  run('dev-fix', 'cell'); assert.deepEqual(s.dev.fixed, []);
+  run('dev-fix', 'contacts'); run('dev-fix', 'cell'); assert.deepEqual(s.dev.fixed, ['contacts', 'cell']);
+  run('dev-test'); assert.equal(s.dev.repaired, false);
+  run('dev-cover'); run('dev-test'); assert.equal(s.dev.repaired, false);
+  run('dev-screw', 0); run('dev-screw', 1); run('dev-test'); assert.equal(s.dev.repaired, true);
+  run('dev-finish'); assert.equal(s.stage, 'ending'); assert.equal(s.coins, 90);
+});
