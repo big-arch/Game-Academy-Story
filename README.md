@@ -13,6 +13,7 @@
 - `npm run build` — собрать `www/`: только файлы, нужные игре; `models/`, `temp/` и исходники музыки туда не попадают.
 - `npm run cap:sync` — собрать и скопировать в `android/` и `ios/`.
 - `npm run android` / `npm run ios` — открыть проект в Android Studio / Xcode. Для iOS нужен Mac.
+- `npm run apk` — собрать отладочный APK в `dist/workshop-stories-debug.apk`, его можно поставить на телефон. Нужен JDK 21 в `~/.jdks` (Java 25 из Android Studio для Gradle 8.14 слишком новая), а из-за кириллицы в пути проект на время сборки подключается буквой диска через `subst`.
 - `npm run assets` — пересоздать иконки и сплэш из `resources/` (`icon-only.png`, `icon-foreground.png`, `icon-background.png` — 1024×1024, `splash.png` и `splash-dark.png` — 2732×2732).
 
 Идентификатор приложения — `com.bigarch.workshopstories` (`capacitor.config.json`). Ориентация закреплена портретная.

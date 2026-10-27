@@ -11,7 +11,8 @@
     "assets": "capacitor-assets generate --assetPath resources --iconBackgroundColor #2d211a --iconBackgroundColorDark #2d211a --splashBackgroundColor #2d211a --splashBackgroundColorDark #2d211a",
     "cap:sync": "npm run build && cap sync",
     "android": "npm run cap:sync && cap open android",
-    "ios": "npm run cap:sync && cap open ios"
+    "ios": "npm run cap:sync && cap open ios",
+    "apk": "pwsh scripts/build-apk.ps1"
   },
   "dependencies": {
     "@capacitor/android": "8.5.3",
