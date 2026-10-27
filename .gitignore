@@ -21,3 +21,6 @@ build/
 # Capacitor build output (npm run build)
 www/
 vendor/
+
+# Layered PSDs are rebuilt by scripts/adobe/run-photoshop.ps1
+assets/devices/*/source/*.psd

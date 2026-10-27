@@ -22,3 +22,10 @@
 Вдохновение: [Assemble with Care — заметки разработчиков](https://ustwogames.co.uk/news/building-assemble-with-care/), [рекомендации по размерам элементов управления](https://gameaccessibilityguidelines.com/ensure-interactive-elements-virtual-controls-are-large-and-well-spaced-particularly-on-small-or-touch-screens/). Это оригинальный прототип, игровые материалы из источников не используются.
 
 Для прототипа отдельные изображения покадрового кота в `assets/sprites/` вырезаны из находящегося в проекте `models/PACK/cat 2` без изменения рисунка. По составу набор похож на Last tick, однако происхождение файла и условия для финального релиза ещё нужно подтвердить. Сведения о материалах и лицензиях — в `models/README.md`, `material-library/README.md` и `music/README.md`.
+
+## Инструменты для графики
+
+- `pwsh scripts/adobe/run-photoshop.ps1 <устройство>` — режет `assets/devices/<устройство>/concept-states.png` на детали по контуру (`scripts/split-parts.py`, рамки деталей в `parts.json`) и собирает в Photoshop `source/<устройство>-parts.psd`, где каждая деталь — свой слой.
+- `pwsh scripts/adobe/run-illustrator.ps1` — рисует в Illustrator векторную монету `assets/ui/coin.svg` (исходник `assets/ui/source/coin.ai`).
+
+COM-регистрация Photoshop и Illustrator на этой машине пустая, поэтому скрипты `.jsx` передаются программам как файлы. Photoshop и Illustrator при этом открываются на экране.
