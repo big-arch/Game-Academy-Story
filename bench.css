@@ -17,3 +17,35 @@
 .belt.worn{border-color:#a85;box-shadow:0 0 6px #a85}
 .head{position:absolute;top:65%;left:35%;background:#555;border:1px solid #777;color:#ccc;padding:4px;font-size:9px;cursor:pointer}
 .battery{position:absolute;right:22%;top:28%;background:#333;border:2px solid #555;padding:6px;font-size:9px;color:#aaa;text-align:center}
+.mat-cassette .device-cassette{position:absolute;left:10%;top:61%;width:80%;height:21%;max-width:none;margin:0}
+.mat-cassette .cassette-parts .connected{border-color:#a4be89;color:#d7efc9}
+.mat-cassette .screw.removed{color:#343231;transform:rotate(90deg) scale(.84)}
+
+/* Removed screws remain visible as dark empty holes; installed screws have a bright head. */
+.screw.removed{font-size:0;text-shadow:none}.screw.removed:before{inset:12px;background:#211b18;border:3px solid #9a7652;box-shadow:inset 1px 2px #080706}.screw:not(.removed):before{background:#9c8464;box-shadow:inset 1px 1px #f6dcb0,1px 2px #251b17}
+
+.screw { isolation:isolate }
+.screw:before { z-index:-1 }
+
+.mat-cassette .cassette-body{background:linear-gradient(180deg,#68625b 0 7%,#302e32 7% 80%,#615c54 80% 100%);border:4px solid #19191c;box-shadow:inset 0 0 0 3px #938572}
+.mat-cassette .cassette-body::before{content:"STEREO  •  AUTO REVERSE";position:absolute;left:19%;right:19%;top:13%;height:16%;text-align:center;color:#d8c7a6;border:2px solid #918579;background:#24262a;font:700 clamp(6px,1.4vw,10px)/1.5 Consolas,monospace;pointer-events:none}
+
+/* Individual cassette artwork; controls remain separate accessible buttons. */
+.mat-cassette .device-cassette{left:29%;top:48%;width:42%;height:37%;border:0;background:transparent;box-shadow:none}
+.mat-cassette .cassette-body,.mat-cassette .cassette-parts{border:0;box-shadow:none;background-image:url('assets/devices/cassette-player/concept-states.png');background-size:550% 100%;background-repeat:no-repeat;background-position:0 0;background-color:transparent}
+.mat-cassette .cassette-body::before{display:none}
+.mat-cassette .cassette-parts{background-position:25% 0}
+.mat-cassette .cassette-load{top:46%;max-width:90%;font-size:10px;white-space:normal}
+.mat-cassette .reel{background:#222c;border-color:#777a;width:25%;height:23%;line-height:normal}
+.mat-cassette .reel-label,.mat-cassette .battery{display:none}
+.mat-cassette .head,.mat-cassette .belt{font-size:9px;background:#26211eea;color:#ffe9bb;border-color:#c4a57a}
+
+.mat-cassette .cassette-body .screw-0{left:7%;top:8%}.mat-cassette .cassette-body .screw-1{right:7%;top:8%}.mat-cassette .cassette-body .screw-2{left:7%;bottom:8%}
+
+/* Large touch targets with small screw heads centred on the casing. */
+.mat-cassette .cassette-body .screw{font-size:13px;text-shadow:1px 1px #2e2420}
+.mat-cassette .cassette-body .screw:before{inset:15px;border-width:2px}
+.mat-cassette .cassette-body .screw.removed{font-size:0}
+.mat-cassette .cassette-body .screw-0{left:calc(14% - 22px);top:calc(14% - 22px)}
+.mat-cassette .cassette-body .screw-1{right:auto;left:calc(86% - 22px);top:calc(14% - 22px)}
+.mat-cassette .cassette-body .screw-2{left:calc(14% - 22px);bottom:auto;top:calc(86% - 22px)}

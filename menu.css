@@ -9,6 +9,7 @@
 .menu-small{color:#e1c79b;font:10px/1.4 Consolas,monospace;text-align:center}
 /* Экран выбора заказа */
 .order-select{position:absolute;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:#1a1512ee;backdrop-filter:blur(4px)}
+.order-select[hidden]{display:none}
 .order-card{background:#2d211a;border:3px solid #806247;padding:24px;max-width:400px;width:90%;box-shadow:0 0 40px #0009;text-align:center}
 .order-card h2{color:#f4d5a5;font:700 20px/1.2 Consolas,monospace;margin:0 0 8px}.order-card>p{color:#c5b496;font:13px/1.4 Consolas,monospace;margin:0 0 16px}
 .order-options{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
@@ -18,9 +19,10 @@
 .order-back{background:#443329ed;border:2px solid #6b5543;color:#e1c79b;padding:8px 20px;cursor:pointer;font:700 12px Consolas,monospace}
 .order-back:hover{border-color:#d0a576}
 /* Полный экран */
-body.fullscreen .bench{width:100vw!important;height:100dvh!important;max-width:none!important;box-shadow:none!important}
-body.fullscreen .bench .mat{width:85vw;height:auto;max-height:85vh;aspect-ratio:auto}
+body.fullscreen{background:#171319}
 body.fullscreen .bench .tools{background:#37271df0}
 body.fullscreen .menu-controls button#menu-fullscreen{background:#c28b54;border-color:#f0ce94;color:#271c17}
 .bench .panel .bottom{right:5px;display:flex;gap:0}.back-menu{width:38px;height:40px;border:0;background:none;color:#f3dfbd;font-size:21px;cursor:pointer}.bench .panel-top{padding-right:84px}.back-menu:focus-visible{outline:2px solid #ffe5a7}
 @media(max-height:580px){.menu-top{padding-top:14px}.menu-top h1{font-size:24px}.menu-controls{bottom:12px;gap:5px}.menu-controls button{min-height:40px}}
+
+.menu-balance{color:#ffdfa4;font:700 12px Consolas,monospace;text-align:center}
