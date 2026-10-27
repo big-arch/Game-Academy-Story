@@ -10,7 +10,7 @@
 .mat-device .dev-body .screw.removed{font-size:0}
 .mat-device .dev-open{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:92%;min-height:40px;padding:6px 10px;background:#26211eea;border:1px solid #c4a57a;color:#ffe9bb;font:700 11px/1.2 Consolas,monospace;cursor:pointer}
 /* Точки ремонта видны, когда причина найдена; до этого касание объясняет, что делать сначала. */
-.mat-device .dev-fix{position:absolute;width:46px;height:46px;margin:-23px 0 0 -23px;padding:0;border:2px dashed #ffe08acc;border-radius:50%;background:#ffd27a1f;cursor:pointer;opacity:0;transition:opacity .3s}
+.mat-device .dev-fix{position:absolute;width:46px;height:46px;margin:-23px 0 0 -23px;padding:0;border:3px dashed #ffe08a;border-radius:50%;background:radial-gradient(circle,#ffd27a40,#ffd27a14 70%);box-shadow:0 0 0 2px #1d151199,0 0 12px #ffcf6a88;cursor:pointer;opacity:0;transition:opacity .3s}
 .mat-device .device-generic.diagnosed .dev-fix{opacity:1;animation:fix-pulse 1.6s ease-in-out infinite}
 .mat-device .dev-fix.done{opacity:1;border:2px solid #a4be89;background:#a4be8930;animation:none}
 .mat-device .dev-fix.done::after{content:'✓';color:#d7efc9;font:700 18px/42px Consolas,monospace;text-shadow:0 1px 0 #1d2a17}

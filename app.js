@@ -1,6 +1,6 @@
 import { initialState, act } from './game.js?v=12';
-import { clientFor, pickClient } from './stories.js?v=3';
-import { DEVICES, viewSrc } from './devices.js?v=2';
+import { clientFor, pickClient } from './stories.js?v=4';
+import { DEVICES, viewSrc } from './devices.js?v=3';
 import { startAmbience } from './ambience.js?v=3';
 import { startCityLife } from './city-life.js?v=1';
 import { createMusicPlayer } from './music-player.js?v=2';
