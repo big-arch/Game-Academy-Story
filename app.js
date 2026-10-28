@@ -5,7 +5,7 @@ import { CONTRACTS, completedOrders, nextContract, campaignProgress } from './ca
 import { LETTER, SHELF, FINALE, seasonDone, currentChapter, shelfStatus, shelfLockReason } from './story.js';
 import { createPartNavigator } from './repair-focus.js';
 import { createRepairInteraction } from './repair-interaction.js';
-import { workshopProgress, ownedDecorations } from './workshop.js';
+import { workshopProgress, ownedDecorations, placedDecorations } from './workshop.js';
 import { createWorkshopUI } from './workshop-ui.js';
 import { clientFor, pickClient } from './stories.js';
 import { DEVICES, viewSrc } from './devices.js';
@@ -146,7 +146,7 @@ document.addEventListener('click', e => {
   if (required === 'solder') { startSolder(element, label, () => { effects.play('repair'); dispatch(action, target); }); return; }
   const availableTools = cfg?.tools || [...$(benchFor(state.order)).querySelectorAll('[data-tool]')].map(b => b.dataset.tool);
   const tools = required === 'screw' ? ['screw'] : [...new Set([...availableTools, required])].filter(t => !['inspect','screw','meter','solder'].includes(t));
-  partInteraction.open({ element, label, tools, required, alignment: required === 'hand' && (CONTRACTS.find(c => c.order === state.order)?.level || 1) >= 3, complete: () => dispatch(action, target), magnify: ownedDecorations(state).includes('lamp'), zoom: () => (cfg ? $('#dev-device') : $(state.order === 'laptop' ? '#device' : state.order === 'cassette' ? '#cassette-device' : '#remote-device')).classList.toggle('repair-magnified') });
+  partInteraction.open({ element, label, tools, required, alignment: required === 'hand' && (CONTRACTS.find(c => c.order === state.order)?.level || 1) >= 3, complete: () => dispatch(action, target), magnify: Boolean(state.upgrade), zoom: () => (cfg ? $('#dev-device') : $(state.order === 'laptop' ? '#device' : state.order === 'cassette' ? '#cassette-device' : '#remote-device')).classList.toggle('repair-magnified') });
 }, true);
 // Отвёртка: зажать винт — появляется отвёртка и кольцо прогресса, винт вращается; отпустил раньше — сброс.
 const UNSCREW_MS = 900;
@@ -548,6 +548,7 @@ function render() {
   $('#menu-balance').innerHTML = `<img src="assets/ui/coin.svg" alt="">${s.coins} монет`;
   if (!coinFlight) coinCounter.querySelector('b').textContent = s.coins;
   document.body.classList.toggle('lamp-upgraded', s.upgrade);
+  document.body.dataset.room = placedDecorations(s).join(' ');  // пар над кружкой и свет лампы — только когда они куплены
   $('#menu-continue').textContent = s.stage === 'work' ? 'Продолжить ремонт' : 'Принять заказ';
   $('#menu-new-order').hidden = true;
   const current = s.stage === 'work' && CONTRACTS.find(c => c.order === s.order), next = current || nextContract(s), done = completedOrders(s).length;

@@ -1,5 +1,5 @@
 import { DECORATIONS, ownedDecorations, placedDecorations } from './workshop.js';
-import { ROOM_LAYOUT } from './room-layout.js';
+import { ROOM_ITEMS } from './room-layout.js';
 import { DEVICES } from './devices.js';
 import { CONTRACTS, completedOrders } from './campaign.js';
 
@@ -7,10 +7,10 @@ function createDecor(surface) {
   const layer = document.createElement('div');
   layer.className = 'room-decor'; layer.setAttribute('aria-hidden', 'true');
   layer.innerHTML = '<div class="room-garland">' + '<i></i>'.repeat(7) + '</div><div class="room-bed"></div><div class="room-lamp"></div><div class="room-album"></div>';
-  // Купленные предметы — спрайты на своих местах комнаты; видимость задаёт data-items слоя.
-  for (const [id, [x, y, w, h]] of Object.entries(ROOM_LAYOUT)) {
+  // Купленные предметы — спрайты во весь кадр комнаты (совпадают с фоном пиксель в пиксель); видимость задаёт data-items.
+  for (const id of [...ROOM_ITEMS].sort((a, b) => b.startsWith('mat-') - a.startsWith('mat-'))) {  // коврик — под остальными
     const sprite = document.createElement('i'); sprite.className = 'room-item'; sprite.dataset.item = id;
-    Object.assign(sprite.style, { left: `${x}%`, top: `${y}%`, width: `${w}%`, height: `${h}%`, backgroundImage: `url('assets/room/${id}.png')` });
+    sprite.style.backgroundImage = `url('assets/room/${id}.png')`;
     layer.querySelector('.room-album').before(sprite);
   }
   // Ноутбук первого заказа стоит поверх коврика на его рабочем столе (точки ремонта привязаны к этому кадру).
