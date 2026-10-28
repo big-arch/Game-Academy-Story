@@ -22,6 +22,8 @@
 
 Проверка: `npm test`. Лицензии музыки, плейлист и звуки описаны в `music/README.md`.
 
+`npm run audit:art` проверяет координаты винтов девяти устройств по прозрачности реальных PNG и контур приставки. Нужны Python и Pillow (они также используются для нарезки графики). Обзор похожих игр, использованного открытого кода и дальнейших механик — в [research/repair-gameplay.md](research/repair-gameplay.md).
+
 Вдохновение: [Assemble with Care — заметки разработчиков](https://ustwogames.co.uk/news/building-assemble-with-care/), [рекомендации по размерам элементов управления](https://gameaccessibilityguidelines.com/ensure-interactive-elements-virtual-controls-are-large-and-well-spaced-particularly-on-small-or-touch-screens/). Источники использованных материалов перечислены в библиотеке и документации проекта.
 
 Для прототипа отдельные изображения покадрового кота в `assets/sprites/` вырезаны из находящегося в проекте `models/PACK/cat 2` без изменения рисунка. По составу набор похож на Last tick, однако происхождение файла и условия для финального релиза ещё нужно подтвердить. Сведения о материалах и лицензиях — в `models/README.md`, `material-library/README.md` и `music/README.md`.

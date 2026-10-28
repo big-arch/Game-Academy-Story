@@ -7,6 +7,7 @@
     "prestart": "node scripts/build.mjs vendor",
     "start": "node server.js",
     "test": "node --test",
+    "audit:art": "python scripts/audit-device-layout.py",
     "build": "node scripts/build.mjs",
     "assets": "capacitor-assets generate --assetPath resources --iconBackgroundColor #2d211a --iconBackgroundColorDark #2d211a --splashBackgroundColor #2d211a --splashBackgroundColorDark #2d211a",
     "cap:sync": "npm run build && cap sync",

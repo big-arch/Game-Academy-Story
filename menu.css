@@ -26,3 +26,13 @@ body.fullscreen .menu-controls button#menu-fullscreen{background:#c28b54;border-
 @media(max-height:580px){.menu-top{padding-top:14px}.menu-top h1{font-size:24px}.menu-controls{bottom:12px;gap:5px}.menu-controls button{min-height:40px}}
 
 .menu-balance{color:#ffdfa4;font:700 12px Consolas,monospace;text-align:center}
+
+.order-select{position:fixed;padding:12px;overflow:hidden}
+.order-card{display:flex;flex-direction:column;max-height:calc(100dvh - 24px);min-height:0;padding:16px;width:min(100%,420px)}
+.order-card>h2,.order-card>p,.order-back{flex:none}
+.order-options{overflow-y:auto;min-height:0;gap:7px;padding:2px 4px 3px 2px;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#c09d72 #35291f}
+.order-btn{display:grid;grid-template-columns:38px minmax(0,1fr);grid-template-rows:auto auto;gap:3px 10px;flex:none;min-height:74px;padding:10px}
+.order-icon{grid-column:1;grid-row:1/3;align-self:center;width:38px;font-size:28px}
+.order-title{grid-column:2;grid-row:1;min-width:0;font-size:14px;line-height:1.3;white-space:normal;overflow-wrap:anywhere}
+.order-desc{grid-column:2;grid-row:2;min-width:0;margin:0;font:11px/1.4 Consolas,monospace;white-space:normal;overflow-wrap:anywhere}
+.menu-controls button{white-space:normal;overflow-wrap:anywhere}

@@ -35,3 +35,15 @@
 .dialog-choices button:focus-visible{outline:2px solid #ffe5a7;outline-offset:2px}
 @keyframes dialog-in{from{opacity:0;transform:translateY(16px)}}
 @media(prefers-reduced-motion:reduce){.dialog-card,.mat-device .device-generic.diagnosed .dev-fix{animation:none}}
+
+/* Every actionable part stays visible; the selected tool gives a stronger hint. */
+.mat-device .device-generic .dev-fix[data-state]{margin:0;transform:translate(-50%,-50%);opacity:.8;border:2px solid #91c5d4;border-radius:5px;background:#558a9d22;box-shadow:0 0 0 1px #20242add;animation:none;transition:background 150ms ease-out,border-color 150ms ease-out}
+.mat-device .device-generic .dev-fix[data-state=available]{border-color:#d5b980;background:#d5b98018}
+.mat-device .device-generic .dev-fix[data-state=ready]{opacity:1;border-color:#ffe3a0;background:#ffc96933;box-shadow:0 0 0 2px #342921,0 0 12px #ffce6980;animation:target-glow 1.8s ease-in-out infinite alternate}
+.mat-device .device-generic .dev-fix[data-state=done]{opacity:.65;border-color:#a4be89;background:#a4be8920;box-shadow:none;animation:none}
+.mat-device .dev-fix[data-state=done]::after{display:grid;place-items:center;position:absolute;inset:0;font:700 18px Consolas,monospace}
+.mat-device .dev-fix:not(.done)::after{content:attr(data-label);display:none;position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);width:max-content;max-width:155px;padding:5px;background:#2d241eee;border:1px solid #d5b980;color:#f8e9c9;font:10px/1.3 Consolas,monospace;pointer-events:none}
+.mat-device .dev-fix:not(.done):hover::after,.mat-device .dev-fix:not(.done):focus-visible::after{display:block}
+.bench:has([data-tool=screw][aria-pressed=true]) .device-generic:not(.assembling) .screw:not(.removed)::before,.bench:has([data-tool=screw][aria-pressed=true]) .device-generic.assembling .screw.removed::before{border-color:#ffe3a0;box-shadow:0 0 5px 2px #eec26c80}
+@keyframes target-glow{to{background:#ffc96950;box-shadow:0 0 0 2px #342921,0 0 17px #ffce6990}}
+@media(prefers-reduced-motion:reduce){.mat-device .device-generic .dev-fix[data-state]{animation:none;transition:none}}

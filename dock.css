@@ -17,3 +17,13 @@
 @media(max-height:640px){.bench .dock .tools button{min-height:44px}.bench .dock .panel .actions button{min-height:34px}}
 .bench .dock .panel-top>div{flex:1;min-width:0}
 .bench .dock .panel-top{padding-right:92px}
+
+/* Diagnosis and assembly are required steps, so none may be hidden in a carousel. */
+.bench .dock .panel .actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;overflow:visible}
+.bench .dock .panel .actions button{width:100%;min-width:0;min-height:42px;padding:6px;white-space:normal;overflow-wrap:anywhere;font-size:11px;line-height:1.2}
+.bench .dock .panel .actions button:last-child:nth-child(odd){grid-column:1/-1}
+.bench .dock .panel .actions button[data-action$=cover]{background:#b98958;color:#211b1b;border-color:#edc894}
+.bench .dock .panel-top h2{line-height:1.35}
+@media(max-height:600px){.bench .dock .panel .actions button{min-height:38px;font-size:10px}}
+.bench .dock .tools[hidden]{display:none}
+@media(max-height:600px){.bench .dock .bench-message{font-size:11px;line-height:1.3}}
