@@ -11,5 +11,4 @@
 .campaign-note{font:11px/1.4 Consolas,monospace;color:#f2d8a8;margin:5px 0}.bench .dock .campaign-note{display:none}
 .bench[data-complete=true] .dock .campaign-note{display:block}.bench[data-complete=true] .dock .bench-message{color:#d2e4a9}
 body:has(.part-context) .dock button[data-action^=ddiag],body:has(.part-context) .dock button[data-action^=rdiag],body:has(.part-context) .dock button[data-action^=diagnose]{display:none}
-.room-album{position:absolute;left:81%;top:23%;width:14%;display:flex;flex-wrap:wrap;gap:2px;padding:3px;background:#553c2b;border:2px solid #ac8054;font-size:10px}.room-album:empty{display:none}.room-album i{font-style:normal;font-size:10px}
 @media(prefers-reduced-motion:reduce){.repair-wipe i{transition:none}.part-gesture.holding{animation:none}}

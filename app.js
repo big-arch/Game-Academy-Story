@@ -522,7 +522,7 @@ benchCats['bench-cat-device'] = createCat($('#bench-cat-device'));
 function syncCats() { const work = !menuOpen && state.stage === 'work' && !document.hidden; for (const [order, id] of Object.entries(CAT_BY_ORDER)) benchCats[id].setActive(work && state.order === order); benchCats['bench-cat-device'].setActive(work && Boolean(DEVICES[state.order])); }
 let soundOn = false;
 const music = createMusicPlayer(()=>{ soundOn=false;updateSoundButton();note('Не удалось воспроизвести музыку. Попробуй включить её ещё раз.'); });
-const workshopUI = createWorkshopUI({ getState: () => state, purchase: id => dispatch('buy-decoration', id), close: closeWorkshop });
+const workshopUI = createWorkshopUI({ getState: () => state, purchase: id => dispatch('buy-decoration', id), close: closeWorkshop, beforeCollection() { closeRepairInstrument(); partInteraction.close(); } });
 function openWorkshop() {
   partInteraction.close();
   shopOpener = document.activeElement; shopReturnMenu = menuOpen; menuOpen = true; shopOpen = true;
@@ -572,7 +572,7 @@ function render() {
     $('#remote-keypad').classList.toggle('clean', s.rKeypadClean);
   }
   $('.scene').hidden = menuOpen || ['work','ending'].includes(s.stage);
-  document.querySelectorAll('.bench').forEach(bench => { bench.dataset.complete = String(s.stage === 'ending'); bench.querySelector('.mat').inert = false; bench.querySelectorAll('.mat button:not(.device-memory-screen)').forEach(button => { button.inert = s.stage === 'ending'; }); });
+  document.querySelectorAll('.bench').forEach(bench => { bench.dataset.complete = String(s.stage === 'ending'); bench.querySelector('.mat').inert = false; bench.querySelectorAll('.mat button:not(.device-memory-screen):not(.room-collection)').forEach(button => { button.inert = s.stage === 'ending'; }); });
   if (['work','ending'].includes(s.stage)) {
     const bench = $(benchFor(s.order));
     bench.querySelector('.dock').prepend($('.panel'));
