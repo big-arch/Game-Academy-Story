@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
-import { existsSync } from 'node:fs';
-import { collectionItems, COLLECTION_SLOTS } from './room-collection.js';
+import { existsSync, readFileSync } from 'node:fs';
+import { collectionItems, COLLECTION_SLOTS, CABINET_ART } from './room-collection.js';
 import { CONTRACTS } from './campaign.js';
 import { SHELF } from './story.js';
 
@@ -15,6 +15,11 @@ test('the rack contains only returned devices, with one physical miniature per t
 });
 
 test('all completed jobs and story objects fit the cabinet and use existing game artwork', () => {
+  const art = readFileSync(new URL(CABINET_ART.src,import.meta.url));
+  assert.equal(art.readUInt32BE(16),CABINET_ART.size[0]);
+  assert.equal(art.readUInt32BE(20),CABINET_ART.size[1]);
+  const [x,y,w,h] = CABINET_ART.crop;
+  assert.ok(x>=0 && y>=0 && x+w<=CABINET_ART.size[0] && y+h<=CABINET_ART.size[1]);
   const items = collectionItems({completedOrders:CONTRACTS.map(c=>c.order),shelfDone:SHELF.map(s=>s.id)});
   assert.ok(items.some(item=>item.order==='music-box'));
   assert.ok(items.length<=COLLECTION_SLOTS);

@@ -4,6 +4,12 @@ import { SHELF, storyProgress } from './story.js';
 import { memoryFor, memoryProgress } from './memories.js';
 
 export const COLLECTION_SLOTS = 14;
+export const CABINET_ART = { src: 'assets/room/collection-cabinet-v2.png', crop: [40,70,2094,529], size: [2172,724] };
+function cabinetArt() {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg'); svg.classList.add('cabinet-art'); svg.setAttribute('viewBox',CABINET_ART.crop.join(' ')); svg.setAttribute('aria-hidden','true');
+  const image = document.createElementNS('http://www.w3.org/2000/svg','image'); image.setAttribute('href',CABINET_ART.src); image.setAttribute('width',String(CABINET_ART.size[0])); image.setAttribute('height',String(CABINET_ART.size[1])); svg.append(image);
+  return svg;
+}
 export function collectionItems(state) {
   const ids = new Set(completedOrders(state));
   const returned = storyProgress(state).shelfDone;
@@ -71,11 +77,13 @@ export function createRoomCollection({ getState, beforeOpen = () => {} }) {
         shelf.setAttribute('aria-label',`Стеллаж мастерской. Собрано: ${items.length}. Рассмотреть`);
         if (shelf.dataset.collection === signature && shelf.children.length) continue;
         shelf.dataset.collection = signature;
-        shelf.replaceChildren(...Array.from({length:Math.max(COLLECTION_SLOTS,items.length)},(_,i)=>{
+        const contents = document.createElement('span'); contents.className = 'cabinet-contents'; contents.setAttribute('aria-hidden','true');
+        contents.append(...Array.from({length:Math.max(COLLECTION_SLOTS,items.length)},(_,i)=>{
           const slot = document.createElement('span'); slot.className = 'collection-slot'; slot.setAttribute('aria-hidden','true');
           if (items[i]) { slot.dataset.order = items[i].order; slot.append(miniature(items[i])); }
           return slot;
         }));
+        shelf.replaceChildren(cabinetArt(),contents);
       }
     },
   };

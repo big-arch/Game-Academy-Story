@@ -47,7 +47,7 @@ export function createWorkshopUI({ getState, purchase, close, beforeCollection =
     render();
   };
   shop.addEventListener('keydown', event => { if (event.key === 'Escape') { event.preventDefault(); close(); } });
-  const show = (layer, stage, items) => { layer.dataset.items = items.join(' '); layer.querySelector('.room-stage').style.backgroundImage = `url('assets/room/stage-${stage}.png')`; };
+  const show = (layer, stage, items) => { layer.dataset.items = items.join(' '); layer.dataset.stage = String(stage); layer.querySelector('.room-stage').style.backgroundImage = `url('assets/room/stage-${stage}.png')`; };
   function render() {
     const state = getState(), owned = ownedDecorations(state), stage = roomStage(state), item = DECORATIONS.find(item => item.id === selected);
     balance.textContent = `${state.coins} монет`;
