@@ -1,4 +1,4 @@
-import { initialState, act } from './game.js?v=16';
+import { initialState, act, allFixes } from './game.js?v=17';
 import { createMemoryUI } from './memory-ui.js';
 import { memoryFor, memoryAvailable } from './memories.js';
 import { CONTRACTS, completedOrders, nextContract, campaignProgress } from './campaign.js';
@@ -6,7 +6,7 @@ import { createRepairInteraction } from './repair-interaction.js';
 import { workshopProgress, ownedDecorations } from './workshop.js?v=3';
 import { createWorkshopUI } from './workshop-ui.js?v=2';
 import { clientFor, pickClient } from './stories.js?v=4';
-import { DEVICES, viewSrc } from './devices.js?v=4';
+import { DEVICES, viewSrc } from './devices.js?v=5';
 import { deviceActions, targetState, diagnosisChoices } from './repair-ui.js?v=2';
 import { startAmbience } from './ambience.js?v=3';
 import { startCityLife } from './city-life.js?v=1';
@@ -113,7 +113,7 @@ document.addEventListener('click', e => {
     } else if (element.matches('.dev-fix')) {
       e.preventDefault(); e.stopImmediatePropagation();
       if (!d.diagnosed) { inspectAtPart(element, 'dev-inspect', cfg.inside); return; }
-      const fix = cfg.fixes.find(f => f.id === element.dataset.fix);
+      const fix = allFixes(cfg, state.dev).find(f => f.id === element.dataset.fix);
       if (d.fixed.includes(fix.id)) return;
       action = 'dev-fix'; target = fix.id; required = fix.tool; label = fix.label;
       if (fix.after?.some(id => !d.fixed.includes(id))) { partInteraction.open({ element, label, blocked: fix.notReady || 'Сначала подготовь контакт.' }); return; }
@@ -220,6 +220,13 @@ const benchFor = order => BENCHES[order] || (DEVICES[order] ? '#bench-device' : 
 const TOOL_LABELS = { inspect: 'Осмотр', screw: 'Отвёртка', clean: 'Спирт', hand: 'Руки', brush: 'Кисть', paste: 'Термопаста', belt: 'Ремень' };
 const MAT_RATIO = 1681 / 936; // высота коврика к ширине
 let devBuilt = '';
+// Точка ремонта; для скрытой поломки добавляется, когда её обнаружила проверка.
+function fixButton(f) {
+    const b = document.createElement('button'); b.className = 'dev-fix'; b.dataset.fix = f.id; b.title = f.label; b.setAttribute('aria-label', f.label);
+    Object.assign(b.style, { left: `${f.x}%`, top: `${f.y}%`, width: `max(44px, ${f.width || 18}%)`, height: `max(44px, ${f.height || 18}%)` });
+    b.onclick = () => { if (!state.dev.diagnosed) { dispatch('dev-fix', f.id); return; } if (tool !== f.tool) { note(`${f.label}: здесь нужен инструмент «${TOOL_LABELS[f.tool]}».`); return; } effects.play('tool'); dispatch('dev-fix', f.id); };
+  return b;
+}
 function buildDevice(order) {
   const cfg = DEVICES[order], [w, h] = cfg.size, box = $('#dev-device'), body = $('#dev-body');
   devBuilt = order;
@@ -234,12 +241,7 @@ function buildDevice(order) {
     b.onclick = () => { if (tool === 'screw') { effects.play('repair'); dispatch('dev-screw', i); } else note('Для винтов нужна отвёртка.'); };
     body.prepend(b);
   });
-  $('#dev-inside').replaceChildren(...cfg.fixes.map(f => {
-    const b = document.createElement('button'); b.className = 'dev-fix'; b.dataset.fix = f.id; b.title = f.label; b.setAttribute('aria-label', f.label);
-    Object.assign(b.style, { left: `${f.x}%`, top: `${f.y}%`, width: `max(44px, ${f.width || 18}%)`, height: `max(44px, ${f.height || 18}%)` });
-    b.onclick = () => { if (!state.dev.diagnosed) { dispatch('dev-fix', f.id); return; } if (tool !== f.tool) { note(`${f.label}: здесь нужен инструмент «${TOOL_LABELS[f.tool]}».`); return; } effects.play('tool'); dispatch('dev-fix', f.id); };
-    return b;
-  }));
+  $('#dev-inside').replaceChildren(...cfg.fixes.map(fixButton));
   tool = 'inspect';
   $('#dev-tools').replaceChildren(...cfg.tools.map(t => {
     const b = document.createElement('button'); b.dataset.tool = t; b.setAttribute('aria-pressed', String(t === 'inspect'));
@@ -261,7 +263,8 @@ function renderDevice(s) {
   $('#dev-body').style.backgroundImage = `url('${viewSrc(s.order, d.repaired ? 'repaired' : 'closed')}')`;
   $('#dev-open').hidden = d.open || d.assembling || d.screwMask !== (1 << cfg.screws.length) - 1;
   $('#dev-body').querySelectorAll('.screw').forEach(b => { const removed = Boolean(d.screwMask & (1 << Number(b.dataset.screw))); b.classList.toggle('removed', removed); b.setAttribute('aria-label', `Винт корпуса ${Number(b.dataset.screw) + 1}${removed ? ', снят' : ', установлен'}`); });
-  $('#dev-inside').querySelectorAll('.dev-fix').forEach(b => { const fix = cfg.fixes.find(f => f.id === b.dataset.fix), status = targetState(d, fix, tool); b.dataset.state = status; b.dataset.label = fix.label; b.classList.toggle('done', status === 'done'); b.disabled = status === 'done'; b.setAttribute('aria-label', `${fix.label}${status === 'done' ? ', готово' : status === 'ready' ? ', можно выполнить' : ''}`); });
+  if (cfg.hidden && d.hiddenFound && !$(`#dev-inside [data-fix="${cfg.hidden.fix.id}"]`)) $('#dev-inside').append(fixButton(cfg.hidden.fix));
+  $('#dev-inside').querySelectorAll('.dev-fix').forEach(b => { const fix = allFixes(cfg, d).find(f => f.id === b.dataset.fix), status = targetState(d, fix, tool); b.dataset.state = status; b.dataset.label = fix.label; b.classList.toggle('done', status === 'done'); b.disabled = status === 'done'; b.setAttribute('aria-label', `${fix.label}${status === 'done' ? ', готово' : status === 'ready' ? ', можно выполнить' : ''}`); });
 }
 $('#dev-open').onclick = () => { effects.play(); dispatch('dev-cover'); };
 function fitDeviceAboveDock() {

@@ -4,9 +4,11 @@ import { campaignProgress } from './campaign.js';
 import { memoryAvailable, memoryFor, memoryProgress } from './memories.js';
 export const initialState = () => ({ stage: 'intro', inspected: false, tested: false, poweredOff: false, open: false, screws: 0, screwMask: 0, assembling: false, dust: 0, dustMask: 0, dustCleaned: false, fanConnected: false, thermalChecked: false, paste: false, repaired: false, upgrade: false, coins: 0, memories: [], memoryActions: [], memoryRead: false, memoryActionDone: false, furniture: [], order: null, cassetteOpen: false, cScrews: 0, cScrewMask: 0, cassetteAssembling: false, tapeClipFixed: false, beltReplaced: false, headCleaned: false, cassetteTested: false, cassetteInteriorInspected: false, cassetteDiagnosed: false, cassetteRepaired: false, rOpen: false, rScrewMask: 0, rAssembling: false, rInspectedInside: false, rDiagnosed: false, rGrimeMask: 0, rKeypadClean: false, rRepaired: false, client: null, clues: [], dev: null });
 export const REWARDS = { laptop: 120, cassette: 120, remote: 80 };
+export const allFixes = (cfg, d) => [...cfg.fixes, ...(cfg.hidden && d?.hiddenFound ? [cfg.hidden.fix] : [])];
+export const CARE_BONUS = 15; // за ремонт без промахов
 export const TIP_PER_CLUE = 10; // чаевые за каждую найденную историю на корпусе
 // Оплата заказа плюс чаевые за внимание к деталям.
-function pay(n, order) { const base = REWARDS[order] ?? DEVICES[order].reward, tips = TIP_PER_CLUE * n.clues.length; n.coins += base + tips; const progress = campaignProgress(n); n.completedOrders = [...new Set([...progress.completedOrders, order])]; n.jobsCompleted = progress.jobsCompleted + 1; return `Заказ завершён! Получено ${base} монет` + (tips ? ` и ${tips} чаевых за внимание к деталям.` : '.'); }
+function pay(n, order) { const base = REWARDS[order] ?? DEVICES[order].reward, slips = n.dev?.slips ?? null, care = slips === 0 ? CARE_BONUS : 0, careless = slips >= 3 ? 10 : 0, tips = Math.max(0, TIP_PER_CLUE * n.clues.length + care - careless); n.coins += base + tips; const progress = campaignProgress(n); n.completedOrders = [...new Set([...progress.completedOrders, order])]; n.jobsCompleted = progress.jobsCompleted + 1; return `Заказ завершён! Получено ${base} монет` + (tips ? ` и ${tips} чаевых` : '') + (care ? ' — клиент заметил, как аккуратно ты работал.' : careless ? '. Клиент заметил лишнюю возню и оставил меньше.' : tips ? ' за внимание к деталям.' : '.'); }
 const bits = mask => mask.toString(2).replaceAll('0', '').length;
 export function act(s, action, target) {
   const n = { ...s };
@@ -78,7 +80,7 @@ export function act(s, action, target) {
     case 'remote-test': if (n.rOpen) { message = 'Сначала закрой корпус.'; break; } if (n.rAssembling || n.rScrewMask) { message = 'Сначала закрути винты корпуса.'; break; } if (n.rGrimeMask !== 7 || !n.rKeypadClean) { message = n.rDiagnosed ? 'Часть кнопок всё ещё не отвечает. Проверь плату и клавиатуру.' : 'Цифры и стрелки по-прежнему не работают. Загляни внутрь.'; break; } n.rRepaired = true; message = 'Все кнопки отвечают! Светодиод мигает на каждое нажатие.'; break;
     case 'remote-finish': if (n.stage === 'work' && n.order === 'remote' && n.rRepaired) { n.stage = 'ending'; n.repaired = true; message = pay(n, 'remote'); } else message = 'Сначала проверь пульт.'; break;
     // Общий движок для устройств из devices.js (пейджер, телефон, приставка…).
-    case 'dev-accept': { const cfg = DEVICES[target?.order]; if (!cfg) { message = 'Неизвестное устройство.'; break; } n.stage = 'work'; n.order = target.order; n.client = target.client || null; n.dev = { open: false, screwMask: 0, assembling: false, inside: false, diagnosed: false, fixed: [], repaired: false }; message = cfg.accept; break; }
+    case 'dev-accept': { const cfg = DEVICES[target?.order]; if (!cfg) { message = 'Неизвестное устройство.'; break; } n.stage = 'work'; n.order = target.order; n.client = target.client || null; n.dev = { open: false, screwMask: 0, assembling: false, inside: false, diagnosed: false, fixed: [], repaired: false, hiddenFound: false, slips: 0 }; message = cfg.accept; break; }
     case 'dev-inspect': { const cfg = DEVICES[n.order], d = n.dev; if (!cfg || !d) break; if (d.open) { n.dev = { ...d, inside: true }; message = cfg.inside + (d.diagnosed ? '' : ' Выбери причину.'); } else message = cfg.outside; break; }
     case 'dev-screw': {
       const cfg = DEVICES[n.order], d = { ...n.dev }; if (!cfg) break;
@@ -90,16 +92,19 @@ export function act(s, action, target) {
       n.dev = d; break;
     }
     case 'dev-cover': { const cfg = DEVICES[n.order], d = { ...n.dev }; if (!cfg) break; if (!d.open && (d.assembling || d.screwMask !== (1 << cfg.screws.length) - 1)) { message = 'Сначала открути все винты.'; break; } d.open = !d.open; d.assembling = !d.open; message = d.open ? 'Крышка снята. Осмотри, что внутри.' : `Корпус закрыт. Закрути винты: ${cfg.screws.length}.`; n.dev = d; break; }
-    case 'dev-diagnose': { const cfg = DEVICES[n.order], d = n.dev; if (!cfg) break; if (!d.open || !d.inside) { message = 'Сначала открой корпус и осмотри, что внутри.'; break; } const cause = cfg.causes.find(c => c.id === target); if (!cause) { message = 'Выбери предполагаемую причину.'; break; } if (cause.correct) n.dev = { ...d, diagnosed: true }; message = cause.reply; break; }
+    case 'dev-diagnose': { const cfg = DEVICES[n.order], d = n.dev; if (!cfg) break; if (!d.open || !d.inside) { message = 'Сначала открой корпус и осмотри, что внутри.'; break; } const cause = cfg.causes.find(c => c.id === target); if (!cause) { message = 'Выбери предполагаемую причину.'; break; } n.dev = cause.correct ? { ...d, diagnosed: true } : { ...d, slips: (d.slips || 0) + 1 }; message = cause.reply; break; }
     case 'dev-fix': {
-      const cfg = DEVICES[n.order], d = n.dev, fix = cfg?.fixes.find(f => f.id === target); if (!fix) { message = 'Здесь нечего чинить.'; break; }
+      const cfg = DEVICES[n.order], d = n.dev, fix = cfg && allFixes(cfg, n.dev).find(f => f.id === target); if (!fix) { message = 'Здесь нечего чинить.'; break; }
       if (!d.open) { message = 'Сначала сними крышку.'; break; }
       if (!d.diagnosed) { message = d.inside ? 'Коснись детали и выбери причину неисправности.' : 'Сначала осмотри, что внутри: инструмент «Осмотр» и коснись устройства.'; break; }
       if (d.fixed.includes(fix.id)) { message = 'Здесь уже всё сделано.'; break; }
       if (fix.after?.some(id => !d.fixed.includes(id))) { message = fix.notReady || 'Сначала сделай предыдущий шаг.'; break; }
       n.dev = { ...d, fixed: [...d.fixed, fix.id] }; message = fix.text; break;
     }
-    case 'dev-test': { const cfg = DEVICES[n.order], d = n.dev; if (!cfg) break; if (d.open) { message = 'Сначала закрой корпус.'; break; } if (d.assembling || d.screwMask) { message = 'Сначала закрути винты корпуса.'; break; } if (cfg.fixes.some(f => !d.fixed.includes(f.id))) { message = cfg.testFail; break; } n.dev = { ...d, repaired: true }; message = cfg.testOk; break; }
+    case 'dev-test': { const cfg = DEVICES[n.order], d = n.dev; if (!cfg) break; if (d.open) { message = 'Сначала закрой корпус.'; break; } if (d.assembling || d.screwMask) { message = 'Сначала закрути винты корпуса.'; break; } if (allFixes(cfg, d).some(f => !d.fixed.includes(f.id))) { n.dev = { ...d, slips: (d.slips || 0) + 1 }; message = cfg.testFail; break; }
+      // Скрытая поломка: всё сделано по списку, а проверка выявляет новую причину — разбираем снова.
+      if (cfg.hidden && !d.hiddenFound) { n.dev = { ...d, hiddenFound: true }; message = cfg.hidden.reveal; break; }
+      n.dev = { ...d, repaired: true }; message = cfg.testOk; break; }
     case 'dev-finish': if (n.stage === 'work' && DEVICES[n.order] && n.dev?.repaired) { n.stage = 'ending'; n.repaired = true; message = pay(n, n.order); } else message = 'Сначала проверь устройство.'; break;
     // След истории на корпусе: текст показывает интерфейс, здесь только учёт для чаевых.
     case 'clue': if (n.stage !== 'work' || typeof target !== 'string') { message = 'Здесь нечего рассматривать.'; break; } if (n.clues.includes(target)) { message = 'Эту историю ты уже знаешь.'; break; } n.clues = [...n.clues, target]; break;

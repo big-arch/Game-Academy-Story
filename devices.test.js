@@ -23,7 +23,16 @@ for (const [order, cfg] of Object.entries(DEVICES)) {
     run('dev-test'); assert.equal(s.dev.repaired, false);
     run('dev-cover'); run('dev-test'); assert.equal(s.dev.repaired, false);
     for (let i = 0; i < cfg.screws.length; i++) run('dev-screw', i);
-    run('dev-test'); assert.equal(s.dev.repaired, true);
+    run('dev-test');
+    if (cfg.hidden) {
+      // Hidden second fault: the first passing test reveals it, the casing is opened again.
+      assert.equal(s.dev.hiddenFound, true); assert.equal(s.dev.repaired, false);
+      for (let i = 0; i < cfg.screws.length; i++) run('dev-screw', i);
+      run('dev-cover'); run('dev-fix', cfg.hidden.fix.id); run('dev-cover');
+      for (let i = 0; i < cfg.screws.length; i++) run('dev-screw', i);
+      run('dev-test');
+    }
+    assert.equal(s.dev.repaired, true);
     run('dev-screw', 0); assert.equal(s.dev.repaired, false);
     run('dev-test'); assert.equal(s.dev.repaired, false);
     run('dev-finish'); assert.equal(s.stage, 'work');

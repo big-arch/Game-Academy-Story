@@ -107,3 +107,23 @@ test('data-driven devices follow screws, diagnosis, ordered fixes and reassembly
   run('dev-screw', 0); run('dev-screw', 1); run('dev-test'); assert.equal(s.dev.repaired, true);
   run('dev-finish'); assert.equal(s.stage, 'ending'); assert.equal(s.coins, 90);
 });
+
+test('hidden second fault appears on the first passing test and must be fixed after reopening', () => {
+  let s = initialState(); const run = (a, t) => { s = act(s, a, t).state; };
+  run('dev-accept', { order: 'phone', client: 'dima' });
+  for (let i = 0; i < 4; i++) run('dev-screw', i);
+  run('dev-cover'); run('dev-inspect'); run('dev-diagnose', 'battery'); run('dev-fix', 'port'); run('dev-fix', 'battery');
+  run('dev-cover'); for (let i = 0; i < 4; i++) run('dev-screw', i);
+  run('dev-test'); assert.equal(s.dev.hiddenFound, true); assert.equal(s.dev.repaired, false);
+  run('dev-test'); assert.equal(s.dev.repaired, false);
+  for (let i = 0; i < 4; i++) run('dev-screw', i);
+  run('dev-cover'); run('dev-fix', 'antenna'); run('dev-cover'); for (let i = 0; i < 4; i++) run('dev-screw', i);
+  run('dev-test'); assert.equal(s.dev.repaired, true);
+});
+
+test('careful repairs earn a bonus and sloppy ones lose part of the tip', () => {
+  const finish = slips => act({ ...initialState(), stage: 'work', order: 'pager', clues: ['find'], dev: { repaired: true, slips } }, 'dev-finish').state.coins;
+  assert.equal(finish(0), 90 + 10 + 15);
+  assert.equal(finish(1), 90 + 10);
+  assert.equal(finish(3), 90 + 0);
+});
