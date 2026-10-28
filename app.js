@@ -1,11 +1,12 @@
-import { initialState, act, allFixes } from './game.js?v=17';
+import { initialState, act, allFixes } from './game.js?v=18';
 import { createMemoryUI } from './memory-ui.js';
 import { memoryFor, memoryAvailable } from './memories.js';
 import { CONTRACTS, completedOrders, nextContract, campaignProgress } from './campaign.js';
+import { LETTER, SHELF, currentChapter, shelfStatus } from './story.js';
 import { createRepairInteraction } from './repair-interaction.js';
-import { workshopProgress, ownedDecorations } from './workshop.js?v=3';
+import { workshopProgress, ownedDecorations } from './workshop.js?v=4';
 import { createWorkshopUI } from './workshop-ui.js?v=2';
-import { clientFor, pickClient } from './stories.js?v=4';
+import { clientFor, pickClient } from './stories.js?v=5';
 import { DEVICES, viewSrc } from './devices.js?v=5';
 import { deviceActions, targetState, diagnosisChoices } from './repair-ui.js?v=2';
 import { startAmbience } from './ambience.js?v=3';
@@ -374,7 +375,8 @@ function persist() {
   try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {}
   saveToCloud(state);
 }
-function dispatch(action, target) {
+let returnedShelf = null;
+function dispatch(action, target) { const shelfBefore = [...(state.shelfDone || [])];
   const coinsBefore = state.coins;
   for (const [prefix, name] of [['diagnose-', 'cassette-diagnose'], ['rdiag-', 'remote-diagnose'], ['ddiag-', 'dev-diagnose']]) {
     if (action.startsWith(prefix)) { target = action.slice(prefix.length); action = name; break; }
@@ -391,22 +393,23 @@ function dispatch(action, target) {
   } else { result = act(state, action, target); state = result.state; note(result.message); }
   if (['dev-test','test'].includes(action) && memoryAvailable(state)) note(`${result.message} Экран оживает. Коснись его: там сохранилась история владельца.`);
   persist();
+  returnedShelf = action.endsWith('finish') ? SHELF.find(i => state.shelfDone?.includes(i.id) && !shelfBefore.includes(i.id)) || null : null;
   const source = rewardSource(), gained = state.coins - coinsBefore;
   if (gained > 0) coinFlight++;
   render();
   if (gained > 0) flyCoins(gained, source);
   if (action === 'buy-decoration' && state.coins < coinsBefore) effects.play('coin');
-  if (ACCEPT_ORDER[action] || action === 'dev-accept') showDialog('hello');
+  if (ACCEPT_ORDER[action] || action === 'dev-accept' || action === 'shelf-take') showDialog('hello');
   else if (action.endsWith('finish') && state.stage === 'ending') {
     const finished = state;
-    setTimeout(() => { if (state === finished && !menuOpen) showDialog('bye'); }, 1300);
+    setTimeout(() => { if (state === finished && !menuOpen) showDialog('bye', returnedShelf ? () => showLetter('Бирка внутри', returnedShelf.after, 'Положить к письму Лёвы') : null); }, 1300);
   }
   return result;
 }
 function note(text){$('#message').textContent=text;$('#bench-message').textContent=text;$('#cassette-message').textContent=text;$('#remote-message').textContent=text;$('#device-message').textContent=text;}
 // Диалог с клиентом: приходит с историей (можно расспросить), а при возврате реагирует на найденные следы.
 let typing = 0;
-function showDialog(kind) {
+function showDialog(kind, onClose = null) {
   const client = clientFor(state.order, state.client); if (!client) return;
   const box = $('#dialog'), text = $('#dialog-text'), choices = $('#dialog-choices'), asked = new Set();
   $('#dialog-name').textContent = `${client.name} · ${client.title}`;
@@ -419,7 +422,7 @@ function showDialog(kind) {
   };
   const options = () => {
     const list = kind === 'hello' ? client.questions.filter(q => !asked.has(q)).map(q => [q.q, () => { asked.add(q); say(q.a); options(); }]) : [];
-    list.push([kind === 'hello' ? 'Беру в работу' : 'До встречи!', () => { clearInterval(typing); box.hidden = true; }]);
+    list.push([kind === 'hello' ? 'Беру в работу' : 'До встречи!', () => { clearInterval(typing); box.hidden = true; onClose?.(); }]);
     choices.replaceChildren(...list.map(([label, fn], i) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; if (i === list.length - 1) b.className = 'primary'; b.onclick = () => { effects.play('click'); fn(); }; return b; }));
   };
   if (kind === 'hello') say(client.intro);
@@ -473,8 +476,46 @@ async function toggleMusic(){if(soundOn){music.disable();soundOn=false;}else sou
 $('#sound').onclick=toggleMusic;$('#menu-music').onclick=toggleMusic;
 $('#menu-effects').onclick=()=>{effects.setEnabled(!effects.enabled);const b=$('#menu-effects');b.textContent=effects.enabled?'◉ Звуки: вкл.':'◉ Звуки: выкл.';b.setAttribute('aria-pressed',String(effects.enabled));effects.play();};
 $('#menu-continue').onclick=()=>{effects.play();if(state.stage !== 'work') acceptNextContract();else {menuOpen=false;render();}};
+// Письмо Лёвы и бирки с полки — в том же окне диалога, без вариантов ответа.
+function showLetter(title, text, button, onClose = null) {
+  const box = $('#dialog');
+  $('#dialog-name').textContent = title; $('#dialog-text').textContent = text; $('#dialog-text').onclick = null;
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'primary'; b.textContent = button;
+  b.onclick = () => { effects.play('click'); box.hidden = true; onClose?.(); };
+  $('#dialog-choices').replaceChildren(b); box.classList.add('letter'); box.hidden = false;
+  const off = new MutationObserver(() => { if (box.hidden) { box.classList.remove('letter'); off.disconnect(); } }); off.observe(box, { attributes: true, attributeFilter: ['hidden'] });
+}
+// Полка «НЕ ГОТОВО»: бирки Лёвы; открытый предмет берётся в работу как особый заказ.
+const shelfButton = document.createElement('button'); shelfButton.id = 'menu-shelf'; shelfButton.className = 'secondary'; shelfButton.textContent = 'Полка «НЕ ГОТОВО»';
+$('#menu-shop').after(shelfButton);
+const chapterLabel = document.createElement('p'); chapterLabel.className = 'menu-chapter'; $('#menu-campaign').before(chapterLabel);
+const shelfPanel = document.createElement('div'); shelfPanel.className = 'dialog shelf-panel'; shelfPanel.hidden = true; shelfPanel.setAttribute('role', 'dialog'); shelfPanel.setAttribute('aria-label', 'Полка «НЕ ГОТОВО»');
+document.body.append(shelfPanel);
+function openShelf() {
+  const card = document.createElement('div'); card.className = 'dialog-card shelf-card';
+  card.innerHTML = '<div class="dialog-name">Полка «НЕ ГОТОВО»</div><p class="dialog-text">Вещи, которые Лёва не успел вернуть. На каждой — бирка.</p>';
+  const list = document.createElement('div'); list.className = 'shelf-items';
+  for (const item of SHELF) {
+    const status = shelfStatus(state, item), row = document.createElement('div'); row.className = `shelf-item ${status}`;
+    row.innerHTML = `<span class="shelf-tag">${item.tag}</span><b>${status === 'locked' ? 'Глава ' + item.chapter : item.name}</b>`;
+    const b = document.createElement('button'); b.type = 'button';
+    if (status === 'ready') { b.textContent = state.stage === 'work' ? 'После текущего заказа' : 'Взять в работу'; b.disabled = state.stage === 'work'; b.onclick = () => { effects.play('click'); shelfPanel.hidden = true; state = { ...initialState(), ...workshopProgress(state) }; menuOpen = false; tool = 'inspect'; dispatch('shelf-take', item.id); }; }
+    else { b.textContent = status === 'done' ? 'Возвращено ✓' : `Откроется после ${item.unlock} заказов`; b.disabled = true; }
+    row.append(b); list.append(row);
+  }
+  const close = document.createElement('button'); close.type = 'button'; close.className = 'primary'; close.textContent = 'Закрыть'; close.onclick = () => { shelfPanel.hidden = true; };
+  card.append(list, close); shelfPanel.replaceChildren(card); shelfPanel.hidden = false;
+}
+shelfButton.onclick = () => { effects.play('click'); openShelf(); };
+function renderStory() {
+  chapterLabel.textContent = currentChapter(state).title;
+  shelfButton.classList.toggle('has-ready', SHELF.some(i => shelfStatus(state, i) === 'ready'));
+}
+setInterval(renderStory, 1000);
 updateSoundButton();
 render();
+renderStory();
+if (!state.letterRead) showLetter(LETTER.title, LETTER.text, LETTER.button, () => { state = act(state, 'letter-read').state; persist(); });
 document.querySelectorAll('.mat').forEach(mat => { startAmbience(mat, () => effects.playThunder()); startCityLife(mat.querySelector('.ambience'), { isMusicOn: () => soundOn }); });
 document.addEventListener('visibilitychange',syncCats);
 // Частицы: пыль

@@ -1,6 +1,7 @@
 import { DEVICES } from './devices.js';
 import { purchaseDecoration } from './workshop.js';
 import { campaignProgress } from './campaign.js';
+import { SHELF, shelfStatus, storyProgress } from './story.js';
 import { memoryAvailable, memoryFor, memoryProgress } from './memories.js';
 export const initialState = () => ({ stage: 'intro', inspected: false, tested: false, poweredOff: false, open: false, screws: 0, screwMask: 0, assembling: false, dust: 0, dustMask: 0, dustCleaned: false, fanConnected: false, thermalChecked: false, paste: false, repaired: false, upgrade: false, coins: 0, memories: [], memoryActions: [], memoryRead: false, memoryActionDone: false, furniture: [], order: null, cassetteOpen: false, cScrews: 0, cScrewMask: 0, cassetteAssembling: false, tapeClipFixed: false, beltReplaced: false, headCleaned: false, cassetteTested: false, cassetteInteriorInspected: false, cassetteDiagnosed: false, cassetteRepaired: false, rOpen: false, rScrewMask: 0, rAssembling: false, rInspectedInside: false, rDiagnosed: false, rGrimeMask: 0, rKeypadClean: false, rRepaired: false, client: null, clues: [], dev: null });
 export const REWARDS = { laptop: 120, cassette: 120, remote: 80 };
@@ -8,9 +9,17 @@ export const allFixes = (cfg, d) => [...cfg.fixes, ...(cfg.hidden && d?.hiddenFo
 export const CARE_BONUS = 15; // за ремонт без промахов
 export const TIP_PER_CLUE = 10; // чаевые за каждую найденную историю на корпусе
 // Оплата заказа плюс чаевые за внимание к деталям.
-function pay(n, order) { const base = REWARDS[order] ?? DEVICES[order].reward, slips = n.dev?.slips ?? null, care = slips === 0 ? CARE_BONUS : 0, careless = slips >= 3 ? 10 : 0, tips = Math.max(0, TIP_PER_CLUE * n.clues.length + care - careless); n.coins += base + tips; const progress = campaignProgress(n); n.completedOrders = [...new Set([...progress.completedOrders, order])]; n.jobsCompleted = progress.jobsCompleted + 1; return `Заказ завершён! Получено ${base} монет` + (tips ? ` и ${tips} чаевых` : '') + (care ? ' — клиент заметил, как аккуратно ты работал.' : careless ? '. Клиент заметил лишнюю возню и оставил меньше.' : tips ? ' за внимание к деталям.' : '.'); }
+function pay(n, order) { const base = REWARDS[order] ?? DEVICES[order].reward, slips = n.dev?.slips ?? null, care = slips === 0 ? CARE_BONUS : 0, careless = slips >= 3 ? 10 : 0, tips = Math.max(0, TIP_PER_CLUE * n.clues.length + care - careless); n.coins += base + tips; if (n.shelf) { n.shelfDone = [...new Set([...storyProgress(n).shelfDone, n.shelf])]; n.shelf = null; } const progress = campaignProgress(n); n.completedOrders = [...new Set([...progress.completedOrders, order])]; n.jobsCompleted = progress.jobsCompleted + 1; return `Заказ завершён! Получено ${base} монет` + (tips ? ` и ${tips} чаевых` : '') + (care ? ' — клиент заметил, как аккуратно ты работал.' : careless ? '. Клиент заметил лишнюю возню и оставил меньше.' : tips ? ' за внимание к деталям.' : '.'); }
 const bits = mask => mask.toString(2).replaceAll('0', '').length;
 export function act(s, action, target) {
+  // Сюжет: письмо Лёвы и предметы с полки «НЕ ГОТОВО» (story.js).
+  if (action === 'letter-read') return { state: { ...s, letterRead: true }, message: '' };
+  if (action === 'shelf-take') {
+    const item = SHELF.find(i => i.id === target);
+    if (!item || shelfStatus(s, item) !== 'ready') return { state: s, message: 'Этот предмет пока не готов к выдаче.' };
+    const accept = DEVICES[item.order] ? act(s, 'dev-accept', { order: item.order, client: item.client }) : act(s, { remote: 'remote-accept', cassette: 'cassette-accept', laptop: 'accept' }[item.order], item.client);
+    return { state: { ...accept.state, shelf: item.id }, message: `С полки «НЕ ГОТОВО»: ${item.name.toLowerCase()} с биркой ${item.tag}.` };
+  }
   const n = { ...s };
   let message = '';
   switch (action) {

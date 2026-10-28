@@ -1,5 +1,6 @@
 import { campaignProgress } from './campaign.js';
 import { memoryProgress } from './memories.js';
+import { storyProgress } from './story.js';
 export const DECORATIONS = [
   { id: 'bed', name: 'Лежанка Мурзика', price: 80, description: 'Своя зона отдыха вдали от техники. Мурзик устраивается здесь вместо прогулок над ремонтом.' },
   { id: 'garland', name: 'Огоньки у окна', price: 100, description: 'Тёплая гирлянда над дождливым городом.' },
@@ -13,7 +14,7 @@ export function ownedDecorations(state) {
 
 // Room purchases belong to the workshop, not to the currently repaired device.
 export function workshopProgress(state) {
-  return { coins: state.coins, upgrade: Boolean(state.upgrade), furniture: ownedDecorations(state), ...campaignProgress(state), ...memoryProgress(state) };
+  return { coins: state.coins, upgrade: Boolean(state.upgrade), furniture: ownedDecorations(state), ...campaignProgress(state), ...memoryProgress(state), ...storyProgress(state) };
 }
 
 export function purchaseDecoration(state, id) {

@@ -127,3 +127,13 @@ test('careful repairs earn a bonus and sloppy ones lose part of the tip', () => 
   assert.equal(finish(1), 90 + 10);
   assert.equal(finish(3), 90 + 0);
 });
+
+test('shelf item unlocks after two jobs, is taken as a special order and stays returned', () => {
+  const locked = act({ ...initialState(), jobsCompleted: 1 }, 'shelf-take', 'zoya-remote');
+  assert.equal(locked.state.stage, 'intro');
+  let s = act({ ...initialState(), jobsCompleted: 2, letterRead: true }, 'shelf-take', 'zoya-remote').state;
+  assert.equal(s.order, 'remote'); assert.equal(s.client, 'zoya-lev'); assert.equal(s.shelf, 'zoya-remote');
+  s = act({ ...s, rRepaired: true }, 'remote-finish').state;
+  assert.deepEqual(s.shelfDone, ['zoya-remote']); assert.equal(s.shelf, null);
+  assert.equal(act(s, 'shelf-take', 'zoya-remote').state.stage, 'ending');
+});
