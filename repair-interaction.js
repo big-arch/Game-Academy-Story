@@ -36,7 +36,7 @@ export function createRepairInteraction({ selectTool, sound }) {
     for (const choice of choices) { const b = document.createElement('button'); b.textContent = choice.label; b.onclick = () => { close(); choice.run(); }; row.append(b); }
     if (choices.length) row.classList.add('part-causes');
     if (!blocked) {
-      const labels = { screw: 'Отвёртка', brush: 'Кисть', clean: 'Спирт', hand: 'Деталь', paste: 'Термопаста', belt: 'Ремень' };
+      const labels = { screw: 'Отвёртка', brush: 'Кисть', clean: 'Спирт', hand: 'Деталь', paste: 'Термопаста', belt: 'Ремень', meter: 'Мультиметр', solder: 'Паяльник' };
       for (const tool of tools) {
         const b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', labels[tool]);
         const img = document.createElement('img'); img.src = `assets/ui/tools/${tool}.svg`; img.alt = '';

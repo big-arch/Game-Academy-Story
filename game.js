@@ -15,6 +15,7 @@ export function act(s, action, target) {
   // Сюжет: письмо Лёвы и предметы с полки «НЕ ГОТОВО» (story.js).
   if (action === 'letter-read') return { state: { ...s, letterRead: true }, message: '' };
   if (action === 'shelf-take') {
+    if (s.stage === 'work') return { state: s, message: 'Сначала заверши текущий заказ.' };
     const item = SHELF.find(i => i.id === target);
     if (!item || shelfStatus(s, item) !== 'ready') return { state: s, message: 'Этот предмет пока не готов к выдаче.' };
     const accept = DEVICES[item.order] ? act(s, 'dev-accept', { order: item.order, client: item.client }) : act(s, { remote: 'remote-accept', cassette: 'cassette-accept', laptop: 'accept' }[item.order], item.client);

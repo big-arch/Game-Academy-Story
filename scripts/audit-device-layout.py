@@ -18,13 +18,17 @@ manifest = json.loads(subprocess.check_output([
     "const shape={points:c.outline.map(([x,y])=>({x,y}))};"
     "for(const [x,y] of c.screws)if(!contains(shape,x,y))throw Error(id+': screw outside outline');}}"
     "console.log(JSON.stringify(Object.entries(DEVICES).map(([id,c])=>"
-    "({id,screws:c.screws,closed:viewSrc(id,'closed'),open:viewSrc(id,'open'),fixes:c.fixes}))));",
+    "({id,screws:c.screws,closed:viewSrc(id,'closed'),open:viewSrc(id,'open'),fixes:[...c.fixes,...(c.hidden?[c.hidden.fix]:[])]}))));",
 ], cwd=ROOT, text=True, encoding='utf-8'))
 
 errors = []
 for device in manifest:
     image = Image.open(ROOT / device['closed']).convert('RGBA')
-    for index, (x, y) in enumerate(device['screws'], 1):
+    for index, screw in enumerate(device['screws'], 1):
+        if len(screw) not in (2, 3) or (len(screw) == 3 and screw[2] not in ('long', 'short')):
+            errors.append(f"{device['id']}: screw {index} has an invalid format or size")
+            continue
+        x, y = screw[:2]
         if not (0 <= x <= 100 and 0 <= y <= 100):
             errors.append(f"{device['id']}: screw {index} outside coordinate range")
             continue

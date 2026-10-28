@@ -1,13 +1,13 @@
-import { initialState, act, allFixes } from './game.js?v=21';
+import { initialState, act, allFixes } from './game.js?v=22';
 import { createMemoryUI } from './memory-ui.js';
 import { memoryFor, memoryAvailable } from './memories.js';
 import { CONTRACTS, completedOrders, nextContract, campaignProgress } from './campaign.js';
-import { LETTER, SHELF, currentChapter, shelfStatus } from './story.js';
+import { LETTER, SHELF, currentChapter, shelfStatus, shelfLockReason } from './story.js';
 import { createRepairInteraction } from './repair-interaction.js';
 import { workshopProgress, ownedDecorations } from './workshop.js?v=4';
 import { createWorkshopUI } from './workshop-ui.js?v=2';
-import { clientFor, pickClient } from './stories.js?v=8';
-import { DEVICES, viewSrc } from './devices.js?v=8';
+import { clientFor, pickClient } from './stories.js?v=9';
+import { DEVICES, viewSrc } from './devices.js?v=9';
 import { deviceActions, targetState, diagnosisChoices } from './repair-ui.js?v=2';
 import { startAmbience } from './ambience.js?v=3';
 import { startCityLife } from './city-life.js?v=1';
@@ -97,6 +97,7 @@ const ORDER_ACCEPT = { laptop: 'accept', cassette: 'cassette-accept', remote: 'r
 const ACCEPT_ORDER = Object.fromEntries(Object.entries(ORDER_ACCEPT).map(([order, action]) => [action, order]));
 // A part opens its own tool choices. The dock remains for global actions only.
 function inspectAtPart(element, action, explanation) {
+  closeRepairInstrument();
   dispatch(action);
   const choices = diagnosisChoices(state.order, DEVICES[state.order]).map(([id,label]) => ({ label, run: () => { const result = dispatch(id); const diagnosed = DEVICES[state.order] ? state.dev.diagnosed : state.order === 'remote' ? state.rDiagnosed : state.cassetteDiagnosed; if (!diagnosed) partInteraction.open({ element, label: 'Проверь другую причину', blocked: result.message, choices }); } }));
   partInteraction.open({ element, label: 'Что мешает устройству работать?', blocked: explanation || $('#message').textContent, choices });
@@ -139,10 +140,11 @@ document.addEventListener('click', e => {
   } else if (element.id === 'remote-open') { e.preventDefault(); e.stopImmediatePropagation(); tool = 'hand'; dispatch('remote-cover'); return; }
   else return;
   e.preventDefault(); e.stopImmediatePropagation();
+  closeRepairInstrument();
   if (required === 'meter') { const fix = allFixes(cfg, state.dev).find(f => f.id === target); startMeter(element, label, fix, () => { effects.play('repair'); dispatch(action, target); }); return; }
   if (required === 'solder') { startSolder(element, label, () => { effects.play('repair'); dispatch(action, target); }); return; }
   const availableTools = cfg?.tools || [...$(benchFor(state.order)).querySelectorAll('[data-tool]')].map(b => b.dataset.tool);
-  const tools = required === 'screw' ? ['screw'] : [...new Set([...availableTools, required])].filter(t => !['inspect','screw'].includes(t));
+  const tools = required === 'screw' ? ['screw'] : [...new Set([...availableTools, required])].filter(t => !['inspect','screw','meter','solder'].includes(t));
   partInteraction.open({ element, label, tools, required, alignment: required === 'hand' && (CONTRACTS.find(c => c.order === state.order)?.level || 1) >= 3, complete: () => dispatch(action, target), magnify: ownedDecorations(state).includes('lamp'), zoom: () => (cfg ? $('#dev-device') : $(state.order === 'laptop' ? '#device' : state.order === 'cassette' ? '#cassette-device' : '#remote-device')).classList.toggle('repair-magnified') });
 }, true);
 // Отвёртка: зажать винт — появляется отвёртка и кольцо прогресса, винт вращается; отпустил раньше — сброс.
@@ -176,6 +178,7 @@ document.addEventListener('pointerdown', e => {
 // переворачивают и читают надпись на обороте. Закрыли — вещь возвращается на место, история засчитана.
 const FIND_NAMES = { note: 'Записка', photo: 'Фотография', ticket: 'Билет', coin: 'Монета', key: 'Ключик', flower: 'Засушенный цветок', drawing: 'Детский рисунок', ring: 'Колечко', button: 'Пуговица', letter: 'Письмо' };
 function openFind(find, from) {
+  closeRepairInstrument(); partInteraction.close();
   document.querySelector('.find-viewer')?.remove();
   const viewer = document.createElement('div'); viewer.className = 'find-viewer'; viewer.setAttribute('role', 'dialog'); viewer.setAttribute('aria-label', FIND_NAMES[find.kind] || 'Находка');
   viewer.innerHTML = `<p class="find-title">${FIND_NAMES[find.kind] || 'Находка'}</p><div class="find-stage"><div class="find-card"><div class="find-face find-front"><img src="assets/ui/finds/${find.kind}.svg" alt=""></div><div class="find-face find-back"><p></p></div></div></div><p class="find-hint">Потяни, чтобы повернуть · коснись, чтобы перевернуть</p><div class="find-buttons"><button type="button" class="find-flip">Перевернуть</button><button type="button" class="primary find-close">Положить обратно</button></div>`;
@@ -201,20 +204,33 @@ function openFind(find, from) {
   };
   viewer.querySelector('.find-close').focus({ preventScroll: true });
 }
+// Instruments own their listeners and animation frame until closed or the scene changes.
+let closeInstrument = () => {};
+function closeRepairInstrument() { closeInstrument(); closeInstrument = () => {}; }
+function positionInstrument(panel, element) {
+  panel.style.maxHeight = 'calc(100dvh - 16px)'; panel.style.overflowY = 'auto';
+  const r = element.getBoundingClientRect(), p = panel.getBoundingClientRect();
+  Object.assign(panel.style, { left: `${Math.max(8, Math.min(innerWidth - p.width - 8, r.left + r.width / 2 - p.width / 2))}px`, top: `${Math.max(8, Math.min(innerHeight - p.height - 8, r.top - p.height - 10))}px` });
+}
+function ownInstrument(close) {
+  const escape = e => { if (e.key === 'Escape') closeRepairInstrument(); };
+  closeInstrument = () => { window.removeEventListener('resize', closeRepairInstrument); document.removeEventListener('keydown', escape); close(); };
+  window.addEventListener('resize', closeRepairInstrument); document.addEventListener('keydown', escape);
+}
 // Мультиметр: коснись дорожки щупами — целая показывает «0.0 Ω» и пищит, оборванная — «OL». Отметь обрыв.
 function startMeter(element, label, fix, complete) {
-  document.querySelector('.meter-panel')?.remove();
+  closeRepairInstrument(); partInteraction.close();
   const panel = document.createElement('section'); panel.className = 'part-context meter-panel'; panel.setAttribute('aria-label', label);
   const traces = Array.from({ length: fix.traces }, (_, i) => `<button type="button" class="meter-trace" data-i="${i}"><i></i><span>${i + 1}</span></button>`).join('');
   panel.innerHTML = `<strong>${label}: прозвонка</strong><button class="part-dismiss" aria-label="Закрыть">×</button><p role="status">Коснись дорожки щупами. Целая звенит и показывает ноль, оборванная — «OL».</p><div class="meter-row"><div class="meter-board">${traces}</div><div class="meter-device"><b class="meter-screen">— — —</b><img src="assets/ui/tools/meter.svg" alt=""></div></div><button type="button" class="part-gesture meter-mark" disabled>Отметить обрыв</button>`;
   document.body.append(panel);
-  const r = element.getBoundingClientRect(), p = panel.getBoundingClientRect();
-  Object.assign(panel.style, { left: `${Math.max(8, Math.min(innerWidth - p.width - 8, r.left + r.width / 2 - p.width / 2))}px`, top: `${Math.max(8, r.top - p.height - 10)}px` });
+  positionInstrument(panel, element);
   element.classList.add('part-selected');
   const hint = panel.querySelector('p'), screen = panel.querySelector('.meter-screen'), mark = panel.querySelector('.meter-mark');
   let picked = null;
   const close = () => { panel.remove(); element.classList.remove('part-selected'); };
-  panel.querySelector('.part-dismiss').onclick = close;
+  ownInstrument(close);
+  panel.querySelector('.part-dismiss').onclick = closeRepairInstrument;
   panel.querySelectorAll('.meter-trace').forEach(b => b.onclick = () => {
     picked = Number(b.dataset.i); const open = picked === fix.broken;
     panel.querySelectorAll('.meter-trace').forEach(x => x.classList.toggle('probed', x === b));
@@ -224,7 +240,7 @@ function startMeter(element, label, fix, complete) {
     mark.disabled = false; mark.textContent = `Отметить обрыв на дорожке ${picked + 1}`;
   });
   mark.onclick = () => {
-    if (picked === fix.broken) { close(); complete(); return; }
+    if (picked === fix.broken) { closeRepairInstrument(); complete(); return; }
     dispatch('dev-slip', `Дорожка ${picked + 1} целая — прибор показывал ноль. Ищи ту, где «OL».`);
     hint.textContent = 'Эта дорожка звонится. Обрыв там, где прибор показывает «OL».';
   };
@@ -232,17 +248,17 @@ function startMeter(element, label, fix, complete) {
 // Пайка: держишь паяльник — температура растёт; отпусти в зелёной зоне. Рано — припой не взялся, перегрел — промах.
 const SOLDER = { heatMs: 1700, cool: 0.0012, zone: [0.62, 0.82] };
 function startSolder(element, label, complete) {
-  document.querySelector('.solder-panel')?.remove();
+  closeRepairInstrument(); partInteraction.close();
   const panel = document.createElement('section'); panel.className = 'part-context solder-panel'; panel.setAttribute('aria-label', label);
   panel.innerHTML = `<strong>${label}: пайка</strong><button class="part-dismiss" aria-label="Закрыть">×</button><p role="status">Зажми паяльник и отпусти, когда стрелка в зелёной зоне.</p><div class="solder-row"><div class="solder-gauge"><i class="solder-zone"></i><i class="solder-level"></i></div><button class="part-gesture solder-hold"><img src="assets/ui/tools/solder.svg" alt="">Держать паяльник</button></div>`;
   document.body.append(panel);
-  const r = element.getBoundingClientRect(), p = panel.getBoundingClientRect();
-  Object.assign(panel.style, { left: `${Math.max(8, Math.min(innerWidth - p.width - 8, r.left + r.width / 2 - p.width / 2))}px`, top: `${Math.max(8, r.top - p.height - 10)}px` });
+  positionInstrument(panel, element);
   element.classList.add('part-selected');
   const hint = panel.querySelector('p'), level = panel.querySelector('.solder-level'), hold = panel.querySelector('.solder-hold');
   let heat = 0, holding = false, last = performance.now(), frame = 0;
   const close = () => { cancelAnimationFrame(frame); panel.remove(); element.classList.remove('part-selected'); };
-  panel.querySelector('.part-dismiss').onclick = close;
+  ownInstrument(close);
+  panel.querySelector('.part-dismiss').onclick = closeRepairInstrument;
   const tick = now => {
     const dt = now - last; last = now;
     heat = holding ? heat + dt / SOLDER.heatMs : Math.max(0, heat - dt * SOLDER.cool);
@@ -253,11 +269,11 @@ function startSolder(element, label, complete) {
   hold.onpointerdown = e => { e.preventDefault(); try { hold.setPointerCapture(e.pointerId); } catch {} holding = true; hold.classList.add('holding'); };
   hold.onpointerup = () => {
     if (!holding) return; holding = false; hold.classList.remove('holding');
-    if (heat >= SOLDER.zone[0] && heat <= SOLDER.zone[1]) { close(); complete(); }
+    if (heat >= SOLDER.zone[0] && heat <= SOLDER.zone[1]) { closeRepairInstrument(); complete(); }
     else hint.textContent = 'Припой ещё не расплавился — держи дольше.';
   };
   hold.onpointercancel = () => { holding = false; hold.classList.remove('holding'); };
-  hold.onclick = e => { if (e.detail === 0) { close(); complete(); } }; // клавиатура: без мини-игры
+  hold.onclick = e => { if (e.detail === 0) { closeRepairInstrument(); complete(); } }; // клавиатура: без мини-игры
   frame = requestAnimationFrame(tick);
 }
 function screwHint(element) {
@@ -319,12 +335,21 @@ function renderLooseScrews(s) {
         // Винт должен лечь рядом с корпусом, а не на нём: выносим за ближайший боковой край устройства.
         if (device) { const [dl] = pct(device.left, 0), [dr] = pct(device.right, 0); if (rx > dl - 3 && rx < dr + 3) rx = hx < cx ? dl - 4 - Math.random() * 3 : dr + 4 + Math.random() * 3; }
         rx = clamp(rx, 5, 95);
-        item = document.createElement('i'); item.className = 'loose-screw'; item.setAttribute('aria-hidden', 'true');
+        item = document.createElement('i'); item.className = 'loose-screw';
         Object.assign(item.style, { left: `${rx}%`, top: `${ry}%`, '--from-x': `${(hx - rx) / 100 * m.width}px`, '--from-y': `${(hy - ry) / 100 * m.height}px`, '--turn': `${Math.round(Math.random() * 120 - 60)}deg` });
         // Размер винта (devices.js): длинные и короткие видно на столе, при сборке их берут в руку.
         const size = btn.closest('#dev-body') && DEVICES[s.order]?.screws[Number(btn.dataset.screw)]?.[2];
         if (size) { item.dataset.size = size; item.classList.add(`size-${size}`); }
         item.setAttribute('role', 'button'); item.setAttribute('aria-label', size ? (size === 'long' ? 'Длинный винт' : 'Короткий винт') : 'Винт');
+        item.addEventListener('keydown', event => {
+          if (!['Enter',' '].includes(event.key) || !item.classList.contains('pickable')) return;
+          event.preventDefault();
+          const hole = [...mat.querySelectorAll('.screw.removed')].find(h => !size || DEVICES[state.order]?.screws[Number(h.dataset.screw)]?.[2] === size);
+          if (!hole) return;
+          const { action } = screwState(state);
+          if (size) dispatch('dev-pick', size);
+          effects.play('repair'); dispatch(action, Number(hole.dataset.screw));
+        });
         makeDraggable(item, mat);
         mat.append(item); looseScrews.set(key, item);
       } else if (item && shown) {
@@ -332,14 +357,14 @@ function renderLooseScrews(s) {
         const hr = item.getBoundingClientRect();
         item.style.setProperty('--back-x', `${r.left + r.width / 2 - (hr.left + hr.width / 2)}px`);
         item.style.setProperty('--back-y', `${r.top + r.height / 2 - (hr.top + hr.height / 2)}px`);
-        item.classList.add('returning'); looseScrews.delete(key); setTimeout(() => item.remove(), 400);
+        item.classList.remove('pickable'); item.classList.add('returning'); item.setAttribute('aria-hidden', 'true'); item.tabIndex = -1; looseScrews.delete(key); setTimeout(() => item.remove(), 400);
       } else if (item) live.add(key);
     });
   }
   for (const [key, item] of looseScrews) if (!live.has(key)) { item.remove(); looseScrews.delete(key); }
   // Пока корпус собирают, винты на столе можно перетаскивать, а снятые отверстия ждут винт.
   const { assembling } = screwState(s);
-  for (const item of looseScrews.values()) { item.classList.toggle('pickable', assembling); item.classList.remove('held'); }
+  for (const item of looseScrews.values()) { item.classList.toggle('pickable', assembling); item.classList.remove('held'); item.tabIndex = assembling ? 0 : -1; item.setAttribute('aria-disabled', String(!assembling)); }
   bench?.querySelectorAll('.mat .screw').forEach(b => b.classList.toggle('awaiting', assembling && b.classList.contains('removed')));
 }
 // Состояние винтов текущего заказа: идёт ли сборка и какое действие закручивает винт.
@@ -369,7 +394,7 @@ function makeDraggable(item, mat) {
   item.addEventListener('pointerup', e => {
     if (!start) return;
     const hole = holeAt(e.clientX, e.clientY), { action } = screwState(state);
-    if (!hole || !action) { reset(); if (Math.hypot(e.clientX - start.x, e.clientY - start.y) < 6) note('Зажми винт и перетащи его к подсвеченному отверстию.'); return; }
+    if (!hole || !action) { const distance = Math.hypot(e.clientX - start.x, e.clientY - start.y); reset(); if (distance < 6) note('Зажми винт и перетащи его к подсвеченному отверстию.'); return; }
     const holeKey = `${state.order}:${hole.closest('[id]').id}:${hole.dataset.screw}`, myKey = [...looseScrews].find(([, v]) => v === item)?.[0];
     // Винт попал не в «своё» отверстие: меняем привязку, чтобы на столе остался винт для другого отверстия.
     if (myKey && myKey !== holeKey && looseScrews.has(holeKey)) { const other = looseScrews.get(holeKey); looseScrews.set(holeKey, item); looseScrews.set(myKey, other); }
@@ -486,9 +511,9 @@ function closeWorkshop() {
 }
 $('#menu-shop').onclick = () => { effects.play('click'); openWorkshop(); };
 
-const memoryUI = createMemoryUI({ getState: () => state, dispatch, sound: name => effects.play(name), afterRead() { if (state.stage === 'ending' && !menuOpen) showDialog('bye'); } });
+const memoryUI = createMemoryUI({ getState: () => state, dispatch, sound: name => effects.play(name), afterRead() { if (state.stage === 'ending' && !menuOpen) showEndingDialogue(); } });
 function render() {
-  if (menuOpen) { partInteraction.close(); $('#dialog').hidden = true; }
+  if (menuOpen) { closeRepairInstrument(); partInteraction.close(); $('#dialog').hidden = true; }
   const s = state; $('#base').classList.toggle('open', s.open); $('#fan').classList.toggle('clean', s.dustCleaned); $('#connector').classList.toggle('connected', s.fanConnected);
   music.setMode(!menuOpen && s.stage === 'work' ? 'game' : 'menu');
   effects.setWorkshop(!menuOpen && s.stage === 'work');
@@ -550,8 +575,12 @@ function persist() {
   try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {}
   saveToCloud(state);
 }
-let returnedShelf = null;
-function dispatch(action, target) { const shelfBefore = [...(state.shelfDone || [])];
+const shownShelfNotes = new Set();
+function showEndingDialogue() {
+  const item = SHELF.find(i => i.order === state.order && i.client === state.client && state.shelfDone?.includes(i.id));
+  showDialog('bye', item && !shownShelfNotes.has(item.id) ? () => { shownShelfNotes.add(item.id); showLetter('Бирка внутри', item.after, 'Положить к письму Лёвы'); } : null);
+}
+function dispatch(action, target) {
   const coinsBefore = state.coins;
   for (const [prefix, name] of [['diagnose-', 'cassette-diagnose'], ['rdiag-', 'remote-diagnose'], ['ddiag-', 'dev-diagnose']]) {
     if (action.startsWith(prefix)) { target = action.slice(prefix.length); action = name; break; }
@@ -568,7 +597,6 @@ function dispatch(action, target) { const shelfBefore = [...(state.shelfDone || 
   } else { result = act(state, action, target); state = result.state; note(result.message); }
   if (['dev-test','test'].includes(action) && memoryAvailable(state)) note(`${result.message} Экран оживает. Коснись его: там сохранилась история владельца.`);
   persist();
-  returnedShelf = action.endsWith('finish') ? SHELF.find(i => state.shelfDone?.includes(i.id) && !shelfBefore.includes(i.id)) || null : null;
   const source = rewardSource(), gained = state.coins - coinsBefore;
   if (gained > 0) coinFlight++;
   render();
@@ -577,7 +605,7 @@ function dispatch(action, target) { const shelfBefore = [...(state.shelfDone || 
   if (ACCEPT_ORDER[action] || action === 'dev-accept' || action === 'shelf-take') showDialog('hello');
   else if (action.endsWith('finish') && state.stage === 'ending') {
     const finished = state;
-    setTimeout(() => { if (state === finished && !menuOpen) showDialog('bye', returnedShelf ? () => showLetter('Бирка внутри', returnedShelf.after, 'Положить к письму Лёвы') : null); }, 1300);
+    setTimeout(() => { if (state === finished && !menuOpen) showEndingDialogue(); }, 1300);
   }
   return result;
 }
@@ -675,7 +703,7 @@ function openShelf() {
     row.innerHTML = `<span class="shelf-tag">${item.tag}</span><b>${status === 'locked' ? 'Глава ' + item.chapter : item.name}</b>`;
     const b = document.createElement('button'); b.type = 'button';
     if (status === 'ready') { b.textContent = state.stage === 'work' ? 'После текущего заказа' : 'Взять в работу'; b.disabled = state.stage === 'work'; b.onclick = () => { effects.play('click'); shelfPanel.hidden = true; state = { ...initialState(), ...workshopProgress(state) }; menuOpen = false; tool = 'inspect'; dispatch('shelf-take', item.id); }; }
-    else { b.textContent = status === 'done' ? 'Возвращено ✓' : `Откроется после ${item.unlock} заказов`; b.disabled = true; }
+    else { b.textContent = status === 'done' ? 'Возвращено ✓' : shelfLockReason(state, item); b.disabled = true; }
     row.append(b); list.append(row);
   }
   const close = document.createElement('button'); close.type = 'button'; close.className = 'primary'; close.textContent = 'Закрыть'; close.onclick = () => { shelfPanel.hidden = true; };
