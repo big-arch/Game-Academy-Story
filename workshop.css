@@ -42,4 +42,7 @@
 body:is([data-room-stage="0"],[data-room-stage="1"]) :is(.lamp-pool,.lamp-bulb,.lamp-glow){display:none}
 body:is([data-room-stage="0"],[data-room-stage="1"],[data-room-stage="2"]) .tea-steam{display:none}
 .room-stage{position:absolute;inset:0;background:center/100% 100% no-repeat;image-rendering:pixelated}
-.shop-catalog button.locked{opacity:.55}
+.shop-catalog button.locked{opacity:.75}
+.shop-catalog{grid-template-columns:repeat(2,minmax(0,1fr));overflow-x:hidden}
+.shop-catalog button{min-width:0}
+.shop-catalog button span:last-child{white-space:normal;overflow-wrap:anywhere}

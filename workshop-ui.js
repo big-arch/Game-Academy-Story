@@ -51,21 +51,23 @@ export function createWorkshopUI({ getState, purchase, close, beforeCollection =
   function render() {
     const state = getState(), owned = ownedDecorations(state), stage = roomStage(state), item = DECORATIONS.find(item => item.id === selected);
     balance.textContent = `${state.coins} монет`;
-    shop.querySelector('#shop-description').textContent = item.description;
     const locked = entry => entry.stage && !owned.includes(entry.id) && stage < entry.stage - 1;
+    const next = DECORATIONS.find(entry => entry.stage === stage + 1);
+    shop.querySelector('#shop-description').textContent = item.description + (locked(item) ? ` Сначала купи «${next.name}». Улучшения стола устанавливаются по порядку.` : '');
     choices.forEach((b, i) => {
       const entry = DECORATIONS[i]; b.setAttribute('aria-pressed', String(entry.id === selected));
-      b.lastChild.textContent = owned.includes(entry.id) ? 'Есть ✓' : locked(entry) ? 'Позже' : `${entry.price} монет`;
+      const prerequisite = DECORATIONS.find(d => d.stage === entry.stage - 1);
+      b.lastChild.textContent = owned.includes(entry.id) ? 'Есть ✓' : locked(entry) ? `${entry.price} монет · после «${prerequisite.name}»` : `${entry.price} монет`;
       b.classList.toggle('owned', owned.includes(entry.id)); b.classList.toggle('locked', locked(entry));
     });
     const bought = owned.includes(selected), missing = bought ? 0 : Math.max(0, item.price - state.coins);
     buy.disabled = bought || locked(item) || missing > 0;
     buy.textContent = bought ? 'Уже в мастерской' : locked(item) ? `Сначала: ${DECORATIONS.find(d => d.stage === stage + 1).name.toLowerCase()}` : missing ? `Не хватает ${missing} монет` : `Купить · ${item.price} монет`;
     // Предпросмотр: выбранный этап стола (или текущий, если выбрана вещь поверх него).
-    show(previewDecor, item.stage && !locked(item) ? Math.max(stage, item.stage) : stage, [...new Set([...owned, selected])]);
+    show(previewDecor, item.stage ? Math.max(stage, item.stage) : stage, [...new Set([...owned, selected])]);
     roomDecor.forEach(layer => show(layer, stage, owned));
     collection.render();
     shop.querySelector('h2').textContent = `Мастерская · истории ${completedOrders(state).length}/${CONTRACTS.length}`;
   }
-  return { render, focus() { notice.textContent = 'Выбери предмет и посмотри, как изменится комната.'; back.focus(); } };
+  return { render, focus() { notice.textContent = 'Улучшения стола покупаются по порядку. Лежанку и огоньки можно купить отдельно.'; back.focus(); } };
 }
