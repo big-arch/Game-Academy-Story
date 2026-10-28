@@ -111,6 +111,14 @@ document.addEventListener('click', e => {
     if (element.matches('.screw')) {
       target = Number(element.dataset.screw); action = 'dev-screw'; required = 'screw';
       if (!d.assembling && (d.screwMask & (1 << target))) return;
+      // Винты разной длины: если в руке нет винта, выбор прямо у отверстия (не нужно искать мелкий винт на столе).
+      const size = cfg.screws[target]?.[2];
+      if (size && d.assembling && (d.screwMask & (1 << target)) && !d.held) {
+        e.preventDefault(); e.stopImmediatePropagation();
+        const take = s => () => { effects.play('tool'); dispatch('dev-pick', s); element.click(); };
+        partInteraction.open({ element, label: 'Какой винт взять со стола?', blocked: 'Винты разной длины. Длинный — в глубокое отверстие, короткий — туда, где под крышкой плата.', choices: [{ label: 'Длинный винт', run: take('long') }, { label: 'Короткий винт', run: take('short') }] });
+        return;
+      }
     } else if (element.matches('.dev-fix')) {
       e.preventDefault(); e.stopImmediatePropagation();
       if (!d.diagnosed) { inspectAtPart(element, 'dev-inspect', cfg.inside); return; }
