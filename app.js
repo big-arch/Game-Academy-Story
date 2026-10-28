@@ -1,11 +1,13 @@
-import { initialState, act } from './game.js?v=12';
+import { initialState, act } from './game.js?v=13';
+import { workshopProgress, ownedDecorations } from './workshop.js';
+import { createWorkshopUI } from './workshop-ui.js';
 import { clientFor, pickClient } from './stories.js?v=4';
 import { DEVICES, viewSrc } from './devices.js?v=3';
 import { startAmbience } from './ambience.js?v=3';
 import { startCityLife } from './city-life.js?v=1';
 import { createMusicPlayer } from './music-player.js?v=2';
 import { createSoundEffects } from './sound-effects.js?v=4';
-import { createCat } from './cat.js?v=1';
+import { createCat } from './cat.js?v=2';
 const $ = s => document.querySelector(s);
 const KEY = 'workshop-stories-v1';
 // Cloud copy is best-effort: the local save stays the source of truth and the game works offline.
@@ -19,7 +21,7 @@ if (state.dustCleaned && state.dust === 0) state.dust = 3;
 if (state.screws > 0 && !state.screwMask) state.screwMask = (1 << state.screws) - 1;
 if (state.dust > 0 && !state.dustMask) state.dustMask = (1 << state.dust) - 1;
 if (!state.order && state.stage !== 'intro') state.order = 'laptop';
-let tool = 'inspect', menuOpen = true;
+let tool = 'inspect', menuOpen = true, shopOpen = false, shopReturnMenu = true, shopOpener;
 const effects = createSoundEffects();
 // Полноэкранный режим
 $('#menu-fullscreen').onclick = async () => {
@@ -44,8 +46,8 @@ document.querySelectorAll('.order-btn').forEach(btn => {
     effects.play('click');
     const order = btn.dataset.order;
     if (state.stage === 'work' && !confirm('Начать новый заказ? Текущий незавершённый ремонт будет сброшен.')) return;
-    const { upgrade, coins } = state, previous = state.order === order ? state.client : null;
-    state = { ...initialState(), upgrade, coins };
+    const progress = workshopProgress(state), previous = state.order === order ? state.client : null;
+    state = { ...initialState(), ...progress };
     tool = 'inspect';
     document.querySelectorAll('[data-tool]').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.tool === 'inspect')));
     $('#order-select').hidden = true;
@@ -148,7 +150,7 @@ function buildDevice(order) {
   for (const view of ['open', 'repaired']) new Image().src = viewSrc(order, view);
   body.querySelectorAll('.screw').forEach(b => b.remove());
   cfg.screws.forEach(([x, y], i) => {
-    const b = document.createElement('button'); b.className = 'screw'; b.dataset.screw = i; b.textContent = '✚';
+    const b = document.createElement('button'); b.className = 'screw'; b.dataset.screw = i; b.textContent = '✚'; b.setAttribute('aria-label', `Винт корпуса ${i + 1}`);
     Object.assign(b.style, { left: `calc(${x}% - 22px)`, top: `calc(${y}% - 22px)` });
     b.onclick = () => { if (tool === 'screw') { effects.play('repair'); dispatch('dev-screw', i); } else note('Для винтов нужна отвёртка.'); };
     body.prepend(b);
@@ -174,7 +176,7 @@ function renderDevice(s) {
   box.classList.toggle('is-open', d.open); box.classList.toggle('diagnosed', d.diagnosed);
   $('#dev-body').style.backgroundImage = `url('${viewSrc(s.order, d.repaired ? 'repaired' : 'closed')}')`;
   $('#dev-open').hidden = d.open || d.assembling || d.screwMask !== (1 << cfg.screws.length) - 1;
-  $('#dev-body').querySelectorAll('.screw').forEach(b => b.classList.toggle('removed', Boolean(d.screwMask & (1 << Number(b.dataset.screw)))));
+  $('#dev-body').querySelectorAll('.screw').forEach(b => { const removed = Boolean(d.screwMask & (1 << Number(b.dataset.screw))); b.classList.toggle('removed', removed); b.setAttribute('aria-label', `Винт корпуса ${Number(b.dataset.screw) + 1}${removed ? ', снят' : ', установлен'}`); });
   $('#dev-inside').querySelectorAll('.dev-fix').forEach(b => { const done = d.fixed.includes(b.dataset.fix); b.classList.toggle('done', done); b.disabled = done; });
 }
 $('#dev-open').onclick = () => { effects.play(); dispatch('dev-cover'); };
@@ -196,11 +198,26 @@ benchCats['bench-cat-device'] = createCat($('#bench-cat-device'));
 function syncCats() { const work = !menuOpen && state.stage === 'work' && !document.hidden; for (const [order, id] of Object.entries(CAT_BY_ORDER)) benchCats[id].setActive(work && state.order === order); benchCats['bench-cat-device'].setActive(work && Boolean(DEVICES[state.order])); }
 let soundOn = false;
 const music = createMusicPlayer(()=>{ soundOn=false;updateSoundButton();note('Не удалось воспроизвести музыку. Попробуй включить её ещё раз.'); });
+const workshopUI = createWorkshopUI({ getState: () => state, purchase: id => dispatch('buy-decoration', id), close: closeWorkshop });
+function openWorkshop() {
+  shopOpener = document.activeElement; shopReturnMenu = menuOpen; menuOpen = true; shopOpen = true;
+  render(); workshopUI.focus();
+}
+function closeWorkshop() {
+  shopOpen = false; menuOpen = shopReturnMenu; render();
+  (shopOpener?.isConnected ? shopOpener : menuOpen ? $('#menu-shop') : backMenu).focus();
+}
+$('#menu-shop').onclick = () => { effects.play('click'); openWorkshop(); };
+
 function render() {
   const s = state; $('#base').classList.toggle('open', s.open); $('#fan').classList.toggle('clean', s.dustCleaned); $('#connector').classList.toggle('connected', s.fanConnected);
   music.setMode(!menuOpen && s.stage === 'work' ? 'game' : 'menu');
   effects.setWorkshop(!menuOpen && s.stage === 'work');
-  $('#main-menu').hidden = !menuOpen;
+  $('#main-menu').hidden = !menuOpen || shopOpen;
+  $('#workshop-shop').hidden = !shopOpen;
+  workshopUI.render();
+  const hasBed = ownedDecorations(s).includes('bed');
+  Object.values(benchCats).forEach(cat => cat.setBed(hasBed));
   $('#menu-balance').innerHTML = `<img src="assets/ui/coin.svg" alt="">${s.coins} монет`;
   if (!coinFlight) coinCounter.querySelector('b').textContent = s.coins;
   document.body.classList.toggle('lamp-upgraded', s.upgrade);
@@ -237,13 +254,41 @@ function render() {
   $('#heading').textContent = client ? `${client.name} · ${client.title}` : s.stage === 'ending' ? 'История продолжается' : s.order === 'cassette' ? 'Музыка на плёнке' : s.order === 'remote' ? 'Вечер у телевизора' : 'Письма из прошлого';
   $('#story').textContent = client ? [s.stage === 'ending' ? client.ending : client.intro, ...client.marks.filter(m => s.clues.includes(m.id)).map(m => `• ${m.text}`), ...(s.stage === 'work' && s.clues.length < client.marks.length ? [`Следов на корпусе ещё не найдено: ${client.marks.length - s.clues.length}.`] : [])].join('\n') : s.order === 'remote' ? (s.stage === 'ending' ? '«Работает! Дедушка снова сам переключает свои передачи и больше не зовёт меня каждые пять минут. Спасибо!»' : '«Дедушка пролил чай на пульт, и теперь половина кнопок не нажимается. Он без него как без рук — посмотрите, пожалуйста?»') : s.order === 'cassette' ? (s.stage === 'ending' ? '«Плеер снова работает. Теперь я смогу послушать старую запись. Спасибо!»' : '«Этот плеер не протягивает ленту. На кассете важная для меня запись. Поможете?»') : (s.stage === 'ending' ? '«Он снова работает… Смотрите, это дедушкины фотографии с моря! Я думала, что больше никогда их не увижу. Спасибо вам.»' : '«Это ноутбук моего дедушки. Он включается, но быстро выключается. Там наши семейные фотографии… Пожалуйста, помогите их сохранить.»');
   $('#status').textContent = s.stage === 'ending' ? `● БАЛАНС: ${s.coins} МОНЕТ` : s.repaired ? '● УСТРОЙСТВО ИСПРАВНО' : s.stage === 'work' ? '● ЗАКАЗ В РАБОТЕ' : '● НОВЫЙ ЗАКАЗ';
-  const actions = s.stage === 'intro' ? [['accept','Принять заказ']] : s.stage === 'ending' ? [['next-order','Следующий заказ'], ...(s.upgrade ? [] : [['upgrade','Улучшить лампу · 120 монет']]), ['replay','Повторить заказ']] : DEVICES[s.order] && s.dev ? [['dev-inspect','Осмотр'],['dev-test','Проверить'], ...(s.dev.open && s.dev.inside && !s.dev.diagnosed ? DEVICES[s.order].causes.map(c => ['ddiag-' + c.id, 'Причина: ' + c.label]) : []), ...(s.dev.open ? [['dev-cover','Закрыть крышку']] : []), ...(s.dev.repaired ? [['dev-finish','Вернуть клиенту']] : [])] : s.order === 'remote' ? [['remote-inspect','Осмотр'],['remote-test','Проверить'], ...(s.rOpen && s.rInspectedInside && !s.rDiagnosed ? [['rdiag-battery','Причина: батарейки'],['rdiag-led','Причина: светодиод'],['rdiag-contacts','Причина: контакты']] : []), ...(s.rOpen ? [['remote-cover','Закрыть корпус']] : []), ...(s.rRepaired ? [['remote-finish','Вернуть клиенту']] : [])] : s.order === 'cassette' ? [['cassette-inspect','Осмотр'],['cassette-test','Проверить'], ...(s.cassetteOpen && s.cassetteInteriorInspected && !s.cassetteDiagnosed ? [['diagnose-battery','Причина: батарея'],['diagnose-head','Причина: головка'],['diagnose-belt','Причина: ремень']] : []), ...(s.cassetteOpen ? [['cassette-cover','Закрыть крышку']] : []), ...(s.cassetteRepaired ? [['cassette-finish','Вернуть клиенту']] : [])] : [['inspect','Осмотр'],['test','Диагностика'],['power',s.poweredOff?'Включить питание':'Выключить питание'], ...(s.open ? [['cover','Закрыть крышку']] : []), ...(s.repaired ? [['finish','Вернуть клиенту']] : [])];
+  const actions = s.stage === 'intro' ? [['accept','Принять заказ']] : s.stage === 'ending' ? [['next-order','Следующий заказ'], ['shop','Обустройство'], ['replay','Повторить заказ']] : DEVICES[s.order] && s.dev ? [['dev-inspect','Осмотр'],['dev-test','Проверить'], ...(s.dev.open && s.dev.inside && !s.dev.diagnosed ? DEVICES[s.order].causes.map(c => ['ddiag-' + c.id, 'Причина: ' + c.label]) : []), ...(s.dev.open ? [['dev-cover','Закрыть крышку']] : []), ...(s.dev.repaired ? [['dev-finish','Вернуть клиенту']] : [])] : s.order === 'remote' ? [['remote-inspect','Осмотр'],['remote-test','Проверить'], ...(s.rOpen && s.rInspectedInside && !s.rDiagnosed ? [['rdiag-battery','Причина: батарейки'],['rdiag-led','Причина: светодиод'],['rdiag-contacts','Причина: контакты']] : []), ...(s.rOpen ? [['remote-cover','Закрыть корпус']] : []), ...(s.rRepaired ? [['remote-finish','Вернуть клиенту']] : [])] : s.order === 'cassette' ? [['cassette-inspect','Осмотр'],['cassette-test','Проверить'], ...(s.cassetteOpen && s.cassetteInteriorInspected && !s.cassetteDiagnosed ? [['diagnose-battery','Причина: батарея'],['diagnose-head','Причина: головка'],['diagnose-belt','Причина: ремень']] : []), ...(s.cassetteOpen ? [['cassette-cover','Закрыть крышку']] : []), ...(s.cassetteRepaired ? [['cassette-finish','Вернуть клиенту']] : [])] : [['inspect','Осмотр'],['test','Диагностика'],['power',s.poweredOff?'Включить питание':'Выключить питание'], ...(s.open ? [['cover','Закрыть крышку']] : []), ...(s.repaired ? [['finish','Вернуть клиенту']] : [])];
   $('#actions').replaceChildren(...actions.map(([id,label],i) => { const b=document.createElement('button');b.textContent=label;if(i===0||id.endsWith('finish'))b.className='primary';b.onclick=()=>{effects.play('click');dispatch(id);};return b; }));
   $('.lamp').style.color = s.upgrade ? '#ffd883' : '#d4a06a';
   renderMarks(s); renderTrays(s);
   syncCats();
 }
-function dispatch(action, target) { const coinsBefore = state.coins; if(action.startsWith('diagnose-')) { target=action.slice('diagnose-'.length); action='cassette-diagnose'; } if(action.startsWith('rdiag-')) { target=action.slice('rdiag-'.length); action='remote-diagnose'; } if(action.startsWith('ddiag-')) { target=action.slice('ddiag-'.length); action='dev-diagnose'; } if(action==='next-order'){ menuOpen=true; render(); $('#order-select').hidden=false; return; } if(ACCEPT_ORDER[action] && target === undefined) target = pickClient(ACCEPT_ORDER[action], state.client); if(action==='replay'){ const {upgrade,coins,client}=state, order=state.order || 'laptop'; state={...initialState(),upgrade,coins}; const result=DEVICES[order] ? act(state,'dev-accept',{order,client}) : act(state,ORDER_ACCEPT[order],client);state=result.state;note('Заказ начат заново. Улучшения мастерской сохранены.'); } else { const result=act(state,action,target);state=result.state;note(result.message); } try{localStorage.setItem(KEY,JSON.stringify(state));}catch{} saveToCloud(state); const source = rewardSource(), gained = state.coins - coinsBefore; if (gained > 0) coinFlight++; render(); if (gained > 0) flyCoins(gained, source); if (ACCEPT_ORDER[action] || action === 'dev-accept') showDialog('hello'); else if (action.endsWith('finish') && state.stage === 'ending') setTimeout(() => showDialog('bye'), 1300); }
+function persist() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {}
+  saveToCloud(state);
+}
+function dispatch(action, target) {
+  const coinsBefore = state.coins;
+  for (const [prefix, name] of [['diagnose-', 'cassette-diagnose'], ['rdiag-', 'remote-diagnose'], ['ddiag-', 'dev-diagnose']]) {
+    if (action.startsWith(prefix)) { target = action.slice(prefix.length); action = name; break; }
+  }
+  if (action === 'shop') { openWorkshop(); return; }
+  if (action === 'next-order') { menuOpen = true; render(); $('#order-select').hidden = false; return; }
+  if (ACCEPT_ORDER[action] && target === undefined) target = pickClient(ACCEPT_ORDER[action], state.client);
+  let result;
+  if (action === 'replay') {
+    const progress = workshopProgress(state), { client } = state, order = state.order || 'laptop';
+    state = { ...initialState(), ...progress };
+    result = DEVICES[order] ? act(state, 'dev-accept', { order, client }) : act(state, ORDER_ACCEPT[order], client);
+    state = result.state; note('Заказ начат заново. Покупки и монеты сохранены.');
+  } else { result = act(state, action, target); state = result.state; note(result.message); }
+  persist();
+  const source = rewardSource(), gained = state.coins - coinsBefore;
+  if (gained > 0) coinFlight++;
+  render();
+  if (gained > 0) flyCoins(gained, source);
+  if (action === 'buy-decoration' && state.coins < coinsBefore) effects.play('coin');
+  if (ACCEPT_ORDER[action] || action === 'dev-accept') showDialog('hello');
+  else if (action.endsWith('finish') && state.stage === 'ending') setTimeout(() => showDialog('bye'), 1300);
+  return result;
+}
 function note(text){$('#message').textContent=text;$('#bench-message').textContent=text;$('#cassette-message').textContent=text;$('#remote-message').textContent=text;$('#device-message').textContent=text;}
 // Диалог с клиентом: приходит с историей (можно расспросить), а при возврате реагирует на найденные следы.
 let typing = 0;

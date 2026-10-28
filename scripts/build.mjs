@@ -32,7 +32,7 @@ for (const f of await readdir(join(root, 'assets'))) if (extname(f) === '.png') 
 // Общему столу нужны только картинки видов; пульт собран из отдельных деталей, поэтому его копируем целиком.
 const wanted = src => {
   const path = src.replaceAll('\\', '/');
-  return !path.endsWith('.md') && !path.endsWith('.psd') && (!path.includes('/parts/') || path.includes('/remote/') || /view-[a-z]+\.png$/.test(path));
+  return !path.split('/').at(-1).startsWith('.') && !path.endsWith('/source') && !path.includes('/source/') && !path.endsWith('.md') && !path.endsWith('.psd') && !path.endsWith('.aseprite') && (!path.includes('/parts/') || path.includes('/remote/') || /view-[a-z]+\.png$/.test(path));
 };
 for (const d of dirs) await cp(join(root, d), join(out, d), { recursive: true, filter: wanted });
 for (const d of audioDirs) await cp(join(root, d), join(out, d), { recursive: true, filter: src => !extname(src) || extname(src) === '.ogg' });

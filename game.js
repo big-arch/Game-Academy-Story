@@ -1,5 +1,6 @@
 import { DEVICES } from './devices.js';
-export const initialState = () => ({ stage: 'intro', inspected: false, tested: false, poweredOff: false, open: false, screws: 0, screwMask: 0, assembling: false, dust: 0, dustMask: 0, dustCleaned: false, fanConnected: false, thermalChecked: false, paste: false, repaired: false, upgrade: false, coins: 0, order: null, cassetteOpen: false, cScrews: 0, cScrewMask: 0, cassetteAssembling: false, tapeClipFixed: false, beltReplaced: false, headCleaned: false, cassetteTested: false, cassetteInteriorInspected: false, cassetteDiagnosed: false, cassetteRepaired: false, rOpen: false, rScrewMask: 0, rAssembling: false, rInspectedInside: false, rDiagnosed: false, rGrimeMask: 0, rKeypadClean: false, rRepaired: false, client: null, clues: [], dev: null });
+import { purchaseDecoration } from './workshop.js';
+export const initialState = () => ({ stage: 'intro', inspected: false, tested: false, poweredOff: false, open: false, screws: 0, screwMask: 0, assembling: false, dust: 0, dustMask: 0, dustCleaned: false, fanConnected: false, thermalChecked: false, paste: false, repaired: false, upgrade: false, coins: 0, furniture: [], order: null, cassetteOpen: false, cScrews: 0, cScrewMask: 0, cassetteAssembling: false, tapeClipFixed: false, beltReplaced: false, headCleaned: false, cassetteTested: false, cassetteInteriorInspected: false, cassetteDiagnosed: false, cassetteRepaired: false, rOpen: false, rScrewMask: 0, rAssembling: false, rInspectedInside: false, rDiagnosed: false, rGrimeMask: 0, rKeypadClean: false, rRepaired: false, client: null, clues: [], dev: null });
 export const REWARDS = { laptop: 120, cassette: 120, remote: 80 };
 export const TIP_PER_CLUE = 10; // чаевые за каждую найденную историю на корпусе
 // Оплата заказа плюс чаевые за внимание к деталям.
@@ -31,7 +32,8 @@ export function act(s, action, target) {
     case 'thermal': if (!n.open) message = 'Радиатор находится под крышкой.'; else { n.thermalChecked = true; message = 'Старая термопаста высохла и потрескалась.'; } break;
     case 'paste': if (!n.open || !n.thermalChecked) message = 'Сначала осмотри радиатор.'; else { n.paste = true; message = 'Старая паста удалена, нанесён тонкий новый слой.'; } break;
     case 'finish': if (n.stage === 'work' && n.order === 'laptop' && n.repaired) { n.stage = 'ending'; message = pay(n, 'laptop'); } else message = 'Сначала добейся успешной проверки устройства.'; break;
-    case 'upgrade': if (n.upgrade) message = 'Лампа уже улучшена.'; else if (n.coins < 120) message = 'Для улучшения лампы нужно 120 монет.'; else { n.coins -= 120; n.upgrade = true; message = 'Новая лампа куплена. В мастерской стало теплее.'; } break;
+    case 'buy-decoration': return purchaseDecoration(s, target);
+    case 'upgrade': return purchaseDecoration(s, 'lamp');
     // Кассетный плеер
     case 'cassette-accept': n.stage = 'work'; n.order = 'cassette'; n.client = target || null; message = 'Заказ принят: кассетный плеер не протягивает ленту.'; break;
     case 'cassette-inspect': n.inspected = true; if (n.cassetteOpen) n.cassetteInteriorInspected = true; message = n.cassetteOpen ? 'Приводной ремень растянут, головка загрязнена, лента ослаблена. Что мешает протяжке? Выбери причину кнопкой вверху.' : 'Внешний осмотр: плеер включается, но лента не протягивается.'; break;
@@ -41,7 +43,7 @@ export function act(s, action, target) {
     case 'cassette-diagnose': if (!n.cassetteOpen || !n.cassetteInteriorInspected) { message = 'Сначала открой и осмотри механизм.'; break; } if (target === 'belt') { n.cassetteDiagnosed = true; message = 'Верно: ремень растянулся и проскальзывает. Замени его после ремонта клипа.'; } else if (target === 'battery') message = 'Плеер включается: батарея подаёт питание. Что мешает вращению?'; else if (target === 'head') message = 'Грязная головка влияет на звук, но не останавливает ленту. Посмотри на привод.'; else message = 'Выбери предполагаемую причину.'; break;
     case 'cassette-belt': if (!n.cassetteOpen) { message = 'Сначала открой корпус.'; break; } if (!n.cassetteDiagnosed) { message = n.cassetteInteriorInspected ? 'Сначала выбери причину неисправности кнопкой вверху.' : 'Сначала осмотри механизм: инструмент «Осмотр» и коснись плеера.'; break; } if (!n.tapeClipFixed) { message = 'Сначала почини клип ленты — коснись ▥ на левой катушке.'; break; } n.beltReplaced = true; message = 'Новый приводной ремень установлен. Механизм протяжки работает!'; break;
     case 'cassette-head': if (!n.cassetteOpen) { message = 'Сначала открой корпус.'; break; } n.headCleaned = true; message = 'Головка очищена. Звук станет чище.'; break;
-    case 'cassette-test': if (n.cassetteAssembling && n.cScrewMask) { message = 'Сначала закрепи винты корпуса.'; break; } if (n.cassetteOpen) { message = 'Сначала закрой корпус.'; break; } if (!n.beltReplaced || !n.tapeClipFixed || !n.headCleaned) { message = 'Плеер ещё работает неправильно. Проверь механизм и головку.'; break; } n.cassetteTested = true; n.cassetteRepaired = true; message = 'Плеер работает! Кассета протягивается, звук чистый.'; break;
+    case 'cassette-test': if (n.cScrewMask) { message = 'Сначала закрепи винты корпуса.'; break; } if (n.cassetteOpen) { message = 'Сначала закрой корпус.'; break; } if (!n.beltReplaced || !n.tapeClipFixed || !n.headCleaned) { message = 'Плеер ещё работает неправильно. Проверь механизм и головку.'; break; } n.cassetteTested = true; n.cassetteRepaired = true; message = 'Плеер работает! Кассета протягивается, звук чистый.'; break;
     case 'cassette-finish': if (n.stage === 'work' && n.order === 'cassette' && n.cassetteRepaired) { n.stage = 'ending'; n.repaired = true; message = pay(n, 'cassette'); } else message = 'Сначала пройдите проверку.'; break;
     // Пульт: западают кнопки из-за липкого налёта на контактах
     case 'remote-accept': n.stage = 'work'; n.order = 'remote'; n.client = target || null; message = 'Заказ принят: у пульта не работает половина кнопок.'; break;
@@ -58,7 +60,7 @@ export function act(s, action, target) {
     case 'remote-diagnose': if (!n.rOpen || !n.rInspectedInside) { message = 'Сначала открой корпус и осмотри плату.'; break; } if (target === 'contacts') { n.rDiagnosed = true; message = 'Верно: липкий налёт мешает кнопкам замыкать контакты. Очисти плату и клавиатуру спиртом.'; } else if (target === 'battery') message = 'Красная кнопка работает, значит питание есть. Дело не в батарейках.'; else if (target === 'led') message = 'Светодиод мигает от красной кнопки — он исправен.'; else message = 'Выбери предполагаемую причину.'; break;
     case 'remote-clean': if (!n.rOpen) { message = 'Плата под крышкой.'; break; } if (!n.rDiagnosed) { message = n.rInspectedInside ? 'Сначала выбери причину неисправности кнопкой вверху.' : 'Сначала осмотри плату: инструмент «Осмотр» и коснись пульта.'; break; } if (!Number.isInteger(target) || target < 0 || target > 2) { message = 'Выбери пятно на плате.'; break; } { const bit = 1 << target; if (n.rGrimeMask & bit) { message = 'Здесь уже чисто.'; break; } n.rGrimeMask |= bit; message = n.rGrimeMask === 7 ? 'Контакты на плате чистые.' : `Очищено пятен: ${bits(n.rGrimeMask)} из 3.`; } break;
     case 'remote-keypad': if (!n.rOpen) { message = 'Клавиатура внутри корпуса.'; break; } if (!n.rDiagnosed) { message = n.rInspectedInside ? 'Сначала выбери причину неисправности кнопкой вверху.' : 'Сначала осмотри плату: инструмент «Осмотр» и коснись пульта.'; break; } n.rKeypadClean = true; message = 'Резиновая клавиатура протёрта, кнопки больше не липнут.'; break;
-    case 'remote-test': if (n.rOpen) { message = 'Сначала закрой корпус.'; break; } if (n.rAssembling) { message = 'Сначала закрути винты корпуса.'; break; } if (n.rGrimeMask !== 7 || !n.rKeypadClean) { message = n.rDiagnosed ? 'Часть кнопок всё ещё не отвечает. Проверь плату и клавиатуру.' : 'Цифры и стрелки по-прежнему не работают. Загляни внутрь.'; break; } n.rRepaired = true; message = 'Все кнопки отвечают! Светодиод мигает на каждое нажатие.'; break;
+    case 'remote-test': if (n.rOpen) { message = 'Сначала закрой корпус.'; break; } if (n.rAssembling || n.rScrewMask) { message = 'Сначала закрути винты корпуса.'; break; } if (n.rGrimeMask !== 7 || !n.rKeypadClean) { message = n.rDiagnosed ? 'Часть кнопок всё ещё не отвечает. Проверь плату и клавиатуру.' : 'Цифры и стрелки по-прежнему не работают. Загляни внутрь.'; break; } n.rRepaired = true; message = 'Все кнопки отвечают! Светодиод мигает на каждое нажатие.'; break;
     case 'remote-finish': if (n.stage === 'work' && n.order === 'remote' && n.rRepaired) { n.stage = 'ending'; n.repaired = true; message = pay(n, 'remote'); } else message = 'Сначала проверь пульт.'; break;
     // Общий движок для устройств из devices.js (пейджер, телефон, приставка…).
     case 'dev-accept': { const cfg = DEVICES[target?.order]; if (!cfg) { message = 'Неизвестное устройство.'; break; } n.stage = 'work'; n.order = target.order; n.client = target.client || null; n.dev = { open: false, screwMask: 0, assembling: false, inside: false, diagnosed: false, fixed: [], repaired: false }; message = cfg.accept; break; }
@@ -82,11 +84,21 @@ export function act(s, action, target) {
       if (fix.after?.some(id => !d.fixed.includes(id))) { message = fix.notReady || 'Сначала сделай предыдущий шаг.'; break; }
       n.dev = { ...d, fixed: [...d.fixed, fix.id] }; message = fix.text; break;
     }
-    case 'dev-test': { const cfg = DEVICES[n.order], d = n.dev; if (!cfg) break; if (d.open) { message = 'Сначала закрой корпус.'; break; } if (d.assembling) { message = 'Сначала закрути винты корпуса.'; break; } if (cfg.fixes.some(f => !d.fixed.includes(f.id))) { message = cfg.testFail; break; } n.dev = { ...d, repaired: true }; message = cfg.testOk; break; }
+    case 'dev-test': { const cfg = DEVICES[n.order], d = n.dev; if (!cfg) break; if (d.open) { message = 'Сначала закрой корпус.'; break; } if (d.assembling || d.screwMask) { message = 'Сначала закрути винты корпуса.'; break; } if (cfg.fixes.some(f => !d.fixed.includes(f.id))) { message = cfg.testFail; break; } n.dev = { ...d, repaired: true }; message = cfg.testOk; break; }
     case 'dev-finish': if (n.stage === 'work' && DEVICES[n.order] && n.dev?.repaired) { n.stage = 'ending'; n.repaired = true; message = pay(n, n.order); } else message = 'Сначала проверь устройство.'; break;
     // След истории на корпусе: текст показывает интерфейс, здесь только учёт для чаевых.
     case 'clue': if (n.stage !== 'work' || typeof target !== 'string') { message = 'Здесь нечего рассматривать.'; break; } if (n.clues.includes(target)) { message = 'Эту историю ты уже знаешь.'; break; } n.clues = [...n.clues, target]; break;
     default: message = 'Неизвестное действие.';
+  }
+  // Opening a tested device or changing its hardware invalidates the old test.
+  const hardware = ['open', 'screwMask', 'poweredOff', 'dustMask', 'fanConnected', 'paste', 'cassetteOpen', 'cScrewMask', 'tapeClipFixed', 'beltReplaced', 'headCleaned', 'rOpen', 'rScrewMask', 'rGrimeMask', 'rKeypadClean'];
+  if (n.stage === 'work' && hardware.some(key => n[key] !== s[key])) {
+    n.repaired = false;
+    if (n.order === 'cassette') { n.cassetteRepaired = false; n.cassetteTested = false; }
+    if (n.order === 'remote') n.rRepaired = false;
+  }
+  if (n.stage === 'work' && ['dev-cover', 'dev-screw', 'dev-fix'].includes(action) && n.dev !== s.dev) {
+    n.dev = { ...n.dev, repaired: false }; n.repaired = false;
   }
   return { state: n, message };
 }
