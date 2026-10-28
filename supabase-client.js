@@ -8,6 +8,7 @@ const SAVE_VERSION = 'v1';
 
 let client = null;
 let signInFailed = false;
+let signingIn = null;
 
 // Локальная копия (scripts/build.mjs): магазины не любят код, загружаемый из сети, и игра работает офлайн.
 const ready = import('./vendor/supabase.js')
@@ -27,7 +28,9 @@ async function currentUser() {
   const { data: { session } } = await client.auth.getSession();
   if (session?.user) return session.user;
   if (signInFailed) return null;
-  const { data, error } = await client.auth.signInAnonymously();
+  // Сохранения идут часто: один общий запрос входа вместо пачки параллельных (и пачки 422, пока вход выключен).
+  signingIn ||= client.auth.signInAnonymously();
+  const { data, error } = await signingIn;
   if (error) {
     signInFailed = true;
     console.log('[Supabase] Вход не выполнен, облачное сохранение пропущено:', error.message);

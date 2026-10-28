@@ -1,20 +1,20 @@
-import { initialState, act, allFixes } from './game.js?v=22';
+import { initialState, act, allFixes } from './game.js';
 import { createMemoryUI } from './memory-ui.js';
 import { memoryFor, memoryAvailable } from './memories.js';
 import { CONTRACTS, completedOrders, nextContract, campaignProgress } from './campaign.js';
 import { LETTER, SHELF, FINALE, seasonDone, currentChapter, shelfStatus, shelfLockReason } from './story.js';
 import { createPartNavigator } from './repair-focus.js';
 import { createRepairInteraction } from './repair-interaction.js';
-import { workshopProgress, ownedDecorations } from './workshop.js?v=4';
-import { createWorkshopUI } from './workshop-ui.js?v=2';
-import { clientFor, pickClient } from './stories.js?v=9';
-import { DEVICES, viewSrc } from './devices.js?v=10';
-import { deviceActions, targetState, diagnosisChoices } from './repair-ui.js?v=2';
-import { startAmbience } from './ambience.js?v=3';
-import { startCityLife } from './city-life.js?v=1';
-import { createMusicPlayer } from './music-player.js?v=2';
-import { createSoundEffects } from './sound-effects.js?v=5';
-import { createCat } from './cat.js?v=3';
+import { workshopProgress, ownedDecorations } from './workshop.js';
+import { createWorkshopUI } from './workshop-ui.js';
+import { clientFor, pickClient } from './stories.js';
+import { DEVICES, viewSrc } from './devices.js';
+import { deviceActions, targetState, diagnosisChoices } from './repair-ui.js';
+import { startAmbience } from './ambience.js';
+import { startCityLife } from './city-life.js';
+import { createMusicPlayer } from './music-player.js';
+import { createSoundEffects } from './sound-effects.js';
+import { createCat } from './cat.js';
 const $ = s => document.querySelector(s);
 const KEY = 'workshop-stories-v1';
 // Cloud copy is best-effort: the local save stays the source of truth and the game works offline.
@@ -550,8 +550,10 @@ function render() {
   document.body.classList.toggle('lamp-upgraded', s.upgrade);
   $('#menu-continue').textContent = s.stage === 'work' ? 'Продолжить ремонт' : 'Принять заказ';
   $('#menu-new-order').hidden = true;
-  const next = s.stage === 'work' ? CONTRACTS.find(c => c.order === s.order) || nextContract(s) : nextContract(s), done = completedOrders(s).length;
-  campaignNote.textContent = `Истории: ${done}/${CONTRACTS.length} · ${s.stage === 'work' ? 'В работе' : 'Далее'}: ${next.name} · Сложность ${next.level}/5. ${next.lesson}`;
+  const current = s.stage === 'work' && CONTRACTS.find(c => c.order === s.order), next = current || nextContract(s), done = completedOrders(s).length;
+  // Заказ с полки «НЕ ГОТОВО» не входит в кампанию — в меню пишем его, а не следующий обычный заказ.
+  const shelfItem = s.stage === 'work' && s.shelf && SHELF.find(i => i.id === s.shelf);
+  campaignNote.textContent = shelfItem ? `Истории: ${done}/${CONTRACTS.length} · В работе: ${shelfItem.name.toLowerCase()} с полки «НЕ ГОТОВО» ${shelfItem.tag}` : `Истории: ${done}/${CONTRACTS.length} · ${current ? 'В работе' : 'Далее'}: ${next.name} · Сложность ${next.level}/5. ${next.lesson}`;
   $('#menu-campaign').textContent = campaignNote.textContent;
   $('.panel').hidden = menuOpen;
   $('#bench-laptop').hidden = menuOpen || !['work','ending'].includes(s.stage) || s.order !== 'laptop';
@@ -656,7 +658,8 @@ function showDialog(kind, onClose = null) {
     const found = client.marks.filter(m => state.clues.includes(m.id)).length + (client.find && state.clues.includes('find') ? 1 : 0);
     const thanks = found && found === client.marks.length ? '«Вы даже это заметили? Спасибо, что отнеслись к вещи так бережно.»' : found ? '«Вы заметили, да? Это наша маленькая история.»' : '';
     const response = state.memoryActionDone ? memoryFor(state)?.response : '';
-    say([response || client.ending, thanks].filter(Boolean).join('\n\n'));
+    // Реакция на экран после ремонта не заменяет прощание клиента: сначала она, потом его последние слова.
+    say([response, client.ending, response ? '' : thanks].filter(Boolean).join('\n\n'));
   }
   options(); box.hidden = false;
 }
