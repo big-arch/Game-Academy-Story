@@ -1,4 +1,4 @@
-import { initialState, act, allFixes } from './game.js?v=20';
+import { initialState, act, allFixes } from './game.js?v=21';
 import { createMemoryUI } from './memory-ui.js';
 import { memoryFor, memoryAvailable } from './memories.js';
 import { CONTRACTS, completedOrders, nextContract, campaignProgress } from './campaign.js';
@@ -6,8 +6,8 @@ import { LETTER, SHELF, currentChapter, shelfStatus } from './story.js';
 import { createRepairInteraction } from './repair-interaction.js';
 import { workshopProgress, ownedDecorations } from './workshop.js?v=4';
 import { createWorkshopUI } from './workshop-ui.js?v=2';
-import { clientFor, pickClient } from './stories.js?v=7';
-import { DEVICES, viewSrc } from './devices.js?v=7';
+import { clientFor, pickClient } from './stories.js?v=8';
+import { DEVICES, viewSrc } from './devices.js?v=8';
 import { deviceActions, targetState, diagnosisChoices } from './repair-ui.js?v=2';
 import { startAmbience } from './ambience.js?v=3';
 import { startCityLife } from './city-life.js?v=1';
@@ -139,6 +139,7 @@ document.addEventListener('click', e => {
   } else if (element.id === 'remote-open') { e.preventDefault(); e.stopImmediatePropagation(); tool = 'hand'; dispatch('remote-cover'); return; }
   else return;
   e.preventDefault(); e.stopImmediatePropagation();
+  if (required === 'meter') { const fix = allFixes(cfg, state.dev).find(f => f.id === target); startMeter(element, label, fix, () => { effects.play('repair'); dispatch(action, target); }); return; }
   if (required === 'solder') { startSolder(element, label, () => { effects.play('repair'); dispatch(action, target); }); return; }
   const availableTools = cfg?.tools || [...$(benchFor(state.order)).querySelectorAll('[data-tool]')].map(b => b.dataset.tool);
   const tools = required === 'screw' ? ['screw'] : [...new Set([...availableTools, required])].filter(t => !['inspect','screw'].includes(t));
@@ -171,6 +172,63 @@ document.addEventListener('pointerdown', e => {
   if (!screw || state.stage !== 'work' || screwState(state).assembling || e.button > 0) return;
   e.preventDefault(); e.stopPropagation(); startUnscrew(screw, e.pointerId);
 }, true);
+// Осмотр находки: вещь вылетает из устройства в центр экрана; её крутят пальцем/мышкой,
+// переворачивают и читают надпись на обороте. Закрыли — вещь возвращается на место, история засчитана.
+const FIND_NAMES = { note: 'Записка', photo: 'Фотография', ticket: 'Билет', coin: 'Монета', key: 'Ключик', flower: 'Засушенный цветок', drawing: 'Детский рисунок', ring: 'Колечко', button: 'Пуговица', letter: 'Письмо' };
+function openFind(find, from) {
+  document.querySelector('.find-viewer')?.remove();
+  const viewer = document.createElement('div'); viewer.className = 'find-viewer'; viewer.setAttribute('role', 'dialog'); viewer.setAttribute('aria-label', FIND_NAMES[find.kind] || 'Находка');
+  viewer.innerHTML = `<p class="find-title">${FIND_NAMES[find.kind] || 'Находка'}</p><div class="find-stage"><div class="find-card"><div class="find-face find-front"><img src="assets/ui/finds/${find.kind}.svg" alt=""></div><div class="find-face find-back"><p></p></div></div></div><p class="find-hint">Потяни, чтобы повернуть · коснись, чтобы перевернуть</p><div class="find-buttons"><button type="button" class="find-flip">Перевернуть</button><button type="button" class="primary find-close">Положить обратно</button></div>`;
+  viewer.querySelector('.find-back p').textContent = find.text;
+  document.body.append(viewer);
+  const card = viewer.querySelector('.find-card'), stage = viewer.querySelector('.find-stage');
+  const fr = from.getBoundingClientRect(), cr = card.getBoundingClientRect();
+  const fly = `translate(${fr.left + fr.width / 2 - (cr.left + cr.width / 2)}px, ${fr.top + fr.height / 2 - (cr.top + cr.height / 2)}px) scale(${fr.width / cr.width})`;
+  let rx = -8, ry = 12, drag = null, moved = false;
+  const pose = () => { card.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`; };
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) card.animate([{ transform: fly, opacity: .6 }, { transform: `rotateX(${rx}deg) rotateY(${ry}deg)`, opacity: 1 }], { duration: 480, easing: 'cubic-bezier(.2,.9,.3,1.1)' });
+  pose();
+  stage.onpointerdown = e => { drag = { x: e.clientX, y: e.clientY, rx, ry }; moved = false; try { stage.setPointerCapture(e.pointerId); } catch {} };
+  stage.onpointermove = e => { if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (Math.hypot(dx, dy) > 4) moved = true; ry = drag.ry + dx * 0.7; rx = Math.max(-60, Math.min(60, drag.rx - dy * 0.4)); card.style.transition = 'none'; pose(); };
+  stage.onpointerup = () => { if (drag && !moved) flip(); drag = null; card.style.transition = ''; };
+  const flip = () => { effects.play('tool'); ry = Math.round((ry + 180) / 180) * 180; rx = 0; pose(); };
+  viewer.querySelector('.find-flip').onclick = flip;
+  viewer.querySelector('.find-close').onclick = () => {
+    effects.play('click');
+    const done = () => { viewer.remove(); dispatch('clue', 'find'); note(find.text); };
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { done(); return; }
+    viewer.classList.add('closing'); card.animate([{ transform: card.style.transform, opacity: 1 }, { transform: fly, opacity: .3 }], { duration: 380, easing: 'ease-in' }).onfinish = done;
+  };
+  viewer.querySelector('.find-close').focus({ preventScroll: true });
+}
+// Мультиметр: коснись дорожки щупами — целая показывает «0.0 Ω» и пищит, оборванная — «OL». Отметь обрыв.
+function startMeter(element, label, fix, complete) {
+  document.querySelector('.meter-panel')?.remove();
+  const panel = document.createElement('section'); panel.className = 'part-context meter-panel'; panel.setAttribute('aria-label', label);
+  const traces = Array.from({ length: fix.traces }, (_, i) => `<button type="button" class="meter-trace" data-i="${i}"><i></i><span>${i + 1}</span></button>`).join('');
+  panel.innerHTML = `<strong>${label}: прозвонка</strong><button class="part-dismiss" aria-label="Закрыть">×</button><p role="status">Коснись дорожки щупами. Целая звенит и показывает ноль, оборванная — «OL».</p><div class="meter-row"><div class="meter-board">${traces}</div><div class="meter-device"><b class="meter-screen">— — —</b><img src="assets/ui/tools/meter.svg" alt=""></div></div><button type="button" class="part-gesture meter-mark" disabled>Отметить обрыв</button>`;
+  document.body.append(panel);
+  const r = element.getBoundingClientRect(), p = panel.getBoundingClientRect();
+  Object.assign(panel.style, { left: `${Math.max(8, Math.min(innerWidth - p.width - 8, r.left + r.width / 2 - p.width / 2))}px`, top: `${Math.max(8, r.top - p.height - 10)}px` });
+  element.classList.add('part-selected');
+  const hint = panel.querySelector('p'), screen = panel.querySelector('.meter-screen'), mark = panel.querySelector('.meter-mark');
+  let picked = null;
+  const close = () => { panel.remove(); element.classList.remove('part-selected'); };
+  panel.querySelector('.part-dismiss').onclick = close;
+  panel.querySelectorAll('.meter-trace').forEach(b => b.onclick = () => {
+    picked = Number(b.dataset.i); const open = picked === fix.broken;
+    panel.querySelectorAll('.meter-trace').forEach(x => x.classList.toggle('probed', x === b));
+    b.classList.add(open ? 'measured-open' : 'measured-ok');
+    screen.textContent = open ? 'OL' : '0.0 Ω'; screen.classList.toggle('open', open);
+    effects.play(open ? 'click' : 'tool');
+    mark.disabled = false; mark.textContent = `Отметить обрыв на дорожке ${picked + 1}`;
+  });
+  mark.onclick = () => {
+    if (picked === fix.broken) { close(); complete(); return; }
+    dispatch('dev-slip', `Дорожка ${picked + 1} целая — прибор показывал ноль. Ищи ту, где «OL».`);
+    hint.textContent = 'Эта дорожка звонится. Обрыв там, где прибор показывает «OL».';
+  };
+}
 // Пайка: держишь паяльник — температура растёт; отпусти в зелёной зоне. Рано — припой не взялся, перегрел — промах.
 const SOLDER = { heatMs: 1700, cool: 0.0012, zone: [0.62, 0.82] };
 function startSolder(element, label, complete) {
@@ -335,7 +393,7 @@ function renderTrays(s) {
 }
 const BENCHES = { laptop: '#bench-laptop', cassette: '#bench-cassette', remote: '#bench-remote' };
 const benchFor = order => BENCHES[order] || (DEVICES[order] ? '#bench-device' : BENCHES.laptop);
-const TOOL_LABELS = { solder: 'Паяльник', inspect: 'Осмотр', screw: 'Отвёртка', clean: 'Спирт', hand: 'Руки', brush: 'Кисть', paste: 'Термопаста', belt: 'Ремень' };
+const TOOL_LABELS = { meter: 'Мультиметр', solder: 'Паяльник', inspect: 'Осмотр', screw: 'Отвёртка', clean: 'Спирт', hand: 'Руки', brush: 'Кисть', paste: 'Термопаста', belt: 'Ремень' };
 const MAT_RATIO = 1681 / 936; // высота коврика к ширине
 let devBuilt = '';
 // Точка ремонта; для скрытой поломки добавляется, когда её обнаружила проверка.
@@ -374,7 +432,7 @@ function renderDevice(s) {
   const cfg = DEVICES[s.order], d = s.dev, box = $('#dev-device');
   // Находка клиента внутри корпуса: видна, когда крышка снята.
   const find = clientFor(s.order, s.client)?.find; let found = $('#dev-inside .inside-find');
-  if (find && found?.dataset.client !== s.client) { found?.remove(); found = document.createElement('button'); found.type = 'button'; found.className = `inside-find find-${find.kind}`; found.innerHTML = `<img src="assets/ui/finds/${find.kind}.svg" alt="">`; found.dataset.client = s.client; found.setAttribute('aria-label', 'Что-то лежит внутри'); Object.assign(found.style, { left: `${find.x}%`, top: `${find.y}%` }); found.onclick = e => { e.stopPropagation(); effects.play('tool'); dispatch('clue', 'find'); note(find.text); }; $('#dev-inside').append(found); }
+  if (find && found?.dataset.client !== s.client) { found?.remove(); found = document.createElement('button'); found.type = 'button'; found.className = `inside-find find-${find.kind}`; found.innerHTML = `<img src="assets/ui/finds/${find.kind}.svg" alt="">`; found.dataset.client = s.client; found.setAttribute('aria-label', 'Что-то лежит внутри'); Object.assign(found.style, { left: `${find.x}%`, top: `${find.y}%` }); found.onclick = e => { e.stopPropagation(); effects.play('tool'); openFind(find, found); }; $('#dev-inside').append(found); }
   if (!find) found?.remove(); else found.classList.toggle('found', s.clues.includes('find'));
   $('#dev-tools').hidden = d.open && d.inside && !d.diagnosed;
   box.classList.toggle('is-open', d.open); box.classList.toggle('diagnosed', d.diagnosed); box.classList.toggle('assembling', d.assembling);
