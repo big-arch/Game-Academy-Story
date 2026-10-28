@@ -52,6 +52,12 @@
       oval(d, 24, 24, 16, 10, null, INK, 7); oval(d, 24, 24, 16, 10, null, '3e3a36', 4);
       oval(d, 24, 24, 16, 10, null, '6e6862', 1);
     },
+    solder: function (d) { // паяльник с каплей припоя
+      line(d, [[10, 38], [24, 24]], INK, 5); line(d, [[10, 38], [24, 24]], 'c9c9c9', 2.5);
+      line(d, [[24, 24], [40, 8]], INK, 11); line(d, [[24, 24], [40, 8]], '3e6fa8', 7);
+      line(d, [[27, 21], [31, 17]], 'e6e6e6', 2);
+      oval(d, 9, 40, 3.2, 3.2, 'ffb84d', INK, 1.2); oval(d, 8, 39, 1.2, 1.2, 'fff3c4', null);
+    },
     hand: function (d) { // рука
       var skin = 'f0c39a';
       rect(d, 13, 9, 5, 18, 2.5, skin); rect(d, 18.5, 6, 5, 20, 2.5, skin); rect(d, 24, 7, 5, 19, 2.5, skin); rect(d, 29.5, 10, 5, 17, 2.5, skin);

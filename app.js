@@ -1,4 +1,4 @@
-import { initialState, act, allFixes } from './game.js?v=19';
+import { initialState, act, allFixes } from './game.js?v=20';
 import { createMemoryUI } from './memory-ui.js';
 import { memoryFor, memoryAvailable } from './memories.js';
 import { CONTRACTS, completedOrders, nextContract, campaignProgress } from './campaign.js';
@@ -6,8 +6,8 @@ import { LETTER, SHELF, currentChapter, shelfStatus } from './story.js';
 import { createRepairInteraction } from './repair-interaction.js';
 import { workshopProgress, ownedDecorations } from './workshop.js?v=4';
 import { createWorkshopUI } from './workshop-ui.js?v=2';
-import { clientFor, pickClient } from './stories.js?v=6';
-import { DEVICES, viewSrc } from './devices.js?v=6';
+import { clientFor, pickClient } from './stories.js?v=7';
+import { DEVICES, viewSrc } from './devices.js?v=7';
 import { deviceActions, targetState, diagnosisChoices } from './repair-ui.js?v=2';
 import { startAmbience } from './ambience.js?v=3';
 import { startCityLife } from './city-life.js?v=1';
@@ -105,6 +105,8 @@ document.addEventListener('click', e => {
   const element = e.target.closest('.bench:not([hidden]) .mat button');
   if (!element || state.stage !== 'work' || element.classList.contains('bench-cat') || element.classList.contains('story-mark') || element.classList.contains('device-memory-screen')) return;
   if (partInteraction.owns(element)) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+  // Откручивание — удержанием прямо на винте (см. startUnscrew); клавиатура (detail 0) откручивает сразу.
+  if (element.matches('.screw') && !element.classList.contains('removed') && !screwState(state).assembling) { e.preventDefault(); e.stopImmediatePropagation(); if (e.detail === 0) unscrewNow(element); return; }
   let action, target, required, label = element.getAttribute('aria-label') || element.textContent;
   const cfg = DEVICES[state.order], d = state.dev;
   if (cfg) {
@@ -137,10 +139,69 @@ document.addEventListener('click', e => {
   } else if (element.id === 'remote-open') { e.preventDefault(); e.stopImmediatePropagation(); tool = 'hand'; dispatch('remote-cover'); return; }
   else return;
   e.preventDefault(); e.stopImmediatePropagation();
+  if (required === 'solder') { startSolder(element, label, () => { effects.play('repair'); dispatch(action, target); }); return; }
   const availableTools = cfg?.tools || [...$(benchFor(state.order)).querySelectorAll('[data-tool]')].map(b => b.dataset.tool);
   const tools = required === 'screw' ? ['screw'] : [...new Set([...availableTools, required])].filter(t => !['inspect','screw'].includes(t));
   partInteraction.open({ element, label, tools, required, alignment: required === 'hand' && (CONTRACTS.find(c => c.order === state.order)?.level || 1) >= 3, complete: () => dispatch(action, target), magnify: ownedDecorations(state).includes('lamp'), zoom: () => (cfg ? $('#dev-device') : $(state.order === 'laptop' ? '#device' : state.order === 'cassette' ? '#cassette-device' : '#remote-device')).classList.toggle('repair-magnified') });
 }, true);
+// Отвёртка: зажать винт — появляется отвёртка и кольцо прогресса, винт вращается; отпустил раньше — сброс.
+const UNSCREW_MS = 900;
+function unscrewNow(screw) { const { action } = screwState(state); if (!action) return; effects.play('repair'); dispatch(action === 'dev-screw' ? 'dev-screw' : action, Number(screw.dataset.screw)); }
+function startUnscrew(screw, pointerId) {
+  const r = screw.getBoundingClientRect(), driver = document.createElement('div');
+  driver.className = 'driver'; driver.setAttribute('aria-hidden', 'true');
+  driver.innerHTML = '<svg viewBox="0 0 48 48"><circle class="driver-track" cx="24" cy="24" r="20"/><circle class="driver-fill" cx="24" cy="24" r="20" pathLength="100"/></svg><img src="assets/ui/tools/screw.svg" alt="">';
+  Object.assign(driver.style, { left: `${r.left + r.width / 2}px`, top: `${r.top + r.height / 2}px` });
+  document.body.append(driver); effects.play('tool');
+  const fill = driver.querySelector('.driver-fill'), started = performance.now();
+  let frame = 0, done = false;
+  const stop = () => { cancelAnimationFrame(frame); screw.style.rotate = ''; driver.classList.add('fade'); setTimeout(() => driver.remove(), 200); removeEventListener('pointerup', release, true); removeEventListener('pointercancel', release, true); };
+  const release = () => { if (!done) { note('Отпустил слишком рано — держи, пока кольцо не заполнится.'); stop(); } };
+  const tick = now => {
+    const p = Math.min(1, (now - started) / UNSCREW_MS);
+    fill.style.strokeDashoffset = String(100 - p * 100); screw.style.rotate = `${-p * 540}deg`; driver.style.rotate = `${-p * 540}deg`;
+    if (p < 1) { frame = requestAnimationFrame(tick); return; }
+    done = true; stop(); unscrewNow(screw);
+  };
+  addEventListener('pointerup', release, true); addEventListener('pointercancel', release, true);
+  frame = requestAnimationFrame(tick);
+}
+document.addEventListener('pointerdown', e => {
+  const screw = e.target.closest('.bench:not([hidden]) .mat .screw:not(.removed)');
+  if (!screw || state.stage !== 'work' || screwState(state).assembling || e.button > 0) return;
+  e.preventDefault(); e.stopPropagation(); startUnscrew(screw, e.pointerId);
+}, true);
+// Пайка: держишь паяльник — температура растёт; отпусти в зелёной зоне. Рано — припой не взялся, перегрел — промах.
+const SOLDER = { heatMs: 1700, cool: 0.0012, zone: [0.62, 0.82] };
+function startSolder(element, label, complete) {
+  document.querySelector('.solder-panel')?.remove();
+  const panel = document.createElement('section'); panel.className = 'part-context solder-panel'; panel.setAttribute('aria-label', label);
+  panel.innerHTML = `<strong>${label}: пайка</strong><button class="part-dismiss" aria-label="Закрыть">×</button><p role="status">Зажми паяльник и отпусти, когда стрелка в зелёной зоне.</p><div class="solder-row"><div class="solder-gauge"><i class="solder-zone"></i><i class="solder-level"></i></div><button class="part-gesture solder-hold"><img src="assets/ui/tools/solder.svg" alt="">Держать паяльник</button></div>`;
+  document.body.append(panel);
+  const r = element.getBoundingClientRect(), p = panel.getBoundingClientRect();
+  Object.assign(panel.style, { left: `${Math.max(8, Math.min(innerWidth - p.width - 8, r.left + r.width / 2 - p.width / 2))}px`, top: `${Math.max(8, r.top - p.height - 10)}px` });
+  element.classList.add('part-selected');
+  const hint = panel.querySelector('p'), level = panel.querySelector('.solder-level'), hold = panel.querySelector('.solder-hold');
+  let heat = 0, holding = false, last = performance.now(), frame = 0;
+  const close = () => { cancelAnimationFrame(frame); panel.remove(); element.classList.remove('part-selected'); };
+  panel.querySelector('.part-dismiss').onclick = close;
+  const tick = now => {
+    const dt = now - last; last = now;
+    heat = holding ? heat + dt / SOLDER.heatMs : Math.max(0, heat - dt * SOLDER.cool);
+    if (heat >= 1) { holding = false; heat = 0.35; hold.classList.remove('holding'); effects.play('click'); dispatch('dev-slip', 'Перегрел — плата потемнела у контакта. Дай остыть и попробуй ещё раз.'); hint.textContent = 'Перегрев! Отпускай раньше — в зелёной зоне.'; }
+    level.style.height = `${Math.min(1, heat) * 100}%`; level.classList.toggle('hot', heat > SOLDER.zone[1]); level.classList.toggle('ok', heat >= SOLDER.zone[0] && heat <= SOLDER.zone[1]);
+    frame = requestAnimationFrame(tick);
+  };
+  hold.onpointerdown = e => { e.preventDefault(); try { hold.setPointerCapture(e.pointerId); } catch {} holding = true; hold.classList.add('holding'); };
+  hold.onpointerup = () => {
+    if (!holding) return; holding = false; hold.classList.remove('holding');
+    if (heat >= SOLDER.zone[0] && heat <= SOLDER.zone[1]) { close(); complete(); }
+    else hint.textContent = 'Припой ещё не расплавился — держи дольше.';
+  };
+  hold.onpointercancel = () => { holding = false; hold.classList.remove('holding'); };
+  hold.onclick = e => { if (e.detail === 0) { close(); complete(); } }; // клавиатура: без мини-игры
+  frame = requestAnimationFrame(tick);
+}
 function screwHint(element) {
   note('Зажми винт на столе и перетащи его в это отверстие.');
   partInteraction.open({ element, label: 'Отверстие ждёт винт', blocked: 'Винт лежит на столе рядом с техникой. Зажми его мышкой или пальцем и перетащи сюда — он закрутится.' + (DEVICES[state.order]?.screws.some(x => x[2]) ? ' Винты разной длины: подбери подходящий.' : '') });
@@ -238,7 +299,7 @@ function makeDraggable(item, mat) {
   const reset = () => { item.classList.remove('dragging'); item.style.translate = ''; target?.classList.remove('drop-target'); target = null; start = null; };
   item.addEventListener('pointerdown', e => {
     if (!item.classList.contains('pickable')) { note('Винт понадобится, когда закроешь корпус.'); return; }
-    e.preventDefault(); e.stopPropagation(); item.setPointerCapture(e.pointerId);
+    e.preventDefault(); e.stopPropagation(); try { item.setPointerCapture(e.pointerId); } catch {}
     start = { x: e.clientX, y: e.clientY }; item.classList.add('dragging'); effects.play('tool');
   });
   item.addEventListener('pointermove', e => {
@@ -274,7 +335,7 @@ function renderTrays(s) {
 }
 const BENCHES = { laptop: '#bench-laptop', cassette: '#bench-cassette', remote: '#bench-remote' };
 const benchFor = order => BENCHES[order] || (DEVICES[order] ? '#bench-device' : BENCHES.laptop);
-const TOOL_LABELS = { inspect: 'Осмотр', screw: 'Отвёртка', clean: 'Спирт', hand: 'Руки', brush: 'Кисть', paste: 'Термопаста', belt: 'Ремень' };
+const TOOL_LABELS = { solder: 'Паяльник', inspect: 'Осмотр', screw: 'Отвёртка', clean: 'Спирт', hand: 'Руки', brush: 'Кисть', paste: 'Термопаста', belt: 'Ремень' };
 const MAT_RATIO = 1681 / 936; // высота коврика к ширине
 let devBuilt = '';
 // Точка ремонта; для скрытой поломки добавляется, когда её обнаружила проверка.
@@ -313,7 +374,7 @@ function renderDevice(s) {
   const cfg = DEVICES[s.order], d = s.dev, box = $('#dev-device');
   // Находка клиента внутри корпуса: видна, когда крышка снята.
   const find = clientFor(s.order, s.client)?.find; let found = $('#dev-inside .inside-find');
-  if (find && found?.dataset.client !== s.client) { found?.remove(); found = document.createElement('button'); found.type = 'button'; found.className = `inside-find find-${find.kind}`; found.dataset.client = s.client; found.setAttribute('aria-label', 'Что-то лежит внутри'); Object.assign(found.style, { left: `${find.x}%`, top: `${find.y}%` }); found.onclick = e => { e.stopPropagation(); effects.play('tool'); dispatch('clue', 'find'); note(find.text); }; $('#dev-inside').append(found); }
+  if (find && found?.dataset.client !== s.client) { found?.remove(); found = document.createElement('button'); found.type = 'button'; found.className = `inside-find find-${find.kind}`; found.innerHTML = `<img src="assets/ui/finds/${find.kind}.svg" alt="">`; found.dataset.client = s.client; found.setAttribute('aria-label', 'Что-то лежит внутри'); Object.assign(found.style, { left: `${find.x}%`, top: `${find.y}%` }); found.onclick = e => { e.stopPropagation(); effects.play('tool'); dispatch('clue', 'find'); note(find.text); }; $('#dev-inside').append(found); }
   if (!find) found?.remove(); else found.classList.toggle('found', s.clues.includes('find'));
   $('#dev-tools').hidden = d.open && d.inside && !d.diagnosed;
   box.classList.toggle('is-open', d.open); box.classList.toggle('diagnosed', d.diagnosed); box.classList.toggle('assembling', d.assembling);

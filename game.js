@@ -107,6 +107,8 @@ export function act(s, action, target) {
       n.dev = d; break;
     }
     // Взять со стола открученный винт нужного размера перед закручиванием.
+    // Промах в мини-игре (перегрев при пайке): учитывается в аккуратности.
+    case 'dev-slip': if (n.dev) { n.dev = { ...n.dev, slips: (n.dev.slips || 0) + 1 }; message = typeof target === 'string' ? target : 'Неаккуратно.'; } break;
     case 'dev-pick': { const cfg = DEVICES[n.order], d = n.dev; if (!cfg || !d?.assembling || !['long', 'short'].includes(target)) { message = 'Винты понадобятся при сборке.'; break; } n.dev = { ...d, held: target }; message = target === 'long' ? 'В руке длинный винт.' : 'В руке короткий винт.'; break; }
     case 'dev-cover': { const cfg = DEVICES[n.order], d = { ...n.dev }; if (!cfg) break; if (!d.open && (d.assembling || d.screwMask !== (1 << cfg.screws.length) - 1)) { message = 'Сначала открути все винты.'; break; } d.open = !d.open; d.assembling = !d.open; message = d.open ? 'Крышка снята. Осмотри, что внутри.' : `Корпус закрыт. Закрути винты: ${cfg.screws.length}.`; n.dev = d; break; }
     case 'dev-diagnose': { const cfg = DEVICES[n.order], d = n.dev; if (!cfg) break; if (!d.open || !d.inside) { message = 'Сначала открой корпус и осмотри, что внутри.'; break; } const cause = cfg.causes.find(c => c.id === target); if (!cause) { message = 'Выбери предполагаемую причину.'; break; } n.dev = cause.correct ? { ...d, diagnosed: true } : { ...d, slips: (d.slips || 0) + 1 }; message = cause.reply; break; }

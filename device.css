@@ -73,3 +73,8 @@
 .shelf-item.locked .shelf-tag{filter:blur(.6px)}
 @media(prefers-reduced-motion:reduce){#menu-shelf.has-ready{animation:none}}
 .shelf-card>button.primary{width:100%;min-height:42px;padding:8px 10px;background:#b98958;color:#211b1b;border:1px solid #1d1511;font:700 12px/1.25 Consolas,monospace;cursor:pointer}
+
+/* Находки — рисунки из Illustrator (assets/ui/finds), у каждого клиента своя вещь. */
+.inside-find{width:14%;aspect-ratio:1;background:none!important;border:0;box-shadow:none}
+.inside-find img{display:block;width:100%;height:100%;filter:drop-shadow(2px 3px 0 #0008)}
+.inside-find:not(.found) img{filter:drop-shadow(2px 3px 0 #0008) drop-shadow(0 0 5px #ffe08a99)}

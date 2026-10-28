@@ -69,7 +69,7 @@ export function createRepairInteraction({ selectTool, sound }) {
             hold.onpointerup = cancel; hold.onpointercancel = cancel;
             hold.onclick = e => { if (e.detail === 0) done(); };
           } else {
-            hint.textContent = alignment ? 'Поверни деталь: треугольные метки должны смотреть вверх. Затем перетащи в гнездо.' : 'Перетащи деталь из этой карточки в выделенное гнездо.';
+            hint.textContent = alignment ? 'Сначала поверни деталь кнопкой «Повернуть ↻», пока метка ▲ не смотрит вверх. Потом зажми её и перетащи на подсвеченное место.' : 'Новая деталь — в этой карточке. Зажми «▣ Установить деталь» и перетащи на подсвеченное место устройства, затем отпусти.';
             ghost = document.createElement('button'); ghost.className = 'part-gesture'; ghost.textContent = '▣ Установить деталь'; ghost.setAttribute('aria-label', 'Установить деталь'); row.append(ghost);
             let rotation = alignment ? 270 : 0;
             if (alignment) {

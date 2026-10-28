@@ -42,3 +42,25 @@
 @media(prefers-reduced-motion:reduce){.loose-screw.pickable,.mat .screw.awaiting::before{animation:none}}
 /* Зона касания больше самого винта — невидимый слой вокруг, картинка не сжимается. */
 .loose-screw.pickable::after{content:'';position:absolute;inset:-16px -12px}
+
+/* Отвёртка при откручивании: кольцо заполняется, пока держишь (app.js startUnscrew). */
+.driver{position:fixed;z-index:65;width:62px;height:62px;margin:-31px 0 0 -31px;pointer-events:none;transition:opacity .2s}
+.driver.fade{opacity:0}
+.driver svg{position:absolute;inset:0;rotate:90deg}
+.driver circle{fill:none;stroke-width:5}
+.driver-track{stroke:#1d151199}
+.driver-fill{stroke:#ffd27a;stroke-dasharray:100;stroke-dashoffset:100;stroke-linecap:round;filter:drop-shadow(0 0 4px #ffd27a)}
+.driver img{position:absolute;left:26px;top:-30px;width:46px;height:46px;rotate:-40deg;filter:drop-shadow(2px 4px 0 #0008)}
+.mat .screw{touch-action:none}
+
+/* Пайка: шкала температуры с зелёной зоной (app.js startSolder). */
+.solder-row{display:flex;gap:10px;align-items:stretch}
+.solder-gauge{position:relative;flex:0 0 26px;height:96px;background:linear-gradient(#b33a2e 0 18%,#3a2e27 18%);border:2px solid #1d1511;overflow:hidden}
+.solder-zone{position:absolute;left:0;right:0;bottom:62%;height:20%;background:#4f8a46aa;border-block:1px solid #a4be89}
+.solder-level{position:absolute;left:4px;right:4px;bottom:0;height:0;background:linear-gradient(#ffd27a,#e07a2e);box-shadow:0 0 6px #ffb84d}
+.solder-level.ok{background:linear-gradient(#d7efc9,#7fbf6a)}
+.solder-level.hot{background:linear-gradient(#ff7a5a,#b33a2e)}
+.solder-hold{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.solder-hold img{width:34px;height:34px}
+.solder-hold.holding{background:#b98958;color:#211b1b}
+.bench .tools{grid-template-columns:repeat(auto-fit,minmax(0,1fr))}
