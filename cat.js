@@ -54,6 +54,7 @@ export function createCat(el) {
   }
   function schedule(ms, fn) { clearTimeout(timer); timer = setTimeout(fn, ms); }
   function idle() {
+    if (hasBed) { walkTo(min, sleep); return; }
     play('idle');
     schedule(random(4000, 9000), () => {
       const roll = Math.random();

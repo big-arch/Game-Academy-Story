@@ -2,10 +2,7 @@
 export function deviceActions(config, repair) {
   if (repair.open) {
     const actions = [['dev-cover', 'Закрыть корпус']];
-    if (!repair.inside || repair.diagnosed) actions.push(['dev-inspect', 'Осмотр внутри']);
-    if (repair.inside && !repair.diagnosed) {
-      actions.push(...config.causes.map(cause => [`ddiag-${cause.id}`, `Причина: ${cause.label}`]));
-    }
+    actions.push(['dev-inspect', 'Осмотр внутри']);
     return actions;
   }
   return [
@@ -13,6 +10,12 @@ export function deviceActions(config, repair) {
     ['dev-test', 'Проверить'],
     ...(repair.repaired ? [['dev-finish', 'Вернуть клиенту']] : []),
   ];
+}
+
+export function diagnosisChoices(order, config) {
+  if (config) return config.causes.map(c => [`ddiag-${c.id}`, `Причина: ${c.label}`]);
+  const labels = order === 'remote' ? [['battery','батарейки'],['led','светодиод'],['contacts','контакты']] : [['battery','батарея'],['head','головка'],['belt','ремень']];
+  return labels.map(([id,label]) => [`${order === 'remote' ? 'rdiag-' : 'diagnose-'}${id}`, `Причина: ${label}`]);
 }
 
 export function targetState(repair, fix, tool) {

@@ -1,7 +1,8 @@
+import { campaignProgress } from './campaign.js';
 export const DECORATIONS = [
-  { id: 'bed', name: 'Лежанка Мурзика', price: 80, description: 'Мягкое место для сна. Мурзик устраивается на нём, когда устаёт.' },
+  { id: 'bed', name: 'Лежанка Мурзика', price: 80, description: 'Своя зона отдыха вдали от техники. Мурзик устраивается здесь вместо прогулок над ремонтом.' },
   { id: 'garland', name: 'Огоньки у окна', price: 100, description: 'Тёплая гирлянда над дождливым городом.' },
-  { id: 'lamp', name: 'Тёплый свет', price: 120, description: 'Больше мягкого света от настольной лампы.' },
+  { id: 'lamp', name: 'Лампа с лупой', price: 120, description: 'Открывает увеличение детали ×1.4 при ремонте. Мелкие контакты становятся крупнее, а комната светлее.' },
 ];
 
 export function ownedDecorations(state) {
@@ -11,7 +12,7 @@ export function ownedDecorations(state) {
 
 // Room purchases belong to the workshop, not to the currently repaired device.
 export function workshopProgress(state) {
-  return { coins: state.coins, upgrade: Boolean(state.upgrade), furniture: ownedDecorations(state) };
+  return { coins: state.coins, upgrade: Boolean(state.upgrade), furniture: ownedDecorations(state), ...campaignProgress(state) };
 }
 
 export function purchaseDecoration(state, id) {

@@ -1,13 +1,15 @@
-import { DECORATIONS, ownedDecorations } from './workshop.js';
+import { DECORATIONS, ownedDecorations } from './workshop.js?v=2';
+import { DEVICES } from './devices.js';
+import { CONTRACTS, completedOrders } from './campaign.js';
 
 function createDecor(surface) {
   const layer = document.createElement('div');
   layer.className = 'room-decor'; layer.setAttribute('aria-hidden', 'true');
-  layer.innerHTML = '<div class="room-garland">' + '<i></i>'.repeat(7) + '</div><div class="room-bed"></div><div class="room-lamp"></div>';
+  layer.innerHTML = '<div class="room-garland">' + '<i></i>'.repeat(7) + '</div><div class="room-bed"></div><div class="room-lamp"></div><div class="room-album"></div>';
   const cat = surface.querySelector('.bench-cat');
-  layer.style.setProperty('--bed-x', `${cat?.dataset.min || 27}%`);
-  layer.style.setProperty('--bed-floor', `${cat?.dataset.floor || 47}%`);
-  layer.style.setProperty('--bed-size', `${cat?.dataset.size || 30}%`);
+  layer.style.setProperty('--bed-x', `${cat?.dataset.min || 36}%`);
+  layer.style.setProperty('--bed-floor', `${cat?.dataset.floor || 43}%`);
+  layer.style.setProperty('--bed-size', `${'22'}%`);
   if (surface.id === 'main-menu') { layer.style.setProperty('--bed-x', '58%'); layer.style.setProperty('--bed-floor', '24.5%'); layer.style.setProperty('--bed-size', '20%'); }
   surface.prepend(layer);
   return layer;
@@ -52,6 +54,8 @@ export function createWorkshopUI({ getState, purchase, close }) {
     buy.textContent = installed ? 'Установлено' : missing ? `Не хватает ${missing} монет` : `Купить · ${item.price} монет`;
     previewDecor.dataset.items = [...new Set([...owned, selected])].join(' ');
     roomDecor.forEach(layer => { layer.dataset.items = owned.join(' '); });
+    for (const layer of [...roomDecor, previewDecor]) { const album = layer.querySelector('.room-album'); album.replaceChildren(...completedOrders(state).map(id => { const i = document.createElement('i'); i.textContent = DEVICES[id]?.icon || ({remote:'📺',cassette:'📼',laptop:'💻'})[id]; i.title = CONTRACTS.find(c => c.order === id).name; return i; })); }
+    shop.querySelector('h2').textContent = `Мастерская · истории ${completedOrders(state).length}/${CONTRACTS.length}`;
   }
   return { render, focus() { notice.textContent = 'Выбери предмет и посмотри, как изменится комната.'; back.focus(); } };
 }

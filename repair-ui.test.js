@@ -1,15 +1,17 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { DEVICES } from './devices.js';
-import { deviceActions, targetState } from './repair-ui.js';
+import { deviceActions, targetState, diagnosisChoices } from './repair-ui.js';
 
 test('an open console always exposes assembly, including before diagnosis', () => {
   const cfg = DEVICES.console;
   const diagnosing = { open: true, inside: true, diagnosed: false, fixed: [], repaired: false };
   const actions = deviceActions(cfg, diagnosing);
   assert.equal(actions[0][0], 'dev-cover');
-  assert.equal(actions.length, 4);
-  assert.ok(actions.some(([id]) => id === 'ddiag-slot'));
+  assert.equal(actions.length, 2);
+  assert.ok(diagnosisChoices('console', cfg).some(([id]) => id === 'ddiag-slot'));
+  assert.ok(diagnosisChoices('remote').some(([id]) => id === 'rdiag-contacts'));
+  assert.ok(diagnosisChoices('cassette').some(([id]) => id === 'diagnose-belt'));
   assert.equal(deviceActions(cfg, { ...diagnosing, diagnosed: true })[0][0], 'dev-cover');
   assert.equal(deviceActions(cfg, { ...diagnosing, inside: false })[0][0], 'dev-cover');
   assert.ok(!deviceActions(cfg, { ...diagnosing, open: false }).some(([id]) => id === 'dev-cover'));
