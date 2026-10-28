@@ -111,14 +111,7 @@ document.addEventListener('click', e => {
     if (element.matches('.screw')) {
       target = Number(element.dataset.screw); action = 'dev-screw'; required = 'screw';
       if (!d.assembling && (d.screwMask & (1 << target))) return;
-      // Винты разной длины: если в руке нет винта, выбор прямо у отверстия (не нужно искать мелкий винт на столе).
-      const size = cfg.screws[target]?.[2];
-      if (size && d.assembling && (d.screwMask & (1 << target)) && !d.held) {
-        e.preventDefault(); e.stopImmediatePropagation();
-        const take = s => () => { effects.play('tool'); dispatch('dev-pick', s); element.click(); };
-        partInteraction.open({ element, label: 'Какой винт взять со стола?', blocked: 'Винты разной длины. Длинный — в глубокое отверстие, короткий — туда, где под крышкой плата.', choices: [{ label: 'Длинный винт', run: take('long') }, { label: 'Короткий винт', run: take('short') }] });
-        return;
-      }
+      if (d.assembling && (d.screwMask & (1 << target))) { e.preventDefault(); e.stopImmediatePropagation(); screwHint(element); return; }
     } else if (element.matches('.dev-fix')) {
       e.preventDefault(); e.stopImmediatePropagation();
       if (!d.diagnosed) { inspectAtPart(element, 'dev-inspect', cfg.inside); return; }
@@ -129,6 +122,7 @@ document.addEventListener('click', e => {
     } else return;
   } else if (element.matches('[data-screw]')) {
     target = Number(element.dataset.screw); required = 'screw';
+    if (screwState(state).assembling && element.classList.contains('removed')) { e.preventDefault(); e.stopImmediatePropagation(); screwHint(element); return; }
     action = state.order === 'laptop' ? 'screw' : state.order === 'cassette' ? 'cassette-screw' : 'remote-screw';
   } else if (state.order === 'remote' && element.matches('[data-grime],#remote-keypad')) {
     if (!state.rDiagnosed) { e.preventDefault(); e.stopImmediatePropagation(); inspectAtPart(element, 'remote-inspect'); return; }
@@ -147,6 +141,10 @@ document.addEventListener('click', e => {
   const tools = required === 'screw' ? ['screw'] : [...new Set([...availableTools, required])].filter(t => !['inspect','screw'].includes(t));
   partInteraction.open({ element, label, tools, required, alignment: required === 'hand' && (CONTRACTS.find(c => c.order === state.order)?.level || 1) >= 3, complete: () => dispatch(action, target), magnify: ownedDecorations(state).includes('lamp'), zoom: () => (cfg ? $('#dev-device') : $(state.order === 'laptop' ? '#device' : state.order === 'cassette' ? '#cassette-device' : '#remote-device')).classList.toggle('repair-magnified') });
 }, true);
+function screwHint(element) {
+  note('Зажми винт на столе и перетащи его в это отверстие.');
+  partInteraction.open({ element, label: 'Отверстие ждёт винт', blocked: 'Винт лежит на столе рядом с техникой. Зажми его мышкой или пальцем и перетащи сюда — он закрутится.' + (DEVICES[state.order]?.screws.some(x => x[2]) ? ' Винты разной длины: подбери подходящий.' : '') });
+}
 // Следы истории рисуются на закрытом корпусе; при открытии корпуса они скрываются вместе с ним.
 const MARK_HOSTS = { laptop: '#lid', cassette: '#cassette-body', remote: '#remote-body' };
 let marksKey = '';
@@ -181,7 +179,6 @@ const devTray = document.createElement('div'); devTray.className = 'screw-tray t
 // Открученный винт ложится на коврик рядом со своим отверстием (всегда в видимой части стола),
 // при закручивании улетает обратно в отверстие, а когда заказ сдан — убирается со стола.
 const looseScrews = new Map();
-let heldScrew = null;
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 function renderLooseScrews(s) {
   const bench = !menuOpen && s.stage === 'work' ? $(benchFor(s.order)) : null, mat = bench?.querySelector('.mat');
@@ -207,7 +204,9 @@ function renderLooseScrews(s) {
         Object.assign(item.style, { left: `${rx}%`, top: `${ry}%`, '--from-x': `${(hx - rx) / 100 * m.width}px`, '--from-y': `${(hy - ry) / 100 * m.height}px`, '--turn': `${Math.round(Math.random() * 120 - 60)}deg` });
         // Размер винта (devices.js): длинные и короткие видно на столе, при сборке их берут в руку.
         const size = btn.closest('#dev-body') && DEVICES[s.order]?.screws[Number(btn.dataset.screw)]?.[2];
-        if (size) { item.dataset.size = size; item.classList.add(`size-${size}`); item.onclick = e => { e.stopPropagation(); effects.play('tool'); heldScrew = key; dispatch('dev-pick', size); }; }
+        if (size) { item.dataset.size = size; item.classList.add(`size-${size}`); }
+        item.setAttribute('role', 'button'); item.setAttribute('aria-label', size ? (size === 'long' ? 'Длинный винт' : 'Короткий винт') : 'Винт');
+        makeDraggable(item, mat);
         mat.append(item); looseScrews.set(key, item);
       } else if (item && shown) {
         // Закрутили: винт летит обратно в своё отверстие.
@@ -219,10 +218,51 @@ function renderLooseScrews(s) {
     });
   }
   for (const [key, item] of looseScrews) if (!live.has(key)) { item.remove(); looseScrews.delete(key); }
-  // Подсветка: винты можно брать, пока корпус собирают; взятый винт приподнят.
-  const assembling = Boolean(DEVICES[s.order] && s.dev?.assembling), held = assembling && s.dev.held;
-  if (!held) heldScrew = null;
-  for (const [key, item] of looseScrews) { item.classList.toggle('pickable', assembling && Boolean(item.dataset.size)); item.classList.toggle('held', key === heldScrew); }
+  // Пока корпус собирают, винты на столе можно перетаскивать, а снятые отверстия ждут винт.
+  const { assembling } = screwState(s);
+  for (const item of looseScrews.values()) { item.classList.toggle('pickable', assembling); item.classList.remove('held'); }
+  bench?.querySelectorAll('.mat .screw').forEach(b => b.classList.toggle('awaiting', assembling && b.classList.contains('removed')));
+}
+// Состояние винтов текущего заказа: идёт ли сборка и какое действие закручивает винт.
+function screwState(s) {
+  if (DEVICES[s.order] && s.dev) return { assembling: s.dev.assembling, action: 'dev-screw' };
+  if (s.order === 'laptop') return { assembling: s.assembling, action: 'screw' };
+  if (s.order === 'cassette') return { assembling: s.cassetteAssembling, action: 'cassette-screw' };
+  if (s.order === 'remote') return { assembling: s.rAssembling, action: 'remote-screw' };
+  return { assembling: false };
+}
+// Перетаскивание: зажать винт мышкой или пальцем, отнести к отверстию, отпустить — винт закручивается.
+function makeDraggable(item, mat) {
+  let start = null, target = null;
+  const holeAt = (x, y) => [...mat.querySelectorAll('.screw.removed')].find(h => { const r = h.getBoundingClientRect(); return r.width && x > r.left - 14 && x < r.right + 14 && y > r.top - 14 && y < r.bottom + 14; });
+  const reset = () => { item.classList.remove('dragging'); item.style.translate = ''; target?.classList.remove('drop-target'); target = null; start = null; };
+  item.addEventListener('pointerdown', e => {
+    if (!item.classList.contains('pickable')) { note('Винт понадобится, когда закроешь корпус.'); return; }
+    e.preventDefault(); e.stopPropagation(); item.setPointerCapture(e.pointerId);
+    start = { x: e.clientX, y: e.clientY }; item.classList.add('dragging'); effects.play('tool');
+  });
+  item.addEventListener('pointermove', e => {
+    if (!start) return;
+    item.style.translate = `${e.clientX - start.x}px ${e.clientY - start.y}px`;
+    const hole = holeAt(e.clientX, e.clientY);
+    if (hole !== target) { target?.classList.remove('drop-target'); target = hole; target?.classList.add('drop-target'); }
+  });
+  item.addEventListener('pointerup', e => {
+    if (!start) return;
+    const hole = holeAt(e.clientX, e.clientY), { action } = screwState(state);
+    if (!hole || !action) { reset(); if (Math.hypot(e.clientX - start.x, e.clientY - start.y) < 6) note('Зажми винт и перетащи его к подсвеченному отверстию.'); return; }
+    const holeKey = `${state.order}:${hole.closest('[id]').id}:${hole.dataset.screw}`, myKey = [...looseScrews].find(([, v]) => v === item)?.[0];
+    // Винт попал не в «своё» отверстие: меняем привязку, чтобы на столе остался винт для другого отверстия.
+    if (myKey && myKey !== holeKey && looseScrews.has(holeKey)) { const other = looseScrews.get(holeKey); looseScrews.set(holeKey, item); looseScrews.set(myKey, other); }
+    target?.classList.remove('drop-target'); target = null; start = null; item.classList.remove('dragging');
+    const index = Number(hole.dataset.screw), maskBefore = JSON.stringify(state.dev?.screwMask ?? state.screwMask ?? state.cScrewMask ?? state.rScrewMask);
+    effects.play('repair');
+    if (action === 'dev-screw' && item.dataset.size) dispatch('dev-pick', item.dataset.size);
+    dispatch(action, index);
+    // Не подошёл (не тот размер): винт возвращается на стол.
+    if (JSON.stringify(state.dev?.screwMask ?? state.screwMask ?? state.cScrewMask ?? state.rScrewMask) === maskBefore) item.style.translate = '';
+  });
+  item.addEventListener('pointercancel', reset);
 }
 function renderTrays(s) {
   if (DEVICES[s.order] && s.dev) {

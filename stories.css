@@ -20,15 +20,25 @@
 
 /* Винты лежат у своих отверстий (app.js renderLooseScrews); старый общий лоток больше не нужен. */
 .screw-tray{display:none}
-.loose-screw{position:absolute;z-index:5;width:5%;aspect-ratio:38/23;margin:-1.4% 0 0 -2.5%;background:url('assets/ui/screw-lying.png') center/contain no-repeat;image-rendering:pixelated;filter:drop-shadow(1px 2px 0 #0008);pointer-events:none;transform:rotate(var(--turn));animation:loose-out .45s cubic-bezier(.25,1.4,.5,1) both}
+.loose-screw{position:absolute;z-index:5;width:6.5%;aspect-ratio:38/23;margin:-1.4% 0 0 -2.5%;background:url('assets/ui/screw-lying.png') center/contain no-repeat;image-rendering:pixelated;filter:drop-shadow(1px 2px 0 #0008);pointer-events:none;transform:rotate(var(--turn));animation:loose-out .45s cubic-bezier(.25,1.4,.5,1) both}
 .loose-screw.returning{animation:loose-back .35s ease-in forwards}
 @keyframes loose-out{from{transform:translate(var(--from-x),var(--from-y)) rotate(0) scale(.6);opacity:.4}}
 @keyframes loose-back{to{transform:translate(var(--back-x),var(--back-y)) rotate(0) scale(.5);opacity:0}}
 @media(prefers-reduced-motion:reduce){.loose-screw,.loose-screw.returning{animation:none}}
 
 /* Винты разного размера: длинный и короткий различимы, при сборке их можно взять со стола. */
-.loose-screw.size-long{width:7%;aspect-ratio:56/23}
-.loose-screw.size-short{width:4.8%}
-.loose-screw.pickable{pointer-events:auto;cursor:grab;padding:10px;margin:-2.4% 0 0 -3.6%;background-origin:content-box;background-clip:content-box}
+.loose-screw.size-long{width:9%;aspect-ratio:56/23}
+.loose-screw.size-short{width:6%}
 .loose-screw.pickable:not(.held){filter:drop-shadow(1px 2px 0 #0008) drop-shadow(0 0 3px #ffe08a99)}
 .loose-screw.held{filter:drop-shadow(0 8px 4px #000a) drop-shadow(0 0 6px #ffe08a);translate:0 -10px}
+
+/* Перетаскивание винтов: винт приподнимается в руке, отверстие подсвечивается. */
+.loose-screw.pickable{pointer-events:auto;cursor:grab;touch-action:none;filter:drop-shadow(1px 2px 0 #0008) drop-shadow(0 0 4px #ffe08acc);animation:loose-out .45s cubic-bezier(.25,1.4,.5,1) both,screw-wiggle 2.4s ease-in-out .6s infinite}
+.loose-screw.dragging{cursor:grabbing;z-index:20;animation:none;filter:drop-shadow(0 10px 6px #000b) drop-shadow(0 0 6px #ffe08a);scale:1.25}
+@keyframes screw-wiggle{0%,80%,100%{rotate:0deg}85%{rotate:-10deg}90%{rotate:8deg}}
+.mat .screw.awaiting::before{box-shadow:0 0 0 3px #ffe08a99,0 0 10px #ffe08a;animation:hole-pulse 1.4s ease-in-out infinite}
+.mat .screw.drop-target::before{box-shadow:0 0 0 4px #a4be89,0 0 14px #a4be89;animation:none}
+@keyframes hole-pulse{50%{box-shadow:0 0 0 1px #ffe08a44,0 0 4px #ffe08a66}}
+@media(prefers-reduced-motion:reduce){.loose-screw.pickable,.mat .screw.awaiting::before{animation:none}}
+/* Зона касания больше самого винта — невидимый слой вокруг, картинка не сжимается. */
+.loose-screw.pickable::after{content:'';position:absolute;inset:-16px -12px}
