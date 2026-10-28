@@ -1,7 +1,9 @@
-import { initialState, act } from './game.js?v=15';
+import { initialState, act } from './game.js?v=16';
+import { createMemoryUI } from './memory-ui.js';
+import { memoryFor, memoryAvailable } from './memories.js';
 import { CONTRACTS, completedOrders, nextContract, campaignProgress } from './campaign.js';
 import { createRepairInteraction } from './repair-interaction.js';
-import { workshopProgress, ownedDecorations } from './workshop.js?v=2';
+import { workshopProgress, ownedDecorations } from './workshop.js?v=3';
 import { createWorkshopUI } from './workshop-ui.js?v=2';
 import { clientFor, pickClient } from './stories.js?v=4';
 import { DEVICES, viewSrc } from './devices.js?v=4';
@@ -9,7 +11,7 @@ import { deviceActions, targetState, diagnosisChoices } from './repair-ui.js?v=2
 import { startAmbience } from './ambience.js?v=3';
 import { startCityLife } from './city-life.js?v=1';
 import { createMusicPlayer } from './music-player.js?v=2';
-import { createSoundEffects } from './sound-effects.js?v=4';
+import { createSoundEffects } from './sound-effects.js?v=5';
 import { createCat } from './cat.js?v=3';
 const $ = s => document.querySelector(s);
 const KEY = 'workshop-stories-v1';
@@ -100,7 +102,7 @@ function inspectAtPart(element, action, explanation) {
 }
 document.addEventListener('click', e => {
   const element = e.target.closest('.bench:not([hidden]) .mat button');
-  if (!element || state.stage !== 'work' || element.classList.contains('bench-cat') || element.classList.contains('story-mark')) return;
+  if (!element || state.stage !== 'work' || element.classList.contains('bench-cat') || element.classList.contains('story-mark') || element.classList.contains('device-memory-screen')) return;
   if (partInteraction.owns(element)) { e.preventDefault(); e.stopImmediatePropagation(); return; }
   let action, target, required, label = element.getAttribute('aria-label') || element.textContent;
   const cfg = DEVICES[state.order], d = state.dev;
@@ -263,6 +265,7 @@ function closeWorkshop() {
 }
 $('#menu-shop').onclick = () => { effects.play('click'); openWorkshop(); };
 
+const memoryUI = createMemoryUI({ getState: () => state, dispatch, sound: name => effects.play(name), afterRead() { if (state.stage === 'ending' && !menuOpen) showDialog('bye'); } });
 function render() {
   if (menuOpen) { partInteraction.close(); $('#dialog').hidden = true; }
   const s = state; $('#base').classList.toggle('open', s.open); $('#fan').classList.toggle('clean', s.dustCleaned); $('#connector').classList.toggle('connected', s.fanConnected);
@@ -297,7 +300,7 @@ function render() {
     $('#remote-keypad').classList.toggle('clean', s.rKeypadClean);
   }
   $('.scene').hidden = menuOpen || ['work','ending'].includes(s.stage);
-  document.querySelectorAll('.bench').forEach(bench => { bench.dataset.complete = String(s.stage === 'ending'); bench.querySelector('.mat').inert = s.stage === 'ending'; });
+  document.querySelectorAll('.bench').forEach(bench => { bench.dataset.complete = String(s.stage === 'ending'); bench.querySelector('.mat').inert = false; bench.querySelectorAll('.mat button:not(.device-memory-screen)').forEach(button => { button.inert = s.stage === 'ending'; }); });
   if (['work','ending'].includes(s.stage)) {
     const bench = $(benchFor(s.order));
     bench.querySelector('.dock').prepend($('.panel'));
@@ -319,6 +322,7 @@ function render() {
   $('.lamp').style.color = s.upgrade ? '#ffd883' : '#d4a06a';
   renderMarks(s); renderTrays(s);
   fitDeviceAboveDock();
+  memoryUI.render(!menuOpen);
   syncCats();
 }
 function persist() {
@@ -340,6 +344,7 @@ function dispatch(action, target) {
     result = DEVICES[order] ? act(state, 'dev-accept', { order, client }) : act(state, ORDER_ACCEPT[order], client);
     state = result.state; note('Заказ начат заново. Покупки и монеты сохранены.');
   } else { result = act(state, action, target); state = result.state; note(result.message); }
+  if (['dev-test','test'].includes(action) && memoryAvailable(state)) note(`${result.message} Экран оживает. Коснись его: там сохранилась история владельца.`);
   persist();
   const source = rewardSource(), gained = state.coins - coinsBefore;
   if (gained > 0) coinFlight++;
@@ -376,7 +381,8 @@ function showDialog(kind) {
   else {
     const found = client.marks.filter(m => state.clues.includes(m.id)).length;
     const thanks = found && found === client.marks.length ? '«Вы даже это заметили? Спасибо, что отнеслись к вещи так бережно.»' : found ? '«Вы заметили, да? Это наша маленькая история.»' : '';
-    say([client.ending, thanks].filter(Boolean).join('\n\n'));
+    const response = state.memoryActionDone ? memoryFor(state)?.response : '';
+    say([response || client.ending, thanks].filter(Boolean).join('\n\n'));
   }
   options(); box.hidden = false;
 }

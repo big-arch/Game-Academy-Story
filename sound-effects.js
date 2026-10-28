@@ -34,6 +34,16 @@ export function createSoundEffects() {
   function play(name='click') {
     if (!enabled) return;
     unlockAudio();
+    if (name === 'memory' && audioContext?.state === 'running') {
+      const now = audioContext.currentTime;
+      for (const [delay, frequency] of [[0,880],[.15,1174]]) {
+        const oscillator = audioContext.createOscillator(), gain = audioContext.createGain();
+        oscillator.type = 'sine'; oscillator.frequency.value = frequency;
+        gain.gain.setValueAtTime(.001, now + delay); gain.gain.exponentialRampToValueAtTime(.025, now + delay + .015); gain.gain.exponentialRampToValueAtTime(.001, now + delay + .12);
+        oscillator.connect(gain); gain.connect(audioContext.destination); oscillator.start(now + delay); oscillator.stop(now + delay + .13);
+      }
+      return;
+    }
     const src = files[name] || fallbackFiles[name] || files.click;
     const sound = new Audio(src);
     sound.volume = name === 'purr' ? .25 : name === 'coin' ? .12 : .18;

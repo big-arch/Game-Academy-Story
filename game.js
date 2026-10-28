@@ -1,7 +1,8 @@
 import { DEVICES } from './devices.js';
 import { purchaseDecoration } from './workshop.js';
 import { campaignProgress } from './campaign.js';
-export const initialState = () => ({ stage: 'intro', inspected: false, tested: false, poweredOff: false, open: false, screws: 0, screwMask: 0, assembling: false, dust: 0, dustMask: 0, dustCleaned: false, fanConnected: false, thermalChecked: false, paste: false, repaired: false, upgrade: false, coins: 0, furniture: [], order: null, cassetteOpen: false, cScrews: 0, cScrewMask: 0, cassetteAssembling: false, tapeClipFixed: false, beltReplaced: false, headCleaned: false, cassetteTested: false, cassetteInteriorInspected: false, cassetteDiagnosed: false, cassetteRepaired: false, rOpen: false, rScrewMask: 0, rAssembling: false, rInspectedInside: false, rDiagnosed: false, rGrimeMask: 0, rKeypadClean: false, rRepaired: false, client: null, clues: [], dev: null });
+import { memoryAvailable, memoryFor, memoryProgress } from './memories.js';
+export const initialState = () => ({ stage: 'intro', inspected: false, tested: false, poweredOff: false, open: false, screws: 0, screwMask: 0, assembling: false, dust: 0, dustMask: 0, dustCleaned: false, fanConnected: false, thermalChecked: false, paste: false, repaired: false, upgrade: false, coins: 0, memories: [], memoryActions: [], memoryRead: false, memoryActionDone: false, furniture: [], order: null, cassetteOpen: false, cScrews: 0, cScrewMask: 0, cassetteAssembling: false, tapeClipFixed: false, beltReplaced: false, headCleaned: false, cassetteTested: false, cassetteInteriorInspected: false, cassetteDiagnosed: false, cassetteRepaired: false, rOpen: false, rScrewMask: 0, rAssembling: false, rInspectedInside: false, rDiagnosed: false, rGrimeMask: 0, rKeypadClean: false, rRepaired: false, client: null, clues: [], dev: null });
 export const REWARDS = { laptop: 120, cassette: 120, remote: 80 };
 export const TIP_PER_CLUE = 10; // чаевые за каждую найденную историю на корпусе
 // Оплата заказа плюс чаевые за внимание к деталям.
@@ -11,6 +12,19 @@ export function act(s, action, target) {
   const n = { ...s };
   let message = '';
   switch (action) {
+    case 'memory-read': {
+      if (!memoryAvailable(s)) { message = 'Сначала успешно проверь собранное устройство.'; break; }
+      const memory = memoryFor(s), progress = memoryProgress(s);
+      n.memories = [...new Set([...progress.memories, memory.key])]; n.memoryRead = true;
+      n.memoryActionDone = progress.memoryActions.includes(memory.key);
+      message = 'История сохранена в альбоме мастерской.'; break;
+    }
+    case 'memory-action': {
+      if (!memoryAvailable(s) || !s.memoryRead) { message = 'Сначала открой историю на экране устройства.'; break; }
+      const memory = memoryFor(s), progress = memoryProgress(s);
+      n.memoryActions = [...new Set([...progress.memoryActions, memory.key])]; n.memoryActionDone = true;
+      message = 'Воспоминание сохранено вместе с историей клиента.'; break;
+    }
     case 'accept': n.stage = 'work'; n.order = 'laptop'; n.client = target || null; message = 'Заказ принят. Изучи симптомы, прежде чем разбирать ноутбук.'; break;
     case 'inspect': n.inspected = true; message = n.open ? 'Внутри скопилась пыль. Провод вентилятора неплотно сидит в разъёме; паста под радиатором сухая.' : 'На решётке видна пыль. Из корпуса почти не выходит тёплый воздух.'; break;
     case 'test':
@@ -18,7 +32,7 @@ export function act(s, action, target) {
       if (n.poweredOff) { message = 'Подключи питание, чтобы запустить проверку.'; break; }
       if (n.screwMask) { message = 'Перед проверкой закрепи все винты крышки.'; break; }
       n.tested = true;
-      if (n.dustCleaned && n.fanConnected && n.paste) { n.repaired = true; message = 'Тест пройден: вентилятор вращается, температура стабильна. Фотографии сохранены!'; }
+      if (n.dustCleaned && n.fanConnected && n.paste) { n.repaired = true; message = 'Тест пройден: вентилятор вращается, температура стабильна. Файлы снова доступны!'; }
       else if (n.fanConnected) message = 'Вентилятор теперь вращается, но температура всё ещё растёт. Возможно, тепло плохо передаётся радиатору.';
       else message = 'Диагностика: температура быстро растёт, вентилятор не слышно.';
       break;
