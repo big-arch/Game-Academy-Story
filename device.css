@@ -1,5 +1,5 @@
 /* Общий рабочий стол для устройств из devices.js и диалог с клиентом. */
-.bench .mat.mat-device{background:#2b201c url('assets/room/empty.png') center/100% 100% no-repeat}
+.bench .mat.mat-device{background:#2b201c url('assets/room/stage-0.png') center/100% 100% no-repeat}
 .mat-device .device-generic{position:absolute;z-index:4;left:50%;transform:translateX(-50%)}
 .mat-device .dev-body,.mat-device .dev-inside{position:absolute;inset:0;background:center/100% 100% no-repeat;filter:drop-shadow(4px 6px 0 #0007)}
 .mat-device .dev-inside{display:none}

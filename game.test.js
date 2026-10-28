@@ -51,6 +51,9 @@ test('rewards are awarded once and lamp costs saved coins', () => {
   s = act(s, 'cassette-finish').state;
   assert.equal(s.coins, 120);
   s = act(s, 'upgrade').state;
+  assert.equal(s.upgrade, false); // лампа — второй этап стола, сначала коврик
+  s = act({ ...s, coins: 180 }, 'buy-decoration', 'desk-mat').state;
+  s = act(s, 'upgrade').state;
   assert.equal(s.coins, 0);
   assert.equal(s.upgrade, true);
   s = act(s, 'upgrade').state;

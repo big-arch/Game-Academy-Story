@@ -5,7 +5,7 @@ import { CONTRACTS, completedOrders, nextContract, campaignProgress } from './ca
 import { LETTER, SHELF, FINALE, seasonDone, currentChapter, shelfStatus, shelfLockReason } from './story.js';
 import { createPartNavigator } from './repair-focus.js';
 import { createRepairInteraction } from './repair-interaction.js';
-import { workshopProgress, ownedDecorations, placedDecorations } from './workshop.js';
+import { workshopProgress, ownedDecorations, roomStage } from './workshop.js';
 import { createWorkshopUI } from './workshop-ui.js';
 import { clientFor, pickClient } from './stories.js';
 import { DEVICES, viewSrc } from './devices.js';
@@ -548,7 +548,7 @@ function render() {
   $('#menu-balance').innerHTML = `<img src="assets/ui/coin.svg" alt="">${s.coins} монет`;
   if (!coinFlight) coinCounter.querySelector('b').textContent = s.coins;
   document.body.classList.toggle('lamp-upgraded', s.upgrade);
-  document.body.dataset.room = placedDecorations(s).join(' ');  // пар над кружкой и свет лампы — только когда они куплены
+  document.body.dataset.roomStage = roomStage(s);  // пар над кружкой и свет лампы — только на этапах, где они нарисованы
   $('#menu-continue').textContent = s.stage === 'work' ? 'Продолжить ремонт' : 'Принять заказ';
   $('#menu-new-order').hidden = true;
   const current = s.stage === 'work' && CONTRACTS.find(c => c.order === s.order), next = current || nextContract(s), done = completedOrders(s).length;

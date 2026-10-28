@@ -1,9 +1,6 @@
-# Пустая мастерская и покупаемые предметы из готового арта assets/workshop-cassette.png (936×1681).
-#   empty.png  — стол без вещей: доски стола собраны заново в перспективе из чистой полосы у стены,
-#                свет лампы с комнаты снят (иначе остаётся засвет без лампы).
-#   glow.png   — этот свет отдельно: слой «plus-lighter» поверх комнаты, когда куплена лампа.
-#   <id>.png   — предметы во весь кадр (прозрачный холст того же размера), чтобы совпадать с фоном пиксель в пиксель.
-# Маски предметов — GrabCut с подсказками; цветные варианты — поворот оттенка в HSV.
+# Временные картинки этапов стола assets/room/stage-N.png, пока Codex не нарисует настоящие по docs/ROOM-ART-BRIEF.md.
+# Из assets/workshop-cassette.png собирается пустой стол, вещи вырезаются (GrabCut) и складываются по этапам;
+# последний этап — сам оригинал. Также вырезается ноутбук первого заказа → assets/room/laptop.png.
 import json
 from pathlib import Path
 import cv2
@@ -166,5 +163,21 @@ keep = cv2.morphologyEx(keep, cv2.MORPH_OPEN, np.ones((7, 7), np.uint8))
 out = lap.astype(np.uint8).copy(); out[..., 3] = keep * 255
 Image.fromarray(out).save(OUT / 'laptop.png', optimize=True)
 
-(ROOT / 'room-layout.js').write_text('// Сгенерировано scripts/build-room.py: спрайты assets/room/<id>.png во весь кадр комнаты.\nexport const ROOM_ITEMS = ' + json.dumps(ITEMS) + ';\n', encoding='utf-8')
 print('ok', ITEMS)
+
+# ---------- 4. Временные картинки этапов ----------
+# Настоящие этапы рисуются целиком по docs/ROOM-ART-BRIEF.md; пока их нет — собираем заглушки из вырезанных вещей.
+# Последний этап — сам оригинал. Промежуточные файлы удаляются: в игре остаются только stage-N.png и laptop.png.
+def stage(layers, glow_on):
+    im = Image.open(OUT / 'empty.png').convert('RGB')
+    if glow_on: im = Image.fromarray(np.clip(np.array(im).astype(int) + np.array(Image.open(OUT / 'glow.png').convert('RGB')), 0, 255).astype(np.uint8))
+    im = im.convert('RGBA')
+    for id in layers: im.alpha_composite(Image.open(OUT / f'{id}.png'))
+    return im.convert('RGB')
+STAGES = [([], False), (['mat-green'], False), (['mat-green', 'lamp-orange'], True), (['mat-green', 'lamp-orange', 'mug-trees'], True), (['mat-green', 'tools', 'lamp-orange', 'mug-trees'], True)]
+for n, (layers, glow_on) in enumerate(STAGES): stage(layers, glow_on).save(OUT / f'stage-{n}.png', optimize=True)
+Image.open(ROOT / 'assets/workshop-cassette.png').convert('RGB').save(OUT / f'stage-{len(STAGES)}.png', optimize=True)
+for f in OUT.glob('*.png'):
+    if not f.name.startswith(('stage-', 'laptop')): f.unlink()
+(ROOT / 'room-layout.js').unlink(missing_ok=True)
+print('stages ok')

@@ -1,6 +1,6 @@
 /* Рабочий стол пульта: детали вырезаны из assets/devices/remote/concept-states.png (scripts/split-parts.py).
    Размеры в % коврика подобраны под пропорции кадров (вид пульта 283×665). */
-.bench .mat.mat-remote{background:#2b201c url('assets/room/empty.png') center/100% 100% no-repeat}
+.bench .mat.mat-remote{background:#2b201c url('assets/room/stage-0.png') center/100% 100% no-repeat}
 .mat-remote .device-remote{position:absolute;z-index:4;left:34.7%;top:46%;width:30.6%;height:40%;transition:left .45s ease-out}
 .mat-remote .device-remote.is-open{left:12%}
 .mat-remote .remote-body,.mat-remote .remote-inside{position:absolute;inset:0;background:center/100% 100% no-repeat;filter:drop-shadow(4px 6px 0 #0007)}

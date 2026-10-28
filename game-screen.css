@@ -20,4 +20,4 @@
 /* Hidden workbenches must never override the active order. */
 .app:has(.bench:not([hidden])) .bench[hidden]{display:none}
 
-.bench .mat.mat-cassette{background-image:url("assets/room/empty.png")}
+.bench .mat.mat-cassette{background-image:url("assets/room/stage-0.png")}
