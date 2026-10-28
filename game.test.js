@@ -148,3 +148,12 @@ test('sized screws need the matching screw from the mat; a wrong one is a slip',
   run('dev-pick', 'long'); run('dev-screw', 0); assert.equal(s.dev.screwMask, 2); assert.equal(s.dev.held, null);
   run('dev-pick', 'short'); run('dev-screw', 1); assert.equal(s.dev.screwMask, 0); assert.equal(s.dev.assembling, false);
 });
+
+test('chapter 4: Lev\'s phone unlocks after eleven jobs and is returned through the shelf', () => {
+  const locked = act({ ...initialState(), jobsCompleted: 10 }, 'shelf-take', 'phone-n');
+  assert.equal(locked.state.stage, 'intro');
+  let s = act({ ...initialState(), jobsCompleted: 11, letterRead: true, shelfDone: ['zoya-remote', 'pager-143', 'camera-1996'] }, 'shelf-take', 'phone-n').state;
+  assert.equal(s.order, 'phone'); assert.equal(s.client, 'zoya-phone'); assert.equal(s.shelf, 'phone-n');
+  s = act({ ...s, dev: { ...s.dev, repaired: true } }, 'dev-finish').state;
+  assert.ok(s.shelfDone.includes('phone-n'));
+});

@@ -3,6 +3,7 @@ import { createMemoryUI } from './memory-ui.js';
 import { memoryFor, memoryAvailable } from './memories.js';
 import { CONTRACTS, completedOrders, nextContract, campaignProgress } from './campaign.js';
 import { LETTER, SHELF, currentChapter, shelfStatus, shelfLockReason } from './story.js';
+import { createPartNavigator } from './repair-focus.js';
 import { createRepairInteraction } from './repair-interaction.js';
 import { workshopProgress, ownedDecorations } from './workshop.js?v=4';
 import { createWorkshopUI } from './workshop-ui.js?v=2';
@@ -455,28 +456,50 @@ function renderDevice(s) {
   if (!DEVICES[s.order] || !s.dev) return;
   if (devBuilt !== s.order) buildDevice(s.order);
   const cfg = DEVICES[s.order], d = s.dev, box = $('#dev-device');
-  // Находка клиента внутри корпуса: видна, когда крышка снята.
-  const find = clientFor(s.order, s.client)?.find; let found = $('#dev-inside .inside-find');
-  if (find && found?.dataset.client !== s.client) { found?.remove(); found = document.createElement('button'); found.type = 'button'; found.className = `inside-find find-${find.kind}`; found.innerHTML = `<img src="assets/ui/finds/${find.kind}.svg" alt="">`; found.dataset.client = s.client; found.setAttribute('aria-label', 'Что-то лежит внутри'); Object.assign(found.style, { left: `${find.x}%`, top: `${find.y}%` }); found.onclick = e => { e.stopPropagation(); effects.play('tool'); openFind(find, found); }; $('#dev-inside').append(found); }
-  if (!find) found?.remove(); else found.classList.toggle('found', s.clues.includes('find'));
+  // Finds belong to their own tray, never to the repair hit area.
+  const mat = $('#bench-device .mat'), find = clientFor(s.order, s.client)?.find;
+  let tray = mat.querySelector('.find-tray');
+  if (!tray) { tray = document.createElement('div'); tray.className = 'find-tray'; tray.innerHTML = '<small>НАХОДКА</small>'; mat.append(tray); }
+  let found = tray.querySelector('.inside-find');
+  if (found?.dataset.client !== s.client) { found?.remove(); found = null; }
+  if (find && !found) {
+    found = document.createElement('button'); found.type = 'button'; found.className = `inside-find find-${find.kind}`;
+    const icon = document.createElement('img'); icon.src = `assets/ui/finds/${find.kind}.svg`; icon.alt = ''; found.append(icon);
+    found.dataset.client = s.client; found.setAttribute('aria-label','Находка на коврике: осмотреть');
+    found.onclick = event => { event.stopPropagation(); effects.play('tool'); openFind(find,found); }; tray.append(found);
+  }
+  tray.hidden = !find || s.stage !== 'work' || (!d.open && !s.clues.includes('find'));
+  if (found) found.classList.toggle('found',s.clues.includes('find'));
   $('#dev-tools').hidden = d.open && d.inside && !d.diagnosed;
   box.classList.toggle('is-open', d.open); box.classList.toggle('diagnosed', d.diagnosed); box.classList.toggle('assembling', d.assembling);
   $('#dev-body').style.backgroundImage = `url('${viewSrc(s.order, d.repaired ? 'repaired' : 'closed')}')`;
   $('#dev-open').hidden = d.open || d.assembling || d.screwMask !== (1 << cfg.screws.length) - 1;
   $('#dev-body').querySelectorAll('.screw').forEach(b => { const removed = Boolean(d.screwMask & (1 << Number(b.dataset.screw))); b.classList.toggle('removed', removed); b.setAttribute('aria-label', `Винт корпуса ${Number(b.dataset.screw) + 1}${removed ? ', снят' : ', установлен'}`); });
   if (cfg.hidden && d.hiddenFound && !$(`#dev-inside [data-fix="${cfg.hidden.fix.id}"]`)) $('#dev-inside').append(fixButton(cfg.hidden.fix));
-  $('#dev-inside').querySelectorAll('.dev-fix').forEach(b => { const fix = allFixes(cfg, d).find(f => f.id === b.dataset.fix), status = targetState(d, fix, tool); b.dataset.state = status; b.dataset.label = fix.label; b.classList.toggle('done', status === 'done'); b.disabled = status === 'done'; b.setAttribute('aria-label', `${fix.label}${status === 'done' ? ', готово' : status === 'ready' ? ', можно выполнить' : ''}`); });
+  const selected = partNavigator.render(s, allFixes(cfg,d), d.open && s.stage === 'work' && !$('#bench-device').hidden);
+  $('#dev-inside').querySelectorAll('.dev-fix').forEach(b => { b.hidden = b.dataset.fix !== selected; const fix = allFixes(cfg, d).find(f => f.id === b.dataset.fix), status = targetState(d, fix, tool); b.dataset.state = status; b.dataset.label = fix.label; b.classList.toggle('done', status === 'done'); b.disabled = status === 'done'; b.setAttribute('aria-label', `${fix.label}${status === 'done' ? ', готово' : status === 'ready' ? ', можно выполнить' : ''}`); });
 }
+const partNavigator = createPartNavigator($('#bench-device'), {
+  change() { closeRepairInstrument(); partInteraction.close(); render(); },
+  open(id) { $(`#dev-inside [data-fix="${id}"]`)?.click(); },
+  assemble() { dispatch('dev-cover'); },
+});
 $('#dev-open').onclick = () => { effects.play(); dispatch('dev-cover'); };
 function fitDeviceAboveDock() {
   if (!DEVICES[state.order] || $('#bench-device').hidden) return;
   const cfg = DEVICES[state.order], mat = $('#bench-device .mat').getBoundingClientRect();
   if (!mat.height) return;
   const bottom = ($('#bench-device .dock').getBoundingClientRect().top - mat.top) / mat.height * 100 - 2;
-  const deviceTop = Math.max(47, cfg.top);
-  const height = Math.min(cfg.height, Math.max(14, bottom - deviceTop));
+  const focused = state.dev?.open;
+  const deviceTop = Math.max(focused ? 52 : 47, cfg.top);
+  const desired = focused ? Math.max(cfg.height,32) : cfg.height;
+  const aspect = MAT_RATIO * cfg.size[0] / cfg.size[1];
+  const height = Math.min(desired, 64 / aspect, Math.max(14, bottom - deviceTop));
   const top = Math.min(deviceTop, bottom - height);
-  Object.assign($('#dev-device').style, { top: `${top}%`, height: `${height}%`, width: `${height * MAT_RATIO * cfg.size[0] / cfg.size[1]}%` });
+  Object.assign($('#dev-device').style, { top: `${top}%`, height: `${height}%`, width: `${height * aspect}%` });
+  partNavigator.position($('#dev-device'));
+  const tray = $('#bench-device .find-tray'), device = $('#dev-device').getBoundingClientRect();
+  if (tray && !tray.hidden) Object.assign(tray.style,{left:`${Math.max(4,device.left-mat.left-60)}px`,top:`${Math.max(40,device.top-mat.top-8)}px`});
 }
 new ResizeObserver(fitDeviceAboveDock).observe($('#bench-device'));
 
