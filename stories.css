@@ -17,3 +17,11 @@
 .tray-cassette{left:8%;top:70%;width:20%;height:6%}
 .tray-remote{left:76%;top:71%;width:19%;height:6%}
 @media(prefers-reduced-motion:reduce){.story-mark:not(.found),.screw-tray i.on{animation:none}.screw-tray i{transition:none}}
+
+/* Винты лежат у своих отверстий (app.js renderLooseScrews); старый общий лоток больше не нужен. */
+.screw-tray{display:none}
+.loose-screw{position:absolute;z-index:5;width:5%;aspect-ratio:38/23;margin:-1.4% 0 0 -2.5%;background:url('assets/ui/screw-lying.png') center/contain no-repeat;image-rendering:pixelated;filter:drop-shadow(1px 2px 0 #0008);pointer-events:none;transform:rotate(var(--turn));animation:loose-out .45s cubic-bezier(.25,1.4,.5,1) both}
+.loose-screw.returning{animation:loose-back .35s ease-in forwards}
+@keyframes loose-out{from{transform:translate(var(--from-x),var(--from-y)) rotate(0) scale(.6);opacity:.4}}
+@keyframes loose-back{to{transform:translate(var(--back-x),var(--back-y)) rotate(0) scale(.5);opacity:0}}
+@media(prefers-reduced-motion:reduce){.loose-screw,.loose-screw.returning{animation:none}}

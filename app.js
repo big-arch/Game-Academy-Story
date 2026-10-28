@@ -169,6 +169,44 @@ for (const [order, [bench, count]] of Object.entries(TRAYS)) {
   $(`${bench} .mat`).append(tray);
 }
 const devTray = document.createElement('div'); devTray.className = 'screw-tray tray-device'; devTray.setAttribute('aria-hidden', 'true'); $('#bench-device .mat').append(devTray);
+// Открученный винт ложится на коврик рядом со своим отверстием (всегда в видимой части стола),
+// при закручивании улетает обратно в отверстие, а когда заказ сдан — убирается со стола.
+const looseScrews = new Map();
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+function renderLooseScrews(s) {
+  const bench = !menuOpen && s.stage === 'work' ? $(benchFor(s.order)) : null, mat = bench?.querySelector('.mat');
+  const live = new Set();
+  if (mat) {
+    const m = mat.getBoundingClientRect(), device = mat.querySelector('[id$="device"]')?.getBoundingClientRect();
+    const pct = (x, y) => [(x - m.left) / m.width * 100, (y - m.top) / m.height * 100];
+    mat.querySelectorAll('.screw').forEach(btn => {
+      const key = `${s.order}:${btn.closest('[id]').id}:${btn.dataset.screw}`, r = btn.getBoundingClientRect(), shown = r.width > 0;
+      let item = looseScrews.get(key);
+      if (btn.classList.contains('removed')) {
+        live.add(key);
+        if (item || !shown) return;
+        const [hx, hy] = pct(r.left + r.width / 2, r.top + r.height / 2);
+        const [cx, cy] = device ? pct(device.left + device.width / 2, device.top + device.height / 2) : [50, 60];
+        const len = Math.hypot(hx - cx, hy - cy) || 1;
+        // Отлетает наружу от центра устройства на ~8% коврика, но не за край видимой части стола.
+        let rx = hx + (hx - cx) / len * 8, ry = clamp(hy + (hy - cy) / len * 4, 40, 84);
+        // Винт должен лечь рядом с корпусом, а не на нём: выносим за ближайший боковой край устройства.
+        if (device) { const [dl] = pct(device.left, 0), [dr] = pct(device.right, 0); if (rx > dl - 3 && rx < dr + 3) rx = hx < cx ? dl - 4 - Math.random() * 3 : dr + 4 + Math.random() * 3; }
+        rx = clamp(rx, 5, 95);
+        item = document.createElement('i'); item.className = 'loose-screw'; item.setAttribute('aria-hidden', 'true');
+        Object.assign(item.style, { left: `${rx}%`, top: `${ry}%`, '--from-x': `${(hx - rx) / 100 * m.width}px`, '--from-y': `${(hy - ry) / 100 * m.height}px`, '--turn': `${Math.round(Math.random() * 120 - 60)}deg` });
+        mat.append(item); looseScrews.set(key, item);
+      } else if (item && shown) {
+        // Закрутили: винт летит обратно в своё отверстие.
+        const hr = item.getBoundingClientRect();
+        item.style.setProperty('--back-x', `${r.left + r.width / 2 - (hr.left + hr.width / 2)}px`);
+        item.style.setProperty('--back-y', `${r.top + r.height / 2 - (hr.top + hr.height / 2)}px`);
+        item.classList.add('returning'); looseScrews.delete(key); setTimeout(() => item.remove(), 400);
+      } else if (item) live.add(key);
+    });
+  }
+  for (const [key, item] of looseScrews) if (!live.has(key)) { item.remove(); looseScrews.delete(key); }
+}
 function renderTrays(s) {
   if (DEVICES[s.order] && s.dev) {
     const count = DEVICES[s.order].screws.length;
@@ -214,6 +252,10 @@ function renderDevice(s) {
   if (!DEVICES[s.order] || !s.dev) return;
   if (devBuilt !== s.order) buildDevice(s.order);
   const cfg = DEVICES[s.order], d = s.dev, box = $('#dev-device');
+  // Находка клиента внутри корпуса: видна, когда крышка снята.
+  const find = clientFor(s.order, s.client)?.find; let found = $('#dev-inside .inside-find');
+  if (find && found?.dataset.client !== s.client) { found?.remove(); found = document.createElement('button'); found.type = 'button'; found.className = `inside-find find-${find.kind}`; found.dataset.client = s.client; found.setAttribute('aria-label', 'Что-то лежит внутри'); Object.assign(found.style, { left: `${find.x}%`, top: `${find.y}%` }); found.onclick = e => { e.stopPropagation(); effects.play('tool'); dispatch('clue', 'find'); note(find.text); }; $('#dev-inside').append(found); }
+  if (!find) found?.remove(); else found.classList.toggle('found', s.clues.includes('find'));
   $('#dev-tools').hidden = d.open && d.inside && !d.diagnosed;
   box.classList.toggle('is-open', d.open); box.classList.toggle('diagnosed', d.diagnosed); box.classList.toggle('assembling', d.assembling);
   $('#dev-body').style.backgroundImage = `url('${viewSrc(s.order, d.repaired ? 'repaired' : 'closed')}')`;
@@ -315,12 +357,12 @@ function render() {
   $('#display').textContent = s.repaired ? 'ПРОВЕРКА ПРОЙДЕНА' : s.poweredOff ? 'ПИТАНИЕ ОТКЛЮЧЕНО' : s.tested ? 'ТЕМПЕРАТУРА: ВЫСОКАЯ' : 'ОЖИДАНИЕ';
   const client = clientFor(s.order, s.client);
   $('#heading').textContent = client ? `${client.name} · ${client.title}` : s.stage === 'ending' ? 'История продолжается' : s.order === 'cassette' ? 'Музыка на плёнке' : s.order === 'remote' ? 'Вечер у телевизора' : 'Письма из прошлого';
-  $('#story').textContent = client ? [s.stage === 'ending' ? client.ending : client.intro, ...client.marks.filter(m => s.clues.includes(m.id)).map(m => `• ${m.text}`), ...(s.stage === 'work' && s.clues.length < client.marks.length ? [`Следов на корпусе ещё не найдено: ${client.marks.length - s.clues.length}.`] : [])].join('\n') : s.order === 'remote' ? (s.stage === 'ending' ? '«Работает! Дедушка снова сам переключает свои передачи и больше не зовёт меня каждые пять минут. Спасибо!»' : '«Дедушка пролил чай на пульт, и теперь половина кнопок не нажимается. Он без него как без рук — посмотрите, пожалуйста?»') : s.order === 'cassette' ? (s.stage === 'ending' ? '«Плеер снова работает. Теперь я смогу послушать старую запись. Спасибо!»' : '«Этот плеер не протягивает ленту. На кассете важная для меня запись. Поможете?»') : (s.stage === 'ending' ? '«Он снова работает… Смотрите, это дедушкины фотографии с моря! Я думала, что больше никогда их не увижу. Спасибо вам.»' : '«Это ноутбук моего дедушки. Он включается, но быстро выключается. Там наши семейные фотографии… Пожалуйста, помогите их сохранить.»');
+  $('#story').textContent = client ? [s.stage === 'ending' ? client.ending : client.intro, ...[...client.marks, ...(client.find ? [client.find] : [])].filter(m => s.clues.includes(m.id)).map(m => `• ${m.text}`), ...(s.stage === 'work' && s.clues.length < client.marks.length ? [`Следов на корпусе ещё не найдено: ${client.marks.length - s.clues.length}.`] : [])].join('\n') : s.order === 'remote' ? (s.stage === 'ending' ? '«Работает! Дедушка снова сам переключает свои передачи и больше не зовёт меня каждые пять минут. Спасибо!»' : '«Дедушка пролил чай на пульт, и теперь половина кнопок не нажимается. Он без него как без рук — посмотрите, пожалуйста?»') : s.order === 'cassette' ? (s.stage === 'ending' ? '«Плеер снова работает. Теперь я смогу послушать старую запись. Спасибо!»' : '«Этот плеер не протягивает ленту. На кассете важная для меня запись. Поможете?»') : (s.stage === 'ending' ? '«Он снова работает… Смотрите, это дедушкины фотографии с моря! Я думала, что больше никогда их не увижу. Спасибо вам.»' : '«Это ноутбук моего дедушки. Он включается, но быстро выключается. Там наши семейные фотографии… Пожалуйста, помогите их сохранить.»');
   $('#status').textContent = s.stage === 'ending' ? `● БАЛАНС: ${s.coins} МОНЕТ` : s.repaired ? '● УСТРОЙСТВО ИСПРАВНО' : s.stage === 'work' ? '● ЗАКАЗ В РАБОТЕ' : '● НОВЫЙ ЗАКАЗ';
   const actions = s.stage === 'intro' ? [['next-order','Принять заказ']] : s.stage === 'ending' ? [['next-order','Принять заказ'], ['shop','Мастерская']] : DEVICES[s.order] && s.dev ? deviceActions(DEVICES[s.order], s.dev) : s.order === 'remote' ? [['remote-inspect','Осмотр'],['remote-test','Проверить'], ...(s.rOpen ? [['remote-cover','Закрыть корпус']] : []), ...(s.rRepaired ? [['remote-finish','Вернуть клиенту']] : [])] : s.order === 'cassette' ? [['cassette-inspect','Осмотр'],['cassette-test','Проверить'], ...(s.cassetteOpen ? [['cassette-cover','Закрыть крышку']] : []), ...(s.cassetteRepaired ? [['cassette-finish','Вернуть клиенту']] : [])] : [['inspect','Осмотр'],['test','Диагностика'],['power',s.poweredOff?'Включить питание':'Выключить питание'], ...(s.open ? [['cover','Закрыть крышку']] : []), ...(s.repaired ? [['finish','Вернуть клиенту']] : [])];
   $('#actions').replaceChildren(...actions.map(([id,label],i) => { const b=document.createElement('button');b.textContent=label;b.dataset.action=id;if(i===0||id.endsWith('finish'))b.className='primary';b.onclick=()=>{effects.play('click');const open = DEVICES[state.order] ? state.dev?.open : state.order === 'remote' ? state.rOpen : state.cassetteOpen; const diagnosed = DEVICES[state.order] ? state.dev?.diagnosed : state.order === 'remote' ? state.rDiagnosed : state.cassetteDiagnosed; if (id.endsWith('-inspect') && open && !diagnosed) { const target = $(benchFor(state.order)).querySelector('.dev-fix,[data-grime],#head'); if (target) { inspectAtPart(target,id); return; } } dispatch(id);};return b; }));
   $('.lamp').style.color = s.upgrade ? '#ffd883' : '#d4a06a';
-  renderMarks(s); renderTrays(s);
+  renderMarks(s); renderLooseScrews(s);
   fitDeviceAboveDock();
   memoryUI.render(!menuOpen);
   syncCats();
@@ -379,7 +421,7 @@ function showDialog(kind) {
   };
   if (kind === 'hello') say(client.intro);
   else {
-    const found = client.marks.filter(m => state.clues.includes(m.id)).length;
+    const found = client.marks.filter(m => state.clues.includes(m.id)).length + (client.find && state.clues.includes('find') ? 1 : 0);
     const thanks = found && found === client.marks.length ? '«Вы даже это заметили? Спасибо, что отнеслись к вещи так бережно.»' : found ? '«Вы заметили, да? Это наша маленькая история.»' : '';
     const response = state.memoryActionDone ? memoryFor(state)?.response : '';
     say([response || client.ending, thanks].filter(Boolean).join('\n\n'));

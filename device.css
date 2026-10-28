@@ -47,3 +47,12 @@
 .bench:has([data-tool=screw][aria-pressed=true]) .device-generic:not(.assembling) .screw:not(.removed)::before,.bench:has([data-tool=screw][aria-pressed=true]) .device-generic.assembling .screw.removed::before{border-color:#ffe3a0;box-shadow:0 0 5px 2px #eec26c80}
 @keyframes target-glow{to{background:#ffc96950;box-shadow:0 0 0 2px #342921,0 0 17px #ffce6990}}
 @media(prefers-reduced-motion:reduce){.mat-device .device-generic .dev-fix[data-state]{animation:none;transition:none}}
+
+/* Находки внутри корпуса: записка, фото, билет. Лежат криво, как их спрятали. */
+.inside-find{position:absolute;z-index:3;width:13%;aspect-ratio:4/3;margin:0;padding:0;border:1px solid #6b5636;transform:translate(-50%,-50%) rotate(-8deg);cursor:pointer;box-shadow:2px 3px 0 #0008;animation:find-peek 3s ease-in-out infinite}
+.find-note{background:repeating-linear-gradient(#f2e6c8 0 5px,#b9a98a 5px 6px)}
+.find-photo{background:#f5efe2;border:3px solid #f5efe2;box-shadow:inset 0 0 0 999px #6f8a96,2px 3px 0 #0008}
+.find-ticket{aspect-ratio:2/1;background:linear-gradient(90deg,#e9b44c 0 70%,#d49a35 70%);border-style:dashed}
+.inside-find.found{animation:none;opacity:.55}
+@keyframes find-peek{50%{transform:translate(-50%,-55%) rotate(-4deg)}}
+@media(prefers-reduced-motion:reduce){.inside-find{animation:none}}
