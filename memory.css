@@ -16,3 +16,4 @@
 .memory-progress{height:8px;background:#182722;margin:12px 0}.memory-progress:after{content:'';display:block;height:100%;background:#d2d79a;transform-origin:left;animation:memory-progress 1800ms linear forwards}
 @keyframes screen-wake{from{opacity:.2}to{opacity:1}}@keyframes screen-boot{from{filter:brightness(.4)}to{filter:brightness(1)}}@keyframes memory-progress{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 @media(prefers-reduced-motion:reduce){.mat button.device-memory-screen,.memory-progress:after,.screen-loader:before{animation:none}}
+.mat button.device-memory-screen[data-kind=medallion]{background:#d4b16c;border-radius:50%;font-size:6px}.device-memory-screen[data-kind=medallion] span{display:none}

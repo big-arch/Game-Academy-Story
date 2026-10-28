@@ -2,13 +2,13 @@ import { initialState, act, allFixes } from './game.js?v=22';
 import { createMemoryUI } from './memory-ui.js';
 import { memoryFor, memoryAvailable } from './memories.js';
 import { CONTRACTS, completedOrders, nextContract, campaignProgress } from './campaign.js';
-import { LETTER, SHELF, currentChapter, shelfStatus, shelfLockReason } from './story.js';
+import { LETTER, SHELF, FINALE, seasonDone, currentChapter, shelfStatus, shelfLockReason } from './story.js';
 import { createPartNavigator } from './repair-focus.js';
 import { createRepairInteraction } from './repair-interaction.js';
 import { workshopProgress, ownedDecorations } from './workshop.js?v=4';
 import { createWorkshopUI } from './workshop-ui.js?v=2';
 import { clientFor, pickClient } from './stories.js?v=9';
-import { DEVICES, viewSrc } from './devices.js?v=9';
+import { DEVICES, viewSrc } from './devices.js?v=10';
 import { deviceActions, targetState, diagnosisChoices } from './repair-ui.js?v=2';
 import { startAmbience } from './ambience.js?v=3';
 import { startCityLife } from './city-life.js?v=1';
@@ -601,7 +601,7 @@ function persist() {
 const shownShelfNotes = new Set();
 function showEndingDialogue() {
   const item = SHELF.find(i => i.order === state.order && i.client === state.client && state.shelfDone?.includes(i.id));
-  showDialog('bye', item && !shownShelfNotes.has(item.id) ? () => { shownShelfNotes.add(item.id); showLetter('Бирка внутри', item.after, 'Положить к письму Лёвы'); } : null);
+  showDialog('bye', item && !shownShelfNotes.has(item.id) ? () => { shownShelfNotes.add(item.id); showLetter('Бирка внутри', item.after, 'Положить к письму Лёвы', seasonDone(state) ? () => showLetter(FINALE.title, FINALE.text, FINALE.button) : null); } : null);
 }
 function dispatch(action, target) {
   const coinsBefore = state.coins;
