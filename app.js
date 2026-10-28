@@ -1,4 +1,4 @@
-import { initialState, act, allFixes } from './game.js?v=18';
+import { initialState, act, allFixes } from './game.js?v=19';
 import { createMemoryUI } from './memory-ui.js';
 import { memoryFor, memoryAvailable } from './memories.js';
 import { CONTRACTS, completedOrders, nextContract, campaignProgress } from './campaign.js';
@@ -6,8 +6,8 @@ import { LETTER, SHELF, currentChapter, shelfStatus } from './story.js';
 import { createRepairInteraction } from './repair-interaction.js';
 import { workshopProgress, ownedDecorations } from './workshop.js?v=4';
 import { createWorkshopUI } from './workshop-ui.js?v=2';
-import { clientFor, pickClient } from './stories.js?v=5';
-import { DEVICES, viewSrc } from './devices.js?v=5';
+import { clientFor, pickClient } from './stories.js?v=6';
+import { DEVICES, viewSrc } from './devices.js?v=6';
 import { deviceActions, targetState, diagnosisChoices } from './repair-ui.js?v=2';
 import { startAmbience } from './ambience.js?v=3';
 import { startCityLife } from './city-life.js?v=1';
@@ -173,6 +173,7 @@ const devTray = document.createElement('div'); devTray.className = 'screw-tray t
 // Открученный винт ложится на коврик рядом со своим отверстием (всегда в видимой части стола),
 // при закручивании улетает обратно в отверстие, а когда заказ сдан — убирается со стола.
 const looseScrews = new Map();
+let heldScrew = null;
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 function renderLooseScrews(s) {
   const bench = !menuOpen && s.stage === 'work' ? $(benchFor(s.order)) : null, mat = bench?.querySelector('.mat');
@@ -196,6 +197,9 @@ function renderLooseScrews(s) {
         rx = clamp(rx, 5, 95);
         item = document.createElement('i'); item.className = 'loose-screw'; item.setAttribute('aria-hidden', 'true');
         Object.assign(item.style, { left: `${rx}%`, top: `${ry}%`, '--from-x': `${(hx - rx) / 100 * m.width}px`, '--from-y': `${(hy - ry) / 100 * m.height}px`, '--turn': `${Math.round(Math.random() * 120 - 60)}deg` });
+        // Размер винта (devices.js): длинные и короткие видно на столе, при сборке их берут в руку.
+        const size = btn.closest('#dev-body') && DEVICES[s.order]?.screws[Number(btn.dataset.screw)]?.[2];
+        if (size) { item.dataset.size = size; item.classList.add(`size-${size}`); item.onclick = e => { e.stopPropagation(); effects.play('tool'); heldScrew = key; dispatch('dev-pick', size); }; }
         mat.append(item); looseScrews.set(key, item);
       } else if (item && shown) {
         // Закрутили: винт летит обратно в своё отверстие.
@@ -207,6 +211,10 @@ function renderLooseScrews(s) {
     });
   }
   for (const [key, item] of looseScrews) if (!live.has(key)) { item.remove(); looseScrews.delete(key); }
+  // Подсветка: винты можно брать, пока корпус собирают; взятый винт приподнят.
+  const assembling = Boolean(DEVICES[s.order] && s.dev?.assembling), held = assembling && s.dev.held;
+  if (!held) heldScrew = null;
+  for (const [key, item] of looseScrews) { item.classList.toggle('pickable', assembling && Boolean(item.dataset.size)); item.classList.toggle('held', key === heldScrew); }
 }
 function renderTrays(s) {
   if (DEVICES[s.order] && s.dev) {

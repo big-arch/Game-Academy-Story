@@ -25,3 +25,10 @@
 @keyframes loose-out{from{transform:translate(var(--from-x),var(--from-y)) rotate(0) scale(.6);opacity:.4}}
 @keyframes loose-back{to{transform:translate(var(--back-x),var(--back-y)) rotate(0) scale(.5);opacity:0}}
 @media(prefers-reduced-motion:reduce){.loose-screw,.loose-screw.returning{animation:none}}
+
+/* Винты разного размера: длинный и короткий различимы, при сборке их можно взять со стола. */
+.loose-screw.size-long{width:7%;aspect-ratio:56/23}
+.loose-screw.size-short{width:4.8%}
+.loose-screw.pickable{pointer-events:auto;cursor:grab;padding:10px;margin:-2.4% 0 0 -3.6%;background-origin:content-box;background-clip:content-box}
+.loose-screw.pickable:not(.held){filter:drop-shadow(1px 2px 0 #0008) drop-shadow(0 0 3px #ffe08a99)}
+.loose-screw.held{filter:drop-shadow(0 8px 4px #000a) drop-shadow(0 0 6px #ffe08a);translate:0 -10px}

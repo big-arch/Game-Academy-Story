@@ -9,9 +9,12 @@ for (const [order, cfg] of Object.entries(DEVICES)) {
     for (const view of ['closed', 'open', 'repaired']) assert.ok(existsSync(new URL(viewSrc(order, view), import.meta.url)), `${order}: ${view}`);
     let s = initialState();
     const run = (a, target) => { s = act(s, a, target).state; };
+    // Sized screws need the matching screw picked up before each one is tightened.
+    const pickFor = i => { if (s.dev?.assembling && cfg.screws[i][2] && (s.dev.screwMask & (1 << i))) run('dev-pick', cfg.screws[i][2]); };
+    const tighten = i => { pickFor(i); run('dev-screw', i); };
     run('dev-accept', { order });
     run('dev-test'); run('dev-finish'); assert.equal(s.coins, 0);
-    for (let i = 0; i < cfg.screws.length; i++) run('dev-screw', i);
+    for (let i = 0; i < cfg.screws.length; i++) tighten(i);
     run('dev-cover'); run('dev-inspect');
     run('dev-diagnose', cfg.causes.find(c => c.correct).id);
     const pending = [...cfg.fixes];
@@ -22,25 +25,25 @@ for (const [order, cfg] of Object.entries(DEVICES)) {
     }
     run('dev-test'); assert.equal(s.dev.repaired, false);
     run('dev-cover'); run('dev-test'); assert.equal(s.dev.repaired, false);
-    for (let i = 0; i < cfg.screws.length; i++) run('dev-screw', i);
+    for (let i = 0; i < cfg.screws.length; i++) tighten(i);
     run('dev-test');
     if (cfg.hidden) {
       // Hidden second fault: the first passing test reveals it, the casing is opened again.
       assert.equal(s.dev.hiddenFound, true); assert.equal(s.dev.repaired, false);
-      for (let i = 0; i < cfg.screws.length; i++) run('dev-screw', i);
+      for (let i = 0; i < cfg.screws.length; i++) tighten(i);
       run('dev-cover'); run('dev-fix', cfg.hidden.fix.id); run('dev-cover');
-      for (let i = 0; i < cfg.screws.length; i++) run('dev-screw', i);
+      for (let i = 0; i < cfg.screws.length; i++) tighten(i);
       run('dev-test');
     }
     assert.equal(s.dev.repaired, true);
-    run('dev-screw', 0); assert.equal(s.dev.repaired, false);
+    tighten(0); assert.equal(s.dev.repaired, false);
     run('dev-test'); assert.equal(s.dev.repaired, false);
     run('dev-finish'); assert.equal(s.stage, 'work');
-    run('dev-screw', 0); assert.equal(s.dev.repaired, false);
+    tighten(0); assert.equal(s.dev.repaired, false);
     // The remaining screws must be removed before the next assembly cycle.
-    for (let i = 1; i < cfg.screws.length; i++) run('dev-screw', i);
+    for (let i = 1; i < cfg.screws.length; i++) tighten(i);
     run('dev-cover'); run('dev-cover');
-    for (let i = 0; i < cfg.screws.length; i++) run('dev-screw', i);
+    for (let i = 0; i < cfg.screws.length; i++) tighten(i);
     run('dev-test'); run('dev-finish');
     assert.equal(s.stage, 'ending'); assert.equal(s.coins, cfg.reward);
     run('dev-finish'); assert.equal(s.coins, cfg.reward);

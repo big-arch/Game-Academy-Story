@@ -13,7 +13,8 @@ export const LETTER = {
 export const SHELF = [
   { id: 'zoya-remote', chapter: 1, unlock: 2, order: 'remote', client: 'zoya-lev', name: 'Пульт', tag: '«Зоя М. — вернуть лично»',
     after: 'Под крышкой пульта нашлась вторая бирка, почерк Лёвы: «Пейджер — 143. Спросить Н.» Полка ждёт следующую главу.' },
-  { id: 'pager-143', chapter: 2, unlock: 5, name: 'Пейджер', tag: '«143»' },
+  { id: 'pager-143', chapter: 2, unlock: 5, order: 'pager', client: 'mihalych-lev', name: 'Пейджер', tag: '«143»',
+    after: 'В памяти пейджера нашлось ещё одно сообщение, принятое уже после отъезда Н.: «Плёнка 1996-го у тебя в камере. Там всё, что я не смогла сказать. Н.» Камера с биркой «Мастерская, 1996» ждёт на полке.' },
   { id: 'camera-1996', chapter: 3, unlock: 8, name: 'Видеокамера', tag: '«Мастерская, 1996»' },
   { id: 'phone-n', chapter: 4, unlock: 11, name: 'Телефон', tag: '«От Н. — не читать»' },
   { id: 'music-box', chapter: 5, unlock: 14, name: 'Шкатулка', tag: '«Н.»' },

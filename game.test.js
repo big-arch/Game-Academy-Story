@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
+import { DEVICES } from './devices.js';
 import { initialState, act } from './game.js';
 test('repair requires safe disassembly and fixing all three cooling faults', () => {
   let s = initialState(); const run = (a,t) => { s = act(s, a,t).state; };
@@ -93,7 +94,7 @@ test('story clues are counted once and paid as tips on return', () => {
 });
 
 test('data-driven devices follow screws, diagnosis, ordered fixes and reassembly', () => {
-  let s = initialState(); const run = (a, t) => { s = act(s, a, t).state; };
+  let s = initialState(); const run = (a, t) => { if (a === 'dev-screw' && s.dev?.assembling && (s.dev.screwMask & (1 << t))) { const size = DEVICES[s.order].screws[t][2]; if (size) s = act(s, 'dev-pick', size).state; } s = act(s, a, t).state; };
   run('dev-accept', { order: 'pager', client: 'sveta' }); assert.equal(s.order, 'pager'); assert.equal(s.client, 'sveta');
   run('dev-cover'); assert.equal(s.dev.open, false);
   run('dev-screw', 0); run('dev-screw', 1); run('dev-cover'); assert.equal(s.dev.open, true);
@@ -109,7 +110,7 @@ test('data-driven devices follow screws, diagnosis, ordered fixes and reassembly
 });
 
 test('hidden second fault appears on the first passing test and must be fixed after reopening', () => {
-  let s = initialState(); const run = (a, t) => { s = act(s, a, t).state; };
+  let s = initialState(); const run = (a, t) => { if (a === 'dev-screw' && s.dev?.assembling && (s.dev.screwMask & (1 << t))) { const size = DEVICES[s.order].screws[t][2]; if (size) s = act(s, 'dev-pick', size).state; } s = act(s, a, t).state; };
   run('dev-accept', { order: 'phone', client: 'dima' });
   for (let i = 0; i < 4; i++) run('dev-screw', i);
   run('dev-cover'); run('dev-inspect'); run('dev-diagnose', 'battery'); run('dev-fix', 'port'); run('dev-fix', 'battery');
@@ -136,4 +137,14 @@ test('shelf item unlocks after two jobs, is taken as a special order and stays r
   s = act({ ...s, rRepaired: true }, 'remote-finish').state;
   assert.deepEqual(s.shelfDone, ['zoya-remote']); assert.equal(s.shelf, null);
   assert.equal(act(s, 'shelf-take', 'zoya-remote').state.stage, 'ending');
+});
+
+test('sized screws need the matching screw from the mat; a wrong one is a slip', () => {
+  let s = initialState(); const run = (a, t) => { const r = act(s, a, t); s = r.state; return r.message; };
+  run('dev-accept', { order: 'pager', client: 'kostya' });
+  run('dev-screw', 0); run('dev-screw', 1); run('dev-cover'); run('dev-cover');
+  assert.match(run('dev-screw', 0), /возьми со стола/); assert.equal(s.dev.screwMask, 3);
+  run('dev-pick', 'short'); assert.match(run('dev-screw', 0), /нужен длинный/); assert.equal(s.dev.slips, 1);
+  run('dev-pick', 'long'); run('dev-screw', 0); assert.equal(s.dev.screwMask, 2); assert.equal(s.dev.held, null);
+  run('dev-pick', 'short'); run('dev-screw', 1); assert.equal(s.dev.screwMask, 0); assert.equal(s.dev.assembling, false);
 });

@@ -96,10 +96,18 @@ export function act(s, action, target) {
       if (d.open) { message = 'Сначала закрой корпус.'; break; }
       if (!Number.isInteger(target) || target < 0 || target >= cfg.screws.length) { message = 'Выбери один из винтов.'; break; }
       const bit = 1 << target, total = cfg.screws.length;
+      const size = cfg.screws[target][2];
+      if (d.assembling && size && (d.screwMask & bit)) {
+        if (!d.held) { message = 'Сначала возьми со стола винт подходящего размера.'; break; }
+        if (d.held !== size) { n.dev = { ...d, slips: (d.slips || 0) + 1 }; message = size === 'long' ? 'Этот винт короткий — не дотянется до резьбы. Здесь нужен длинный.' : 'Длинный винт упрётся в плату. Здесь нужен короткий.'; break; }
+        d.held = null;
+      }
       if (d.assembling) { if (!(d.screwMask & bit)) { message = 'Этот винт уже закреплён.'; break; } d.screwMask &= ~bit; message = d.screwMask ? `Закреплено винтов: ${total - bits(d.screwMask)} из ${total}.` : 'Все винты закреплены. Можно проверять.'; if (!d.screwMask) d.assembling = false; }
       else { if (d.screwMask & bit) { message = 'Этот винт уже снят.'; break; } d.screwMask |= bit; message = `Винты сняты: ${bits(d.screwMask)} из ${total}.`; }
       n.dev = d; break;
     }
+    // Взять со стола открученный винт нужного размера перед закручиванием.
+    case 'dev-pick': { const cfg = DEVICES[n.order], d = n.dev; if (!cfg || !d?.assembling || !['long', 'short'].includes(target)) { message = 'Винты понадобятся при сборке.'; break; } n.dev = { ...d, held: target }; message = target === 'long' ? 'В руке длинный винт.' : 'В руке короткий винт.'; break; }
     case 'dev-cover': { const cfg = DEVICES[n.order], d = { ...n.dev }; if (!cfg) break; if (!d.open && (d.assembling || d.screwMask !== (1 << cfg.screws.length) - 1)) { message = 'Сначала открути все винты.'; break; } d.open = !d.open; d.assembling = !d.open; message = d.open ? 'Крышка снята. Осмотри, что внутри.' : `Корпус закрыт. Закрути винты: ${cfg.screws.length}.`; n.dev = d; break; }
     case 'dev-diagnose': { const cfg = DEVICES[n.order], d = n.dev; if (!cfg) break; if (!d.open || !d.inside) { message = 'Сначала открой корпус и осмотри, что внутри.'; break; } const cause = cfg.causes.find(c => c.id === target); if (!cause) { message = 'Выбери предполагаемую причину.'; break; } n.dev = cause.correct ? { ...d, diagnosed: true } : { ...d, slips: (d.slips || 0) + 1 }; message = cause.reply; break; }
     case 'dev-fix': {
