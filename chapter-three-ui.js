@@ -31,7 +31,7 @@ export function createChapterThreeUI({getState,dispatch,sound,beforeOpen,onClose
     frame.dataset.mode=mode;world.style.backgroundImage=`url('assets/room/stage-${roomStage(state)}.png')`;
     props.replaceChildren();panel.replaceChildren();actions.replaceChildren();panel.hidden=mode==='room';catHost.hidden=mode!=='room';cat.setActive(mode==='room');props.inert=mode!=='room';
     if(p.call)prop(C3.drawing,'drawing',[30,40,40,24],()=>focus('drawing')).classList.add('chapter-three-pinned');
-    else{prop(C3.radio,p.powered?'radio':'open',[36,40,28,24],()=>focus(p.powered?'dial':'batteries'));prop(C3.batteries,'batteries',[5,60,26,10],()=>focus('batteries'));prop(C3.map,'map',[69,57,26,14],()=>focus('map'));}
+    else{prop(C3.radio,!p.tag||p.powered?'radio':'open',[36,40,28,24],()=>{if(!p.tag){doAction('tag');focus('tag');}else focus(p.powered?'dial':'batteries');});prop(C3.batteries,'batteries',[5,60,26,10],()=>focus('batteries'));prop(C3.map,'map',[69,57,26,14],()=>focus('map'));}
     goal.textContent=chapterThreeGoal(state);
     narrative.textContent=notice||({room:p.call?C3.done:C3.intro,tag:C3.tagDone,batteries:p.powered?C3.powered:C3.batteryHelp,map:p.mapped?C3.mapDone:C3.mapHelp,dial:p.tuned?C3.tuned:C3.dialHelp,call:C3.callHelp,drawing:p.call==='anna'?C3.endingAnna:C3.endingMikhalych,journal:chapterThreeGoal(state)})[mode];
     if(mode!=='room')actions.append(button(C3.room,()=>focus('room')));
@@ -58,15 +58,16 @@ export function createChapterThreeUI({getState,dispatch,sound,beforeOpen,onClose
       actions.append(button(C3.checkMap,()=>doAction('check-map')));
     }
     if(mode==='dial'){
-      panel.append(art('dial'));const value=text(C3.channel+' '+p.dial,'chapter-two-limit');panel.append(value);
+      panel.append(art('dial'));panel.append(text(p.tag?C3.tagDone:C3.tagUnread,'chapter-two-note'));const value=text(C3.channel+' '+p.dial,'chapter-two-limit');panel.append(value);
       const range=document.createElement('input');range.type='range';range.min='0';range.max='99';range.value=p.dial;range.setAttribute('aria-label',C3.dial);
       range.oninput=()=>{value.textContent=C3.channel+' '+range.value;};range.onchange=()=>doAction('dial',Number(range.value));panel.append(range);
+      if(!p.tag)actions.append(button(C3.tag,()=>{doAction('tag');focus('dial');}));
       actions.append(button(C3.listen,()=>{doAction('dial',Number(range.value));doAction('listen');}));if(p.tuned&&p.mapped)actions.append(button(C3.call,()=>focus('call')));else if(p.tuned)actions.append(button(C3.map,()=>focus('map')));
     }
     if(mode==='call'){panel.append(art('radio'));actions.append(button(C3.callAnna,()=>{doAction('call','anna');if(chapterThreeProgress(getState()).chapterThree.call)focus('drawing');}),button(C3.callMikhalych,()=>{doAction('call','mikhalych');if(chapterThreeProgress(getState()).chapterThree.call)focus('drawing');}));}
     if(mode==='drawing')panel.append(art('drawing'));
     if(mode==='journal'){
-      const sheet=document.createElement('div');sheet.className='chapter-evidence';for(const[key,label]of [['tag',C3.clueTag],['powered',C3.cluePower],['mapped',C3.clueMap],['tuned',C3.clueDial]])sheet.append(text((p[key]?'✓ ':'□ ')+label));panel.append(sheet);
+      const sheet=document.createElement('div');sheet.className='chapter-evidence';if(p.tag)sheet.append(text(C3.tagDone,'chapter-two-note'));for(const[key,label]of [['tag',C3.clueTag],['powered',C3.cluePower],['mapped',C3.clueMap],['tuned',C3.clueDial]])sheet.append(text((p[key]?'✓ ':'□ ')+label));panel.append(sheet);
       if(!p.call)actions.append(button(C3.batteries,()=>focus('batteries')),button(C3.map,()=>focus('map')),button(C3.dial,()=>focus('dial')));
     }
   }

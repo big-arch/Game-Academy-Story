@@ -1443,5 +1443,6 @@ export const EN = {
   "Позывные разгаданы": "Call signs solved",
   "Канал найден": "Channel found",
   "Канал": "Channel",
-  "Комнаты историй": "Story rooms"
+  "Комнаты историй": "Story rooms",
+  "На рации висит бирка с Лёвиным почерком. Прочитай её — там подсказка.": "A tag in Lev's handwriting hangs on the radio. Read it: there's a hint."
 };
