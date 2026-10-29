@@ -1,6 +1,7 @@
 import { t } from './i18n.js';
 import { createChapterOneUI } from './chapter-one-ui.js';
 import { createChapterTwoUI } from './chapter-two-ui.js';
+import { createChapterThreeUI } from './chapter-three-ui.js';
 import { resetSavedGame } from './save-reset.js';
 import { createSettingsUI } from './settings-ui.js';
 import { diagnosticEvidence } from './diagnostics.js';
@@ -556,6 +557,7 @@ const chapterOptions = {getState:()=>state,dispatch,sound:name=>effects.play(nam
 },onClose(){roomChapterOpen=false;document.querySelector('main.app').inert=false;render();}};
 const chapterUI = createChapterOneUI(chapterOptions);
 const chapterTwoUI = createChapterTwoUI(chapterOptions);
+const chapterThreeUI = createChapterThreeUI(chapterOptions);
 $('#menu-chapter').onclick=()=>chapterUI.open();
 function render() {
   if (menuOpen) { closeRepairInstrument(); partInteraction.close(); $('#dialog').hidden = true; }
@@ -619,6 +621,7 @@ function render() {
   memoryUI.render(!menuOpen);
   chapterUI.render();
   chapterTwoUI.render();
+  chapterThreeUI.render();
   syncCats();
 }
 function persist() {

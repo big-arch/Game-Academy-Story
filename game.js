@@ -1,6 +1,7 @@
 import { t } from './i18n.js';
 import { actChapter } from './chapter-one.js';
 import { actChapterTwo } from './chapter-two.js';
+import { actChapterThree } from './chapter-three.js';
 import { DEVICES } from './devices.js';
 import { purchaseDecoration, ownedDecorations } from './workshop.js';
 import { campaignProgress } from './campaign.js';
@@ -15,6 +16,7 @@ export const TIP_PER_CLUE = 10; // чаевые за каждую найденн
 function pay(n, order) { const base = REWARDS[order] ?? DEVICES[order].reward, slips = n.dev?.slips ?? null, care = slips === 0 ? CARE_BONUS : 0, careless = slips >= 3 ? 10 : 0, tips = Math.max(0, TIP_PER_CLUE * n.clues.length + care - careless); n.coins += base + tips; if (n.shelf) { n.shelfDone = [...new Set([...storyProgress(n).shelfDone, n.shelf])]; n.shelf = null; } const progress = campaignProgress(n); n.completedOrders = [...new Set([...progress.completedOrders, order])]; n.jobsCompleted = progress.jobsCompleted + 1; return t`Заказ завершён! Получено ${base} монет` + (tips ? t` и ${tips} чаевых` : '') + (care ? t(' — клиент заметил, как аккуратно ты работал.') : careless ? t('. Клиент заметил лишнюю возню и оставил меньше.') : tips ? t(' за внимание к деталям.') : '.'); }
 const bits = mask => mask.toString(2).replaceAll('0', '').length;
 export function act(s, action, target) {
+  if (typeof action === 'string' && action.startsWith('chapter-three-')) return actChapterThree(s, action.slice(14), target);
   if (typeof action === 'string' && action.startsWith('chapter-two-')) return actChapterTwo(s, action.slice(12), target);
   if (typeof action === 'string' && action.startsWith('chapter-')) return actChapter(s, action.slice(8), target);
   // Сюжет: письмо Лёвы и предметы с полки «НЕ ГОТОВО» (story.js).
