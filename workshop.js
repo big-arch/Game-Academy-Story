@@ -1,5 +1,5 @@
 import { campaignProgress } from './campaign.js';
-import { memoryProgress } from './memories.js';
+import { memoryProgress, memoryExtras } from './memories.js';
 import { storyProgress } from './story.js';
 // Мастерская начинается с голого стола. Покупки стола идут по порядку (stage): каждая открывает следующую
 // целиком нарисованную картинку assets/room/stage-N.png (ТЗ — docs/ROOM-ART-BRIEF.md).
@@ -10,6 +10,8 @@ export const DECORATIONS = [
   { id: 'desk-tea', stage: 3, name: 'Чайный уголок', price: 60, description: 'Кружка с ёлками, стакан с карандашами и новая оранжевая лампа вместо латунной. Чай остывает, пока ты паяешь, — это традиция.' },
   { id: 'desk-tools', stage: 4, name: 'Порядок в инструментах', price: 90, description: 'Коробочка с винтами, любимая красная отвёртка, катушка припоя и ящичек с деталями.' },
   { id: 'desk-plants', stage: 5, name: 'Зелень', price: 70, description: 'Плющ на подоконнике, горшочек на углу стола и стакан с кистями.' },
+  { id: 'analyzer', name: 'Диагностический стенд', price: 140, description: 'Сравнивает все измерения при диагностике: помогает сопоставить симптомы до выбора причины.' },
+  { id: 'archive-deck', name: 'Архивный стенд', price: 180, description: 'Позволяет искать дополнительные записи после живой проверки устройства. Не нужен для обычного ремонта.' },
   { id: 'bed', name: 'Лежанка Мурзика', price: 80, description: 'Своя зона отдыха вдали от техники. Мурзик устраивается здесь вместо прогулок над ремонтом.' },
   { id: 'garland', name: 'Огоньки у окна', price: 100, description: 'Тёплая гирлянда над дождливым городом.' },
 ];
@@ -34,7 +36,7 @@ export function roomStage(state) {
 
 // Room purchases belong to the workshop, not to the currently repaired device.
 export function workshopProgress(state) {
-  return { coins: state.coins, upgrade: Boolean(state.upgrade), furniture: ownedDecorations(state), ...campaignProgress(state), ...memoryProgress(state), ...storyProgress(state) };
+  return { coins: state.coins, upgrade: Boolean(state.upgrade), furniture: ownedDecorations(state), ...campaignProgress(state), ...memoryProgress(state), ...memoryExtras(state), ...storyProgress(state) };
 }
 
 export function purchaseDecoration(state, id) {

@@ -1,3 +1,4 @@
+import { diagnosticEvidence } from './diagnostics.js';
 import { initialState, act, allFixes } from './game.js';
 import { createMemoryUI } from './memory-ui.js';
 import { memoryFor, memoryAvailable } from './memories.js';
@@ -100,8 +101,17 @@ const ACCEPT_ORDER = Object.fromEntries(Object.entries(ORDER_ACCEPT).map(([order
 function inspectAtPart(element, action, explanation) {
   closeRepairInstrument();
   dispatch(action);
-  const choices = diagnosisChoices(state.order, DEVICES[state.order]).map(([id,label]) => ({ label, run: () => { const result = dispatch(id); const diagnosed = DEVICES[state.order] ? state.dev.diagnosed : state.order === 'remote' ? state.rDiagnosed : state.cassetteDiagnosed; if (!diagnosed) partInteraction.open({ element, label: 'Проверь другую причину', blocked: result.message, choices }); } }));
-  partInteraction.open({ element, label: 'Что мешает устройству работать?', blocked: explanation || $('#message').textContent, choices });
+  note('Собери наблюдения и сопоставь результаты, прежде чем выбирать причину.');
+  const answers = diagnosisChoices(state.order, DEVICES[state.order]).map(([id,label]) => ({ label, run: () => { const result = dispatch(id); const diagnosed = DEVICES[state.order] ? state.dev.diagnosed : state.order === 'remote' ? state.rDiagnosed : state.cassetteDiagnosed; if (!diagnosed) partInteraction.open({ element, label: 'Сопоставь результаты измерений', blocked: result.message, choices: answers }); } }));
+  const evidence = diagnosticEvidence(state.order), checked = new Set();
+  const readings = [];
+  function showEvidence() {
+    const choices = evidence.map(([label,reading],i)=>({label:checked.has(i)?`✓ ${label}`:label,run(){checked.add(i);readings.push(reading);effects.play('tool');showEvidence();}}));
+    if (ownedDecorations(state).includes('analyzer') && checked.size<evidence.length) choices.push({label:'Сравнить на диагностическом стенде',run(){evidence.forEach(([,reading],i)=>{if(!checked.has(i))readings.push(reading);checked.add(i);});showEvidence();}});
+    if(checked.size>=evidence.length) choices.push(...answers);
+    partInteraction.open({element,label:'Диагностика по симптомам',blocked:readings.length?readings.join('\n'):DEVICES[state.order]?.outside || 'Проверь устройство, затем сопоставь результаты.',choices});
+  }
+  showEvidence();
 }
 document.addEventListener('click', e => {
   const element = e.target.closest('.bench:not([hidden]) .mat button');
@@ -572,7 +582,7 @@ function render() {
     $('#remote-keypad').classList.toggle('clean', s.rKeypadClean);
   }
   $('.scene').hidden = menuOpen || ['work','ending'].includes(s.stage);
-  document.querySelectorAll('.bench').forEach(bench => { bench.dataset.complete = String(s.stage === 'ending'); bench.querySelector('.mat').inert = false; bench.querySelectorAll('.mat button:not(.device-memory-screen):not(.room-collection)').forEach(button => { button.inert = s.stage === 'ending'; }); });
+  document.querySelectorAll('.bench').forEach(bench => { bench.dataset.complete = String(s.stage === 'ending'); bench.querySelector('.mat').inert = false; bench.querySelectorAll('.mat button:not(.device-memory-screen):not(.room-collection):not(.memory-invitation)').forEach(button => { button.inert = s.stage === 'ending'; }); });
   if (['work','ending'].includes(s.stage)) {
     const bench = $(benchFor(s.order));
     bench.querySelector('.dock').prepend($('.panel'));
@@ -621,7 +631,7 @@ function dispatch(action, target) {
     result = DEVICES[order] ? act(state, 'dev-accept', { order, client }) : act(state, ORDER_ACCEPT[order], client);
     state = result.state; note('Заказ начат заново. Покупки и монеты сохранены.');
   } else { result = act(state, action, target); state = result.state; note(result.message); }
-  if (['dev-test','test'].includes(action) && memoryAvailable(state)) note(`${result.message} Экран оживает. Коснись его: там сохранилась история владельца.`);
+  if (['dev-test','test'].includes(action) && memoryAvailable(state)) note(`${result.message} Устройство оживает. Нажми «Ожило»: можно проверить его в действии и открыть историю владельца.`);
   persist();
   const source = rewardSource(), gained = state.coins - coinsBefore;
   if (gained > 0) coinFlight++;

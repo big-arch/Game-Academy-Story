@@ -17,3 +17,27 @@
 @keyframes screen-wake{from{opacity:.2}to{opacity:1}}@keyframes screen-boot{from{filter:brightness(.4)}to{filter:brightness(1)}}@keyframes memory-progress{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 @media(prefers-reduced-motion:reduce){.mat button.device-memory-screen,.memory-progress:after,.screen-loader:before{animation:none}}
 .mat button.device-memory-screen[data-kind=medallion]{background:#d4b16c;border-radius:50%;font-size:6px}.device-memory-screen[data-kind=medallion] span{display:none}
+
+.mat button.device-memory-screen[data-kind=object]{display:none}
+.mat button.memory-invitation{position:absolute;z-index:9;left:18%;right:18%;bottom:3%;width:64%;min-height:44px;padding:7px;background:#3d4c38;color:#f4dfac;border:1px solid #b9a16d;font:700 11px/1.3 Consolas,monospace;cursor:pointer}
+.object-scene{margin:12px 0;padding:12px;background:#15272a;border:2px solid #8d8260;text-align:center}
+.scene-visual{font:700 30px/2 Consolas,monospace;color:#e4c981;white-space:pre;filter:opacity(var(--signal,1))}
+.object-scene p{font:12px/1.5 Consolas,monospace;min-height:36px}
+.object-scene button{width:100%}.object-scene input{width:100%;min-height:44px;accent-color:#c5a56f}
+.object-scene[data-active=true] .scene-visual{animation:scene-running 1.2s ease-in-out infinite alternate}
+.object-scene[data-scene=tape][data-active=true] .scene-visual{animation:scene-reels 1s steps(4) infinite}
+.object-scene[data-scene=call][data-active=ready] .scene-visual{animation:scene-ring .2s steps(2) infinite alternate}
+.client-followup{padding:12px;background:#3a4231;font:13px/1.6 Consolas,monospace}
+@keyframes scene-running{to{transform:translateY(-4px);filter:brightness(1.3)}}
+@keyframes scene-reels{50%{letter-spacing:3px;color:#f3e7bd}}
+@keyframes scene-ring{to{transform:rotate(12deg)}}
+@media(prefers-reduced-motion:reduce){.object-scene .scene-visual{animation:none!important}}
+
+.scene-visual svg{display:block;width:100%;max-height:170px;background:#1a3039;border:4px solid #766c53;box-sizing:border-box;image-rendering:pixelated}
+.scene-player{transform:translateX(var(--jump,0px));transition:transform .25s ease-out}
+.object-scene[data-active=true] .scene-reel{animation:reel-turn .8s steps(8) infinite;transform-box:fill-box;transform-origin:center}
+.object-scene[data-active=true] .scene-confetti{animation:air-flow 1s linear infinite}
+.object-scene[data-active=true] .scene-tv{animation:tv-channel 2s steps(2) infinite}
+.memory-extra{margin-top:10px;width:100%}.memory-extra:disabled{opacity:.85}
+@keyframes reel-turn{to{rotate:360deg}}@keyframes air-flow{to{translate:40px 0;opacity:0}}@keyframes tv-channel{to{fill:#c4a66e}}
+@media(prefers-reduced-motion:reduce){.object-scene svg *{animation:none!important;transition:none!important}}

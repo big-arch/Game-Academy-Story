@@ -12,3 +12,6 @@
 .bench[data-complete=true] .dock .campaign-note{display:block}.bench[data-complete=true] .dock .bench-message{color:#d2e4a9}
 body:has(.part-context) .dock button[data-action^=ddiag],body:has(.part-context) .dock button[data-action^=rdiag],body:has(.part-context) .dock button[data-action^=diagnose]{display:none}
 @media(prefers-reduced-motion:reduce){.repair-wipe i{transition:none}.part-gesture.holding{animation:none}}
+
+.repair-route{display:flex;gap:12px;width:100%;justify-content:space-between;touch-action:none;background:linear-gradient(transparent 47%,#bdab78 47% 53%,transparent 53%)}
+.repair-route button{min-width:44px;min-height:44px}.repair-route button[data-done=true]{background:#4f714e;color:#fff4cc}

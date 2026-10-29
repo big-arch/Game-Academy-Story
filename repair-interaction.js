@@ -68,6 +68,17 @@ export function createRepairInteraction({ selectTool, sound }) {
             const cancel = () => { clearTimeout(timer); hold.classList.remove('holding'); };
             hold.onpointerup = cancel; hold.onpointercancel = cancel;
             hold.onclick = e => { if (e.detail === 0) done(); };
+          } else if (['hand','belt'].includes(required) && /шлейф|провод|ремень|пассик|пружин/i.test(label)) {
+            const spring = /пружин/i.test(label);
+            hint.textContent = spring ? 'Заведи пружину на три деления. После каждого поворота отпускай ключ.' : 'Проложи деталь по трём точкам слева направо. Зажми первую и проведи через остальные.';
+            const track=document.createElement('div');track.className='repair-route';row.append(track);
+            let reached=0;
+            const nodes=Array.from({length:3},(_,i)=>{const node=document.createElement('button');node.type='button';node.textContent=spring?'↻':String(i+1);node.setAttribute('aria-label',spring?`Повернуть ключ: деление ${i+1}`:`Закрепить участок ${i+1}`);track.append(node);return node;});
+            const advance=i=>{if(i!==reached)return;nodes[i].dataset.done='true';reached++;hint.textContent=`${spring?'Поворотов':'Участков'}: ${reached}/3`;if(reached===3)done();};
+            nodes.forEach((node,i)=>node.onclick=()=>advance(i));
+            track.onpointerdown=e=>{if(spring)return;e.preventDefault();dragging=true;track.setPointerCapture(e.pointerId);nodes.forEach((node,i)=>{const r=node.getBoundingClientRect();if(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom)advance(i);});};
+            track.onpointermove=e=>{if(!dragging)return;nodes.forEach((node,i)=>{const r=node.getBoundingClientRect();if(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom)advance(i);});};
+            track.onpointerup=()=>{dragging=false;};track.onpointercancel=()=>{dragging=false;};
           } else {
             hint.textContent = alignment ? 'Сначала поверни деталь кнопкой «Повернуть ↻», пока метка ▲ не смотрит вверх. Потом зажми её и перетащи на подсвеченное место.' : 'Новая деталь — в этой карточке. Зажми «▣ Установить деталь» и перетащи на подсвеченное место устройства, затем отпусти.';
             ghost = document.createElement('button'); ghost.className = 'part-gesture'; ghost.textContent = '▣ Установить деталь'; ghost.setAttribute('aria-label', 'Установить деталь'); row.append(ghost);
@@ -84,7 +95,7 @@ export function createRepairInteraction({ selectTool, sound }) {
             ghost.onpointercancel = () => { dragging = false; ghost.style.transform = ''; };
             ghost.onclick = e => { if (e.detail === 0) { if (partFits(rotation, 0)) done(); else hint.textContent = 'Сначала поверни деталь меткой вверх.'; } };
           }
-          if (!alignment || required !== 'hand') { const accessible = document.createElement('button'); accessible.className = 'keyboard-repair'; accessible.textContent = 'Выполнить с клавиатуры'; accessible.onclick = done; row.append(accessible); }
+          if ((!alignment || required !== 'hand') && !(['hand','belt'].includes(required) && /шлейф|провод|ремень|пассик|пружин/i.test(label))) { const accessible = document.createElement('button'); accessible.className = 'keyboard-repair'; accessible.textContent = 'Выполнить с клавиатуры'; accessible.onclick = done; row.append(accessible); }
           place();
         };
       }

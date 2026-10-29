@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { initialState, act } from './game.js';
 import { CLIENTS } from './stories.js';
-import { MEMORIES, SCREEN_LAYOUTS, memoryAvailable, memoryFor, memoryProgress } from './memories.js';
+import { MEMORIES, SCREEN_LAYOUTS, memoryAvailable, memoryFor, memoryProgress, memoryLayout, memoryExtras, followupReady, FOLLOWUPS } from './memories.js';
 import { workshopProgress } from './workshop.js';
 import { DEVICES } from './devices.js';
 
@@ -18,8 +18,8 @@ test('every client with a visible device screen has their own ending and valid g
       titles.add(memory.title);
     }
   }
-  assert.equal(titles.size, Object.keys(MEMORIES).length);
-  assert.equal(memoryFor({order:'vacuum',client:'galya'}), null);
+  assert.equal(titles.size, Object.keys(SCREEN_LAYOUTS).reduce((n,order)=>n+CLIENTS[order].length,0));
+  for (const [order, clients] of Object.entries(CLIENTS)) for (const client of clients) assert.ok(memoryFor({order,client:client.id}), `${order}:${client.id}`);
 });
 
 test('screens cannot reveal a story before a successful closed-device test or after reopening', () => {
@@ -55,3 +55,37 @@ test('reading and responding preserve the album across orders without extra coin
   assert.equal(next.memoryRead,false);
   assert.deepEqual(memoryProgress({memories:['bad','__proto__','phone:dima','phone:dima'],memoryActions:42}), {memories:['phone:dima'],memoryActions:[]});
 });
+
+test('all thirteen object types have reachable live scenes and special repairs respect their own assembly state', () => {
+ for(const [order,clients] of Object.entries(CLIENTS)) {
+  const s={...initialState(),order,client:clients[0].id,stage:'work',repaired:true,cassetteRepaired:true,rRepaired:true,dev:{repaired:true}};
+  assert.ok(memoryAvailable(s),order);assert.ok(memoryLayout(order).host);
+  assert.equal(memoryAvailable({...s,repaired:false,cassetteRepaired:false,rRepaired:false,dev:{repaired:false}}),false,order);
+ }
+ const tape={...initialState(),order:'cassette',client:'artem',stage:'work',cassetteRepaired:true};
+ assert.equal(memoryAvailable({...tape,cassetteOpen:true}),false);
+ assert.equal(memoryAvailable({...tape,cScrewMask:1}),false);
+ const remote={...initialState(),order:'remote',client:'grandpa',stage:'work',rRepaired:true};
+ assert.equal(memoryAvailable({...remote,rOpen:true}),false);
+ assert.equal(memoryAvailable({...remote,rAssembling:true}),false);
+});
+test('optional recovery needs the archive deck and a finished live test, is saved once and never pays twice', () => {
+ let s={...initialState(),order:'console',client:'brothers',stage:'work',coins:250,dev:{repaired:true}};
+ assert.equal(act(s,'memory-discover').state.discoveries,undefined);
+ s=act(s,'memory-read').state;s=act(s,'memory-action').state;
+ assert.equal(act(s,'memory-discover').state.discoveries,undefined);
+ s={...s,furniture:['archive-deck']};s=act(s,'memory-discover').state;s=act(s,'memory-discover').state;
+ assert.deepEqual(s.discoveries,['console:brothers']);assert.equal(s.coins,250);
+ assert.deepEqual(workshopProgress(s).discoveries,s.discoveries);
+ assert.deepEqual(memoryExtras({discoveries:['bad','console:brothers','console:brothers'],memoryMilestones:{bad:2}}),{discoveries:['console:brothers'],memoryMilestones:{}});
+});
+test('client follow-up arrives after another returned job and survives order changes',()=>{
+ let s={...initialState(),order:'console',client:'brothers',stage:'work',jobsCompleted:4,dev:{repaired:true}};
+ s=act(s,'memory-read').state;s=act(s,'memory-action').state;
+ assert.equal(followupReady({...s,jobsCompleted:5},'console:brothers'),false);
+ assert.equal(followupReady({...s,jobsCompleted:6},'console:brothers'),true);
+ const next={...initialState(),...workshopProgress({...s,jobsCompleted:6})};
+ assert.equal(followupReady(next,'console:brothers'),true);
+});
+
+test('every client has a distinct later letter, separate from the immediate repair response',()=>{for(const key of Object.keys(MEMORIES)){assert.ok(FOLLOWUPS[key]?.length>25,key);assert.notEqual(FOLLOWUPS[key],MEMORIES[key].response);}});

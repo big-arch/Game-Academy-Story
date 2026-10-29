@@ -1,4 +1,4 @@
-import { clientFor } from './stories.js';
+import { CLIENTS, clientFor } from './stories.js';
 
 // Bounds follow the glass in each closed PNG; the laptop's display belongs to its room art.
 export const SCREEN_LAYOUTS = {
@@ -30,12 +30,35 @@ export const MEMORIES = {
   'laptop:oleg': entry('РЕНДЕР', 'Курсовой · Общежитие с садом', 'ПРОЕКТ ОТКРЫТ\n\nНа крыше растут деревья. В окнах первого этажа горит тёплый свет. Осталось дождаться последнего рендера.', 'Завершить рендер', 'Рендер: сад на крыше…', 'РЕНДЕР ЗАВЕРШЁН · 100%\nФайл готов к сдаче. Бублик к этому ноутбуку сегодня не допускается.', '«Даже рендер закончили. Теперь точно успею.»'),
   'laptop:nina': entry('ПОЧТА', 'Черновики · Встреча выпускников', 'ДОРОГИЕ МОИ!\n\nПрошло двадцать лет, а я всё ещё помню, кто сидел у окна и кто рисовал на полях. Буду ждать вас на встрече.', 'Сохранить письма', 'Сохраняем черновики…', 'ЧЕРНОВИКИ СОХРАНЕНЫ\nАдреса и приглашения на месте. Нине Петровне осталось нажать «Отправить».', '«Все письма на месте. Будто весь класс снова собрался.»'),
 };
+// Every returned object has a personal scene, including objects without a display.
+export const OBJECT_SCENES = {
+  console: ['game', 'Запустить картридж', 'СТАРТ · ИГРОК 1', 'Картридж определился. На тестовом телевизоре появляется игра.'],
+  cassette: ['tape', 'Нажать PLAY', 'СТОРОНА A', 'Катушки вращаются ровно. Голос на старой ленте снова слышен.'],
+  boombox: ['tape', 'Включить запись', 'СТЕРЕО', 'Оба динамика играют, лента больше не замедляется.'],
+  vcr: ['video', 'Вставить кассету', 'PLAY · VHS', 'Механизм принимает кассету. На тестовом мониторе появляется запись.'],
+  remote: ['remote', 'Переключить канал', 'КАНАЛ 01', 'Индикатор вспыхивает. Телевизор на стенде отвечает на пульт.'],
+  vacuum: ['air', 'Проверить тягу', 'ПРОВЕРКА ТЯГИ', 'Мотор работает ровно. Бумажные конфетти уходят в прозрачную трубку стенда.'],
+};
+for (const [order, scene] of Object.entries(OBJECT_SCENES)) {
+  for (const client of CLIENTS[order]) {
+    MEMORIES[`${order}:${client.id}`] = entry(scene[2], client.title + ' · проверка', scene[3] + '\n\n' + client.intro,
+      scene[1], 'Устройство оживает…', scene[3] + '\n\n' + client.ending, client.ending);
+  }
+}
+export function sceneKind(order) {
+  return OBJECT_SCENES[order]?.[0] || ({phone:'call',pager:'message',pda:'sketch',laptop:'archive','video-camera':'video',television:'video','music-box':'waltz'})[order];
+}
+export function memoryLayout(order) {
+  return SCREEN_LAYOUTS[order] || {host: order === 'cassette' ? '#cassette-device' : order === 'remote' ? '#remote-device' : '#dev-device', rect:[10,102,80,16],kind:'object'};
+}
 export function memoryFor(state) {
   const client = clientFor(state.order, state.client), key = `${state.order}:${client?.id}`;
-  return MEMORIES[key] ? { ...MEMORIES[key], key, client: client.name, order: state.order } : null;
+  return MEMORIES[key] ? { ...MEMORIES[key], key, client: client.name, order: state.order, followup: FOLLOWUPS[key] } : null;
 }
 export function memoryAvailable(state) {
   if (!['work','ending'].includes(state.stage) || !memoryFor(state)) return false;
+  if (state.order === 'cassette') return Boolean(state.cassetteRepaired && !state.cassetteOpen && !state.cassetteAssembling && !state.cScrewMask);
+  if (state.order === 'remote') return Boolean(state.rRepaired && !state.rOpen && !state.rAssembling && !state.rScrewMask);
   if (state.order === 'laptop') return Boolean(state.repaired && !state.open && !state.poweredOff && !state.screwMask);
   return Boolean(state.dev?.repaired && !state.dev.open && !state.dev.assembling && !state.dev.screwMask);
 }
@@ -43,3 +66,63 @@ export function memoryProgress(state) {
   const keys = value => [...new Set((Array.isArray(value) ? value : []).filter(key => typeof key === 'string' && Object.hasOwn(MEMORIES,key)))];
   return { memories: keys(state.memories), memoryActions: keys(state.memoryActions) };
 }
+
+export const EXTRA_RECORDS = {
+ console:'В таблице рекордов сохранилось имя второго игрока. Никто не стирал старый счёт.',
+ phone:'В памяти SIM сохранился старый контакт, помеченный «Дом».',
+ cassette:'После длинной паузы на стороне B слышно: «Если забудешь мелодию, просто напой свою».',
+ boombox:'В конце записи слышны аплодисменты и просьба сыграть ещё одну песню.',
+ vcr:'После титров камера продолжает снимать пустой зал. Кто-то возвращается за забытым букетом.',
+ remote:'В сохранённых настройках остался любимый канал хозяина. Телевизор открывает его первым.',
+ vacuum:'В прозрачном отсеке нашёлся крошечный красный кубик. Его можно вернуть вместе с вещью.',
+ pager:'В архиве есть ещё одна короткая строка: «ДОБРАЛСЯ. ВСЁ ХОРОШО».',
+ pda:'Восстановлена зачёркнутая заметка: «Не откладывать то, что важно».',
+ laptop:'В старой папке обнаружилась незаконченная подпись: «Самый обычный счастливый день».',
+ television:'В настройках сохранился канал, на котором когда-то смотрели кино всей семьёй.',
+ 'video-camera':'После последнего кадра остались несколько секунд смеха за камерой.',
+ 'music-box':'На внутренней стороне крышки выцарапаны две буквы. Они скрывались под бархатной вкладкой.',
+};
+export function memoryExtras(state) {
+ const discoveries=[...new Set((Array.isArray(state.discoveries)?state.discoveries:[]).filter(k=>Object.hasOwn(MEMORIES,k)))];
+ const memoryMilestones=Object.fromEntries(Object.entries(state.memoryMilestones||{}).filter(([k,v])=>Object.hasOwn(MEMORIES,k)&&Number.isSafeInteger(v)&&v>=0));
+ return {discoveries,memoryMilestones};
+}
+export function followupReady(state,key) {
+ const mark=memoryExtras(state).memoryMilestones[key];
+ return mark!==undefined && (state.jobsCompleted||0)>mark && memoryProgress(state).memoryActions.includes(key);
+}
+
+export const FOLLOWUPS = {
+ 'laptop:vera':'Вера прислала открытку с моря. На обороте: «В этот раз фотографируем всё сами. И копии делаем».',
+ 'laptop:oleg':'Олег прислал снимок макета. В угол кадра попал Бублик с новой игрушкой вместо флешки.',
+ 'laptop:nina':'Нина Петровна прислала список гостей. Возле каждого имени теперь галочка: пришёл.',
+ 'cassette:artem':'Артём написал: «Поставил колыбельную дочке. Она попросила ещё раз. Мама бы обрадовалась».',
+ 'cassette:lena':'Лена прислала номер участника марафона. На обратной стороне нарисованы плеер и медаль.',
+ 'cassette:misha':'Миша прислал первые три аккорда. Говорит, дедушкина песня пока трудная, но он не бросит.',
+ 'remote:grandpa':'Дедушка передал расписание передач. Одну обвёл: «Приходите смотреть, чай будет».',
+ 'remote:ivanovs':'Ивановы прислали рисунок: семья перед телевизором, Пуговка рядом с огромной косточкой.',
+ 'remote:zoya-lev':'Зоя принесла пирожки. «Пульт на месте, и про Лёву у меня ещё много историй».',
+ 'remote:zoya':'Зоя оставила записку: «В сериале опять беда. Пульт работает прекрасно, это у них там всё сложно».',
+ 'pager:mihalych-lev':'Михалыч занёс старый адресный блокнот: «Может, пригодится, когда дочитаешь Лёвины бирки».',
+ 'pager:sveta':'Светлана написала коротко: «143 теперь у меня на заставке. Пусть привычка остаётся».',
+ 'pager:kostya':'Костя прислал рисунок сына: папа с пейджером и подпись «Всегда на связи».',
+ 'phone:zoya-phone':'Зоя спросила, скоро ли придёт Надя. Впервые она произнесла это имя без паузы.',
+ 'phone:dima':'Дима прислал сообщение: «В воскресенье еду к маме. Суп тоже будет. Бабушка всё предусмотрела».',
+ 'phone:alla':'Алла написала: «Дочь распечатала сообщение и вставила в рамку рядом с нашей первой фотографией».',
+ 'console:brothers':'Братья принесли таблицу домашнего турнира. Теперь в ней четыре имени: подключились дети.',
+ 'console:katya':'Катя прислала рисунок дочки: два героя держатся за руки перед последним уровнем.',
+ 'television:tolik':'Толик позвал на следующий матч. «Проиграли-то наши, а вечер всё равно удался».',
+ 'television:polina':'Полина прислала афишу дачного киноклуба. Первый сеанс у неё, чай с соседей.',
+ 'vcr:gleb':'Глеб заказал ещё одну копию свадебной записи: родители тоже захотели снова увидеть тот танец.',
+ 'vcr:nastya':'Настя прислала ответ хозяйки кассеты: «Узнала всех. Уже звоню одноклассникам».',
+ 'video-camera:mihalych-camera':'Михалыч попросил сохранить копию записи для Нади. «Пускай сама решит, когда смотреть».',
+ 'video-camera:roman':'Роман прислал название первого фильма. В благодарностях появилась маленькая мастерская.',
+ 'video-camera:sonya':'Соня написала: «Бабушка попросила переснять интервью. Теперь вопросы задаёт она».',
+ 'pda:arkady':'Аркадий прислал новый эскиз. На мосту добавилась ещё одна скамейка: «Эта для вас».',
+ 'pda:ira':'Ира прислала дату отъезда. Первый пункт списка больше не начинается со слова «когда-нибудь».',
+ 'boombox:vitya':'Витя оставил приглашение на репетицию. Магнитофон в списке участников подписан как ветеран группы.',
+ 'boombox:maria':'Мария прислала записку: «Музыку теперь слышно из кухни. Опять танцую, пока готовлю».',
+ 'vacuum:galya':'Галя передала банку варенья. «Чисто стало так быстро, что осталось время посидеть у окна».',
+ 'vacuum:sergey':'Сергей написал, что красный кубик вернулся в конструктор. Внуки объявили мастерскую спасательной службой.',
+ 'music-box:nadya':'Надя оставила короткую записку: «Завожу по вечерам. Теперь это спокойный звук. Спасибо».',
+};

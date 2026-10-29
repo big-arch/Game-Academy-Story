@@ -1,8 +1,8 @@
 import { DEVICES } from './devices.js';
-import { purchaseDecoration } from './workshop.js';
+import { purchaseDecoration, ownedDecorations } from './workshop.js';
 import { campaignProgress } from './campaign.js';
 import { SHELF, shelfStatus, storyProgress } from './story.js';
-import { memoryAvailable, memoryFor, memoryProgress } from './memories.js';
+import { memoryAvailable, memoryFor, memoryProgress, memoryExtras } from './memories.js';
 export const initialState = () => ({ stage: 'intro', inspected: false, tested: false, poweredOff: false, open: false, screws: 0, screwMask: 0, assembling: false, dust: 0, dustMask: 0, dustCleaned: false, fanConnected: false, thermalChecked: false, paste: false, repaired: false, upgrade: false, coins: 0, memories: [], memoryActions: [], memoryRead: false, memoryActionDone: false, furniture: [], order: null, cassetteOpen: false, cScrews: 0, cScrewMask: 0, cassetteAssembling: false, tapeClipFixed: false, beltReplaced: false, headCleaned: false, cassetteTested: false, cassetteInteriorInspected: false, cassetteDiagnosed: false, cassetteRepaired: false, rOpen: false, rScrewMask: 0, rAssembling: false, rInspectedInside: false, rDiagnosed: false, rGrimeMask: 0, rKeypadClean: false, rRepaired: false, client: null, clues: [], dev: null });
 export const REWARDS = { laptop: 120, cassette: 120, remote: 80 };
 export const allFixes = (cfg, d) => [...cfg.fixes, ...(cfg.hidden && d?.hiddenFound ? [cfg.hidden.fix] : [])];
@@ -24,6 +24,11 @@ export function act(s, action, target) {
   const n = { ...s };
   let message = '';
   switch (action) {
+    case 'memory-discover': {
+      const memory=memoryFor(s);
+      if (!memoryAvailable(s) || !memoryProgress(s).memoryActions.includes(memory?.key) || !ownedDecorations(s).includes('archive-deck')) {message='Для дополнительного поиска нужны завершённая живая проверка и архивный стенд.';break;}
+      n.discoveries=[...new Set([...memoryExtras(s).discoveries,memory.key])];message='Дополнительная находка сохранена в альбоме.';break;
+    }
     case 'memory-read': {
       if (!memoryAvailable(s)) { message = 'Сначала успешно проверь собранное устройство.'; break; }
       const memory = memoryFor(s), progress = memoryProgress(s);
@@ -34,6 +39,7 @@ export function act(s, action, target) {
     case 'memory-action': {
       if (!memoryAvailable(s) || !s.memoryRead) { message = 'Сначала открой историю на экране устройства.'; break; }
       const memory = memoryFor(s), progress = memoryProgress(s);
+      n.memoryMilestones = { ...memoryExtras(s).memoryMilestones, [memory.key]: memoryExtras(s).memoryMilestones[memory.key] ?? ((s.jobsCompleted || 0) + (s.stage === 'work' ? 1 : 0)) };
       n.memoryActions = [...new Set([...progress.memoryActions, memory.key])]; n.memoryActionDone = true;
       message = 'Воспоминание сохранено вместе с историей клиента.'; break;
     }
