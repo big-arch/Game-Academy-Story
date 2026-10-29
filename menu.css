@@ -48,3 +48,6 @@ body.fullscreen .menu-controls button#menu-fullscreen{background:#c28b54;border-
 .menu-utility-row{grid-template-columns:repeat(3,minmax(0,1fr))}.menu-utility-row button{padding:5px;font-size:10px}
 @media(max-height:650px){.menu-controls>button,.menu-utility-row button{min-height:44px}.menu-sound-row button{min-height:44px}}
 @media(max-height:520px){.menu-top p,.menu-top small,.menu-small{display:none}.menu-top h1{font-size:22px;margin-top:0}.menu-controls{bottom:6px}.menu-controls .campaign-note{font-size:9px}}
+
+/* «Истории комнаты»: главы разворачиваются под кнопкой. */
+.menu-room-stories{display:grid;gap:6px;padding:6px;border:1px solid #93764f;background:#2a2019d9}.menu-room-stories[hidden]{display:none}.menu-room-stories button{width:100%}

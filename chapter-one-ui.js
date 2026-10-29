@@ -65,7 +65,7 @@ export function createChapterOneUI({getState,dispatch,sound,beforeOpen,onClose})
     const state=getState(), p=chapterProgress(state).chapterOne, has=fact=>hasChapterFact(state,fact);
     // Все улики собраны — Михалыч и комната сами ведут к записной книжке, а не молчат.
     const evidenceReady=()=>['radio','testimony','recording'].every(has);
-    document.querySelector('#menu-chapter').textContent=has('delivered')?C.menuDone:C.menu;
+    document.querySelector('#menu-chapter-one').textContent=has('delivered')?C.menuDone:C.menu;
     if(root.hidden || tracing)return;
     const visitor=has('guest')&&!has('delivered');
     frame.dataset.mode=mode;frame.dataset.visitor=String(visitor);frame.dataset.complete=String(has('delivered'));frame.dataset.stage=String(roomStage(state));decor.dataset.stage=String(roomStage(state));

@@ -555,10 +555,16 @@ const chapterOptions = {getState:()=>state,dispatch,sound:name=>effects.play(nam
   closeRepairInstrument();partInteraction.close();memoryUI.close();$('#dialog').hidden=true;persist();
   roomChapterOpen=true;document.querySelector('main.app').inert=true;music.setMode('game');effects.setWorkshop(true);
 },onClose(){roomChapterOpen=false;document.querySelector('main.app').inert=false;render();}};
+// Главы комнаты прячутся под одной кнопкой «Истории комнаты» и разворачиваются списком.
+const roomStories = document.createElement('div'); roomStories.id = 'menu-room-stories'; roomStories.className = 'menu-room-stories'; roomStories.hidden = true;
+const chapterOneButton = document.createElement('button'); chapterOneButton.id = 'menu-chapter-one'; chapterOneButton.className = 'secondary';
+roomStories.append(chapterOneButton); $('.menu-play-row').after(roomStories);
 const chapterUI = createChapterOneUI(chapterOptions);
 const chapterTwoUI = createChapterTwoUI(chapterOptions);
 const chapterThreeUI = createChapterThreeUI(chapterOptions);
-$('#menu-chapter').onclick=()=>chapterUI.open();
+roomStories.append($('#menu-chapter-two'), $('#menu-chapter-three'));
+chapterOneButton.onclick=()=>chapterUI.open();
+$('#menu-chapter').onclick=()=>{ effects.play('click'); roomStories.hidden=!roomStories.hidden; $('#menu-chapter').setAttribute('aria-expanded', String(!roomStories.hidden)); };
 function render() {
   if (menuOpen) { closeRepairInstrument(); partInteraction.close(); $('#dialog').hidden = true; }
   const s = state; $('#base').classList.toggle('open', s.open); $('#fan').classList.toggle('clean', s.dustCleaned); $('#connector').classList.toggle('connected', s.fanConnected);
@@ -576,9 +582,9 @@ function render() {
   $('#menu-continue').textContent = s.stage === 'work' ? t('Продолжить ремонт') : t('Принять заказ');
   $('#menu-new-order').hidden = true;
   const current = s.stage === 'work' && CONTRACTS.find(c => c.order === s.order), next = current || nextContract(s), done = completedOrders(s).length;
-  // Заказ с полки «НЕ ГОТОВО» не входит в кампанию — в меню пишем его, а не следующий обычный заказ.
+  // Заказ с полки «НА РЕМОНТ» не входит в кампанию — в меню пишем его, а не следующий обычный заказ.
   const shelfItem = s.stage === 'work' && s.shelf && SHELF.find(i => i.id === s.shelf);
-  campaignNote.textContent = shelfItem ? t`Истории: ${done}/${CONTRACTS.length} · В работе: ${shelfItem.name.toLowerCase()} с полки «НЕ ГОТОВО» ${shelfItem.tag}` : t`Истории: ${done}/${CONTRACTS.length} · ${current ? t('В работе') : t('Далее')}: ${next.name} · Сложность ${next.level}/5. ${next.lesson}`;
+  campaignNote.textContent = shelfItem ? t`Истории: ${done}/${CONTRACTS.length} · В работе: ${shelfItem.name.toLowerCase()} с полки «НА РЕМОНТ» ${shelfItem.tag}` : t`Истории: ${done}/${CONTRACTS.length} · ${current ? t('В работе') : t('Далее')}: ${next.name} · Сложность ${next.level}/5. ${next.lesson}`;
   $('#menu-campaign').textContent = campaignNote.textContent;
   $('.panel').hidden = menuOpen;
   $('#bench-laptop').hidden = menuOpen || !['work','ending'].includes(s.stage) || s.order !== 'laptop';
@@ -751,15 +757,15 @@ function showLetter(title, text, button, onClose = null) {
   $('#dialog-choices').replaceChildren(b); box.classList.add('letter'); box.hidden = false;
   const off = new MutationObserver(() => { if (box.hidden) { box.classList.remove('letter'); off.disconnect(); } }); off.observe(box, { attributes: true, attributeFilter: ['hidden'] });
 }
-// Полка «НЕ ГОТОВО»: бирки Лёвы; открытый предмет берётся в работу как особый заказ.
-const shelfButton = document.createElement('button'); shelfButton.id = 'menu-shelf'; shelfButton.className = 'secondary'; shelfButton.textContent = t('Полка «НЕ ГОТОВО»');
+// Полка «НА РЕМОНТ»: бирки Лёвы; открытый предмет берётся в работу как особый заказ.
+const shelfButton = document.createElement('button'); shelfButton.id = 'menu-shelf'; shelfButton.className = 'secondary'; shelfButton.textContent = t('Полка «НА РЕМОНТ»');
 $('#menu-shop').after(shelfButton);
 const chapterLabel = document.createElement('p'); chapterLabel.className = 'menu-chapter'; $('#menu-campaign').before(chapterLabel);
-const shelfPanel = document.createElement('div'); shelfPanel.className = 'dialog shelf-panel'; shelfPanel.hidden = true; shelfPanel.setAttribute('role', 'dialog'); shelfPanel.setAttribute('aria-label', t('Полка «НЕ ГОТОВО»'));
+const shelfPanel = document.createElement('div'); shelfPanel.className = 'dialog shelf-panel'; shelfPanel.hidden = true; shelfPanel.setAttribute('role', 'dialog'); shelfPanel.setAttribute('aria-label', t('Полка «НА РЕМОНТ»'));
 document.body.append(shelfPanel);
 function openShelf() {
   const card = document.createElement('div'); card.className = 'dialog-card shelf-card';
-  card.innerHTML = t('<div class="dialog-name">Полка «НЕ ГОТОВО»</div><p class="dialog-text">Вещи, которые Лёва не успел вернуть. На каждой — бирка.</p>');
+  card.innerHTML = t('<div class="dialog-name">Полка «НА РЕМОНТ»</div><p class="dialog-text">Вещи, которые Лёва не успел вернуть. На каждой — бирка.</p>');
   const list = document.createElement('div'); list.className = 'shelf-items';
   for (const item of SHELF) {
     const status = shelfStatus(state, item), row = document.createElement('div'); row.className = `shelf-item ${status}`;

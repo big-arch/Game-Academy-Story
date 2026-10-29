@@ -19,14 +19,14 @@ export function act(s, action, target) {
   if (typeof action === 'string' && action.startsWith('chapter-three-')) return actChapterThree(s, action.slice(14), target);
   if (typeof action === 'string' && action.startsWith('chapter-two-')) return actChapterTwo(s, action.slice(12), target);
   if (typeof action === 'string' && action.startsWith('chapter-')) return actChapter(s, action.slice(8), target);
-  // Сюжет: письмо Лёвы и предметы с полки «НЕ ГОТОВО» (story.js).
+  // Сюжет: письмо Лёвы и предметы с полки «НА РЕМОНТ» (story.js).
   if (action === 'letter-read') return { state: { ...s, letterRead: true }, message: '' };
   if (action === 'shelf-take') {
     if (s.stage === 'work') return { state: s, message: t('Сначала заверши текущий заказ.') };
     const item = SHELF.find(i => i.id === target);
     if (!item || shelfStatus(s, item) !== 'ready') return { state: s, message: t('Этот предмет пока не готов к выдаче.') };
     const accept = DEVICES[item.order] ? act(s, 'dev-accept', { order: item.order, client: item.client }) : act(s, { remote: 'remote-accept', cassette: 'cassette-accept', laptop: 'accept' }[item.order], item.client);
-    return { state: { ...accept.state, shelf: item.id }, message: t`С полки «НЕ ГОТОВО»: ${item.name.toLowerCase()} с биркой ${item.tag}.` };
+    return { state: { ...accept.state, shelf: item.id }, message: t`С полки «НА РЕМОНТ»: ${item.name.toLowerCase()} с биркой ${item.tag}.` };
   }
   const n = { ...s };
   let message = '';

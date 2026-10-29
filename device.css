@@ -57,7 +57,7 @@
 @keyframes find-peek{50%{transform:translate(-50%,-55%) rotate(-4deg)}}
 @media(prefers-reduced-motion:reduce){.inside-find{animation:none}}
 
-/* Письмо Лёвы, полка «НЕ ГОТОВО» и глава в меню (story.js). */
+/* Письмо Лёвы, полка «НА РЕМОНТ» и глава в меню (story.js). */
 .dialog.letter .dialog-text{font-style:italic;background:repeating-linear-gradient(#0000 0 22px,#c09d7222 22px 23px)}
 .menu-chapter{margin:6px 0 0;color:#ffd27a;font:700 12px/1.3 Consolas,monospace;text-align:center;text-shadow:0 1px 0 #2a1f19}
 #menu-shelf.has-ready{box-shadow:0 0 0 2px #ffd27a,0 0 14px #ffd27a88;animation:shelf-call 1.8s ease-in-out infinite}
