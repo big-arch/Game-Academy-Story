@@ -34,8 +34,14 @@ export function createSoundEffects() {
   function play(name='click') {
     if (!enabled) return;
     unlockAudio();
+    if (name === 'radio-static' && audioContext?.state === 'running') {
+      const length=Math.floor(audioContext.sampleRate*.35),buffer=audioContext.createBuffer(1,length,audioContext.sampleRate),samples=buffer.getChannelData(0);
+      for(let i=0;i<length;i++)samples[i]=Math.random()*2-1;
+      const source=audioContext.createBufferSource(),gain=audioContext.createGain();source.buffer=buffer;
+      const now=audioContext.currentTime;gain.gain.setValueAtTime(.018,now);gain.gain.exponentialRampToValueAtTime(.001,now+.35);source.connect(gain);gain.connect(audioContext.destination);source.start();return;
+    }
     if (name.startsWith('object-') && audioContext?.state === 'running') {
-      const kind=name.slice(7), profiles={game:[523,659,784],call:[440,480,440,480],tape:[262,330,392,330],video:[330,392,523],air:[75,95,110],remote:[1568],waltz:[523,659,784,659],message:[880,1174],sketch:[392,523],archive:[330,440,659]};
+      const kind=name.slice(7), profiles={radio:[330,392,440,523],game:[523,659,784],call:[440,480,440,480],tape:[262,330,392,330],video:[330,392,523],air:[75,95,110],remote:[1568],waltz:[523,659,784,659],message:[880,1174],sketch:[392,523],archive:[330,440,659]};
       const notes=profiles[kind]||profiles.message, now=audioContext.currentTime;
       notes.forEach((frequency,i)=>{const osc=audioContext.createOscillator(),gain=audioContext.createGain(),t=now+i*.16;osc.type=kind==='game'?'triangle':'sine';osc.frequency.value=frequency;gain.gain.setValueAtTime(.001,t);gain.gain.exponentialRampToValueAtTime(.025,t+.02);gain.gain.exponentialRampToValueAtTime(.001,t+.15);osc.connect(gain);gain.connect(audioContext.destination);osc.start(t);osc.stop(t+.16);});return;
     }

@@ -1,4 +1,5 @@
 import { t } from './i18n.js';
+import { createChapterOneUI } from './chapter-one-ui.js';
 import { resetSavedGame } from './save-reset.js';
 import { createSettingsUI } from './settings-ui.js';
 import { diagnosticEvidence } from './diagnostics.js';
@@ -33,7 +34,7 @@ if (state.screws > 0 && !state.screwMask) state.screwMask = (1 << state.screws) 
 if (state.dust > 0 && !state.dustMask) state.dustMask = (1 << state.dust) - 1;
 if (!state.order && state.stage !== 'intro') state.order = 'laptop';
 if (state.stage === 'ending' && state.order && !completedOrders(state).includes(state.order)) { state.completedOrders = [...completedOrders(state), state.order]; state.jobsCompleted = Math.max(state.completedOrders.length, state.jobsCompleted || 0); }
-let tool = 'inspect', menuOpen = true, shopOpen = false, shopReturnMenu = true, shopOpener;
+let tool = 'inspect', menuOpen = true, shopOpen = false, shopReturnMenu = true, shopOpener, roomChapterOpen = false;
 const effects = createSoundEffects();
 // Полноэкранный режим
 $('#menu-fullscreen').onclick = async () => {
@@ -548,11 +549,16 @@ function closeWorkshop() {
 $('#menu-shop').onclick = () => { effects.play('click'); openWorkshop(); };
 
 const memoryUI = createMemoryUI({ getState: () => state, dispatch, sound: name => effects.play(name), afterRead() { if (state.stage === 'ending' && !menuOpen) showEndingDialogue(); } });
+const chapterUI = createChapterOneUI({getState:()=>state,dispatch,sound:name=>effects.play(name),beforeOpen(){
+  closeRepairInstrument();partInteraction.close();memoryUI.close();$('#dialog').hidden=true;persist();
+  roomChapterOpen=true;document.querySelector('main.app').inert=true;music.setMode('game');effects.setWorkshop(true);
+},onClose(){roomChapterOpen=false;document.querySelector('main.app').inert=false;render();}});
+$('#menu-chapter').onclick=()=>chapterUI.open();
 function render() {
   if (menuOpen) { closeRepairInstrument(); partInteraction.close(); $('#dialog').hidden = true; }
   const s = state; $('#base').classList.toggle('open', s.open); $('#fan').classList.toggle('clean', s.dustCleaned); $('#connector').classList.toggle('connected', s.fanConnected);
-  music.setMode(!menuOpen && s.stage === 'work' ? 'game' : 'menu');
-  effects.setWorkshop(!menuOpen && s.stage === 'work');
+  music.setMode(roomChapterOpen || !menuOpen && s.stage === 'work' ? 'game' : 'menu');
+  effects.setWorkshop(roomChapterOpen || !menuOpen && s.stage === 'work');
   $('#main-menu').hidden = !menuOpen || shopOpen;
   $('#workshop-shop').hidden = !shopOpen;
   workshopUI.render();
@@ -608,6 +614,7 @@ function render() {
   renderMarks(s); renderLooseScrews(s);
   fitDeviceAboveDock();
   memoryUI.render(!menuOpen);
+  chapterUI.render();
   syncCats();
 }
 function persist() {
@@ -637,9 +644,9 @@ function dispatch(action, target) {
   if (['dev-test','test'].includes(action) && memoryAvailable(state)) note(t`${result.message} Устройство оживает. Нажми «Ожило»: можно проверить его в действии и открыть историю владельца.`);
   persist();
   const source = rewardSource(), gained = state.coins - coinsBefore;
-  if (gained > 0) coinFlight++;
+  if (gained > 0 && !roomChapterOpen) coinFlight++;
   render();
-  if (gained > 0) flyCoins(gained, source);
+  if (gained > 0 && !roomChapterOpen) flyCoins(gained, source);
   if (action === 'buy-decoration' && state.coins < coinsBefore) effects.play('coin');
   if (ACCEPT_ORDER[action] || action === 'dev-accept' || action === 'shelf-take') showDialog('hello');
   else if (action.endsWith('finish') && state.stage === 'ending') {

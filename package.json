@@ -14,7 +14,8 @@
     "cap:sync": "npm run build && cap sync",
     "android": "npm run cap:sync && cap open android",
     "ios": "npm run cap:sync && cap open ios",
-    "apk": "pwsh scripts/build-apk.ps1"
+    "apk": "pwsh scripts/build-apk.ps1",
+    "audit:chapter": "pwsh scripts/audit-chapter.ps1"
   },
   "dependencies": {
     "@capacitor/android": "8.5.3",
