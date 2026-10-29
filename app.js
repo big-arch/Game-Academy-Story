@@ -1,5 +1,6 @@
 import { t } from './i18n.js';
 import { createChapterOneUI } from './chapter-one-ui.js';
+import { createChapterTwoUI } from './chapter-two-ui.js';
 import { resetSavedGame } from './save-reset.js';
 import { createSettingsUI } from './settings-ui.js';
 import { diagnosticEvidence } from './diagnostics.js';
@@ -549,10 +550,12 @@ function closeWorkshop() {
 $('#menu-shop').onclick = () => { effects.play('click'); openWorkshop(); };
 
 const memoryUI = createMemoryUI({ getState: () => state, dispatch, sound: name => effects.play(name), afterRead() { if (state.stage === 'ending' && !menuOpen) showEndingDialogue(); } });
-const chapterUI = createChapterOneUI({getState:()=>state,dispatch,sound:name=>effects.play(name),beforeOpen(){
+const chapterOptions = {getState:()=>state,dispatch,sound:name=>effects.play(name),beforeOpen(){
   closeRepairInstrument();partInteraction.close();memoryUI.close();$('#dialog').hidden=true;persist();
   roomChapterOpen=true;document.querySelector('main.app').inert=true;music.setMode('game');effects.setWorkshop(true);
-},onClose(){roomChapterOpen=false;document.querySelector('main.app').inert=false;render();}});
+},onClose(){roomChapterOpen=false;document.querySelector('main.app').inert=false;render();}};
+const chapterUI = createChapterOneUI(chapterOptions);
+const chapterTwoUI = createChapterTwoUI(chapterOptions);
 $('#menu-chapter').onclick=()=>chapterUI.open();
 function render() {
   if (menuOpen) { closeRepairInstrument(); partInteraction.close(); $('#dialog').hidden = true; }
@@ -615,6 +618,7 @@ function render() {
   fitDeviceAboveDock();
   memoryUI.render(!menuOpen);
   chapterUI.render();
+  chapterTwoUI.render();
   syncCats();
 }
 function persist() {

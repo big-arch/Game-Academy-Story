@@ -1,0 +1,7 @@
+# Chapter two home-video stills
+
+Built-in imagegen generation mode, opaque horizontal triptych, no source image inputs. Output copied unchanged to `assets/room/chapter-two-film-v1.png`. Runtime uses three equal horizontal viewports with CSS backgrounds. Original TV shell is the existing `assets/devices/television/parts/view-repaired.png`. These are three illustrated stills, not generated motion video.
+
+## Exact prompt
+
+Create a single horizontal triptych of THREE separate old 1990s home-video stills for a cozy pixel-art narrative game. Three equal panels side by side, no gaps, no borders, no text, no UI. Each panel is a distinct moment from the same rainy apartment courtyard, warm amber windows and cool blue dusk, painterly pixel clusters matching a retro repair workshop. LEFT panel: a little girl in yellow raincoat folding a red paper boat at a wooden bench while a grey-haired moustached grandfather in brown cardigan teaches her. MIDDLE: the red paper boat floating along a shallow rainy courtyard gutter, the girl crouching and grandfather beside her, reflections. RIGHT: the same girl and grandfather seen from behind at the courtyard gate waving to their neighbours beneath one lit blue-framed window; rain has stopped. Readable different compositions, no close-up faces needed. Widescreen triptych overall, opaque illustration. These are actual in-world film images, not sprite objects or a scene mockup.

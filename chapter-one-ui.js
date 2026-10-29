@@ -10,7 +10,7 @@ export const CHAPTER_ART = {
   guest:[72,650,412,352], radio:[573,697,422,286], postcard:[1134,701,348,286], window:[1380,90,95,130],
 };
 let artSerial=0;
-function art(name) {
+export function art(name) {
   const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
   svg.setAttribute('viewBox',CHAPTER_ART[name].join(' '));svg.setAttribute('aria-hidden','true');svg.classList.add('chapter-art');svg.dataset.sprite=name;
   const defs=document.createElementNS(svg.namespaceURI,'defs'),clip=document.createElementNS(svg.namespaceURI,'clipPath'),rect=document.createElementNS(svg.namespaceURI,'rect');
