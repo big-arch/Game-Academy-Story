@@ -1,3 +1,6 @@
+import { t } from './i18n.js';
+import { resetSavedGame } from './save-reset.js';
+import { createSettingsUI } from './settings-ui.js';
 import { diagnosticEvidence } from './diagnostics.js';
 import { initialState, act, allFixes } from './game.js';
 import { createMemoryUI } from './memory-ui.js';
@@ -38,8 +41,8 @@ $('#menu-fullscreen').onclick = async () => {
   try {
     if (document.fullscreenElement) await document.exitFullscreen();
     else if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
-    else note('Полноэкранный режим недоступен в этом браузере.');
-  } catch { note('Не удалось включить полноэкранный режим.'); }
+    else note(t('Полноэкранный режим недоступен в этом браузере.'));
+  } catch { note(t('Не удалось включить полноэкранный режим.')); }
 };
 document.addEventListener('fullscreenchange',()=>document.body.classList.toggle('fullscreen',Boolean(document.fullscreenElement)));
 // Contracts follow a curriculum; the player accepts the next one, not a catalogue entry.
@@ -60,33 +63,33 @@ document.querySelectorAll('#bench-cassette [data-tool]').forEach(b => {
     effects.play('tool');
     tool = b.dataset.tool;
     document.querySelectorAll('#bench-cassette [data-tool]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-    $('#cassette-tool-name').textContent = `Выбран: ${b.querySelector('span').textContent.toLowerCase()}`;
+    $('#cassette-tool-name').textContent = t`Выбран: ${b.querySelector('span').textContent.toLowerCase()}`;
   };
 });
 // Винты кассетного плеера
 document.querySelectorAll('#bench-cassette [data-screw]').forEach(b => {
   b.onclick = () => {
     if (tool === 'screw') { effects.play('repair'); dispatch('cassette-screw', Number(b.dataset.screw)); }
-    else note('Для винтов нужна отвёртка.');
+    else note(t('Для винтов нужна отвёртка.'));
   };
 });
-$('#cassette-load').onclick = () => { if (state.cScrews >= 3) { effects.play(); dispatch('cassette-cover'); } else note('Сначала открути все винты.'); };
+$('#cassette-load').onclick = () => { if (state.cScrews >= 3) { effects.play(); dispatch('cassette-cover'); } else note(t('Сначала открути все винты.')); };
 $('#tape-clip').onclick = () => { effects.play('tool'); dispatch('cassette-tape'); };
-$('#belt').onclick = () => { if(tool !== 'belt') { note('Выбери новый ремень среди инструментов.'); return; } effects.play(); dispatch('cassette-belt'); };
-$('#head').onclick = () => { if(tool !== 'clean') { note('Для очистки головки выбери спирт.'); return; } effects.play('tool'); dispatch('cassette-head'); };
+$('#belt').onclick = () => { if(tool !== 'belt') { note(t('Выбери новый ремень среди инструментов.')); return; } effects.play(); dispatch('cassette-belt'); };
+$('#head').onclick = () => { if(tool !== 'clean') { note(t('Для очистки головки выбери спирт.')); return; } effects.play('tool'); dispatch('cassette-head'); };
 // Пульт
 document.querySelectorAll('#bench-remote [data-tool]').forEach(b => {
   b.onclick = () => {
     effects.play('tool');
     tool = b.dataset.tool;
     document.querySelectorAll('#bench-remote [data-tool]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-    $('#remote-tool-name').textContent = `Выбран: ${b.querySelector('span').textContent.toLowerCase()}`;
+    $('#remote-tool-name').textContent = t`Выбран: ${b.querySelector('span').textContent.toLowerCase()}`;
   };
 });
-document.querySelectorAll('#bench-remote [data-screw]').forEach(b => { b.onclick = () => { if (tool === 'screw') { effects.play('repair'); dispatch('remote-screw', Number(b.dataset.screw)); } else note('Для винтов нужна отвёртка.'); }; });
-$('#remote-open').onclick = () => { if (tool === 'hand') { effects.play(); dispatch('remote-cover'); } else note('Панель снимается руками — выбери «Руки».'); };
-document.querySelectorAll('#bench-remote [data-grime]').forEach(b => { b.onclick = () => { if (tool === 'clean') { effects.play('tool'); dispatch('remote-clean', Number(b.dataset.grime)); } else note('Липкий налёт снимается спиртом.'); }; });
-$('#remote-keypad').onclick = () => { if (tool === 'clean') { effects.play('tool'); dispatch('remote-keypad'); } else note('Клавиатуру нужно протереть спиртом.'); };
+document.querySelectorAll('#bench-remote [data-screw]').forEach(b => { b.onclick = () => { if (tool === 'screw') { effects.play('repair'); dispatch('remote-screw', Number(b.dataset.screw)); } else note(t('Для винтов нужна отвёртка.')); }; });
+$('#remote-open').onclick = () => { if (tool === 'hand') { effects.play(); dispatch('remote-cover'); } else note(t('Панель снимается руками — выбери «Руки».')); };
+document.querySelectorAll('#bench-remote [data-grime]').forEach(b => { b.onclick = () => { if (tool === 'clean') { effects.play('tool'); dispatch('remote-clean', Number(b.dataset.grime)); } else note(t('Липкий налёт снимается спиртом.')); }; });
+$('#remote-keypad').onclick = () => { if (tool === 'clean') { effects.play('tool'); dispatch('remote-keypad'); } else note(t('Клавиатуру нужно протереть спиртом.')); };
 // Preload the remote's states so swapping open/repaired views never flashes an empty mat.
 for (const part of ['view-open', 'view-repaired', 'front-shell', 'keypad']) new Image().src = `assets/devices/remote/parts/${part}.png`;
 // С инструментом «Осмотр» касание устройства осматривает его — так же, как кнопка «Осмотр» вверху.
@@ -101,15 +104,15 @@ const ACCEPT_ORDER = Object.fromEntries(Object.entries(ORDER_ACCEPT).map(([order
 function inspectAtPart(element, action, explanation) {
   closeRepairInstrument();
   dispatch(action);
-  note('Собери наблюдения и сопоставь результаты, прежде чем выбирать причину.');
-  const answers = diagnosisChoices(state.order, DEVICES[state.order]).map(([id,label]) => ({ label, run: () => { const result = dispatch(id); const diagnosed = DEVICES[state.order] ? state.dev.diagnosed : state.order === 'remote' ? state.rDiagnosed : state.cassetteDiagnosed; if (!diagnosed) partInteraction.open({ element, label: 'Сопоставь результаты измерений', blocked: result.message, choices: answers }); } }));
+  note(t('Собери наблюдения и сопоставь результаты, прежде чем выбирать причину.'));
+  const answers = diagnosisChoices(state.order, DEVICES[state.order]).map(([id,label]) => ({ label, run: () => { const result = dispatch(id); const diagnosed = DEVICES[state.order] ? state.dev.diagnosed : state.order === 'remote' ? state.rDiagnosed : state.cassetteDiagnosed; if (!diagnosed) partInteraction.open({ element, label: t('Сопоставь результаты измерений'), blocked: result.message, choices: answers }); } }));
   const evidence = diagnosticEvidence(state.order), checked = new Set();
   const readings = [];
   function showEvidence() {
     const choices = evidence.map(([label,reading],i)=>({label:checked.has(i)?`✓ ${label}`:label,run(){checked.add(i);readings.push(reading);effects.play('tool');showEvidence();}}));
-    if (ownedDecorations(state).includes('analyzer') && checked.size<evidence.length) choices.push({label:'Сравнить на диагностическом стенде',run(){evidence.forEach(([,reading],i)=>{if(!checked.has(i))readings.push(reading);checked.add(i);});showEvidence();}});
+    if (ownedDecorations(state).includes('analyzer') && checked.size<evidence.length) choices.push({label:t('Сравнить на диагностическом стенде'),run(){evidence.forEach(([,reading],i)=>{if(!checked.has(i))readings.push(reading);checked.add(i);});showEvidence();}});
     if(checked.size>=evidence.length) choices.push(...answers);
-    partInteraction.open({element,label:'Диагностика по симптомам',blocked:readings.length?readings.join('\n'):DEVICES[state.order]?.outside || 'Проверь устройство, затем сопоставь результаты.',choices});
+    partInteraction.open({element,label:t('Диагностика по симптомам'),blocked:readings.length?readings.join('\n'):DEVICES[state.order]?.outside || t('Проверь устройство, затем сопоставь результаты.'),choices});
   }
   showEvidence();
 }
@@ -132,7 +135,7 @@ document.addEventListener('click', e => {
       const fix = allFixes(cfg, state.dev).find(f => f.id === element.dataset.fix);
       if (d.fixed.includes(fix.id)) return;
       action = 'dev-fix'; target = fix.id; required = fix.tool; label = fix.label;
-      if (fix.after?.some(id => !d.fixed.includes(id))) { partInteraction.open({ element, label, blocked: fix.notReady || 'Сначала подготовь контакт.' }); return; }
+      if (fix.after?.some(id => !d.fixed.includes(id))) { partInteraction.open({ element, label, blocked: fix.notReady || t('Сначала подготовь контакт.') }); return; }
     } else return;
   } else if (element.matches('[data-screw]')) {
     target = Number(element.dataset.screw); required = 'screw';
@@ -170,7 +173,7 @@ function startUnscrew(screw, pointerId) {
   const fill = driver.querySelector('.driver-fill'), started = performance.now();
   let frame = 0, done = false;
   const stop = () => { cancelAnimationFrame(frame); screw.style.rotate = ''; driver.classList.add('fade'); setTimeout(() => driver.remove(), 200); removeEventListener('pointerup', release, true); removeEventListener('pointercancel', release, true); };
-  const release = () => { if (!done) { note('Отпустил слишком рано — держи, пока кольцо не заполнится.'); stop(); } };
+  const release = () => { if (!done) { note(t('Отпустил слишком рано — держи, пока кольцо не заполнится.')); stop(); } };
   const tick = now => {
     const p = Math.min(1, (now - started) / UNSCREW_MS);
     fill.style.strokeDashoffset = String(100 - p * 100); screw.style.rotate = `${-p * 540}deg`; driver.style.rotate = `${-p * 540}deg`;
@@ -187,12 +190,12 @@ document.addEventListener('pointerdown', e => {
 }, true);
 // Осмотр находки: вещь вылетает из устройства в центр экрана; её крутят пальцем/мышкой,
 // переворачивают и читают надпись на обороте. Закрыли — вещь возвращается на место, история засчитана.
-const FIND_NAMES = { note: 'Записка', photo: 'Фотография', ticket: 'Билет', coin: 'Монета', key: 'Ключик', flower: 'Засушенный цветок', drawing: 'Детский рисунок', ring: 'Колечко', button: 'Пуговица', letter: 'Письмо' };
+const FIND_NAMES = { note: t('Записка'), photo: t('Фотография'), ticket: t('Билет'), coin: t('Монета'), key: t('Ключик'), flower: t('Засушенный цветок'), drawing: t('Детский рисунок'), ring: t('Колечко'), button: t('Пуговица'), letter: t('Письмо') };
 function openFind(find, from) {
   closeRepairInstrument(); partInteraction.close();
   document.querySelector('.find-viewer')?.remove();
-  const viewer = document.createElement('div'); viewer.className = 'find-viewer'; viewer.setAttribute('role', 'dialog'); viewer.setAttribute('aria-label', FIND_NAMES[find.kind] || 'Находка');
-  viewer.innerHTML = `<p class="find-title">${FIND_NAMES[find.kind] || 'Находка'}</p><div class="find-stage"><div class="find-card"><div class="find-face find-front"><img src="assets/ui/finds/${find.kind}.svg" alt=""></div><div class="find-face find-back"><p></p></div></div></div><p class="find-hint">Потяни, чтобы повернуть · коснись, чтобы перевернуть</p><div class="find-buttons"><button type="button" class="find-flip">Перевернуть</button><button type="button" class="primary find-close">Положить обратно</button></div>`;
+  const viewer = document.createElement('div'); viewer.className = 'find-viewer'; viewer.setAttribute('role', 'dialog'); viewer.setAttribute('aria-label', FIND_NAMES[find.kind] || t('Находка'));
+  viewer.innerHTML = t`<p class="find-title">${FIND_NAMES[find.kind] || t('Находка')}</p><div class="find-stage"><div class="find-card"><div class="find-face find-front"><img src="assets/ui/finds/${find.kind}.svg" alt=""></div><div class="find-face find-back"><p></p></div></div></div><p class="find-hint">Потяни, чтобы повернуть · коснись, чтобы перевернуть</p><div class="find-buttons"><button type="button" class="find-flip">Перевернуть</button><button type="button" class="primary find-close">Положить обратно</button></div>`;
   viewer.querySelector('.find-back p').textContent = find.text;
   document.body.append(viewer);
   const card = viewer.querySelector('.find-card'), stage = viewer.querySelector('.find-stage');
@@ -233,7 +236,7 @@ function startMeter(element, label, fix, complete) {
   closeRepairInstrument(); partInteraction.close();
   const panel = document.createElement('section'); panel.className = 'part-context meter-panel'; panel.setAttribute('aria-label', label);
   const traces = Array.from({ length: fix.traces }, (_, i) => `<button type="button" class="meter-trace" data-i="${i}"><i></i><span>${i + 1}</span></button>`).join('');
-  panel.innerHTML = `<strong>${label}: прозвонка</strong><button class="part-dismiss" aria-label="Закрыть">×</button><p role="status">Коснись дорожки щупами. Целая звенит и показывает ноль, оборванная — «OL».</p><div class="meter-row"><div class="meter-board">${traces}</div><div class="meter-device"><b class="meter-screen">— — —</b><img src="assets/ui/tools/meter.svg" alt=""></div></div><button type="button" class="part-gesture meter-mark" disabled>Отметить обрыв</button>`;
+  panel.innerHTML = t`<strong>${label}: прозвонка</strong><button class="part-dismiss" aria-label="Закрыть">×</button><p role="status">Коснись дорожки щупами. Целая звенит и показывает ноль, оборванная — «OL».</p><div class="meter-row"><div class="meter-board">${traces}</div><div class="meter-device"><b class="meter-screen">— — —</b><img src="assets/ui/tools/meter.svg" alt=""></div></div><button type="button" class="part-gesture meter-mark" disabled>Отметить обрыв</button>`;
   document.body.append(panel);
   positionInstrument(panel, element);
   element.classList.add('part-selected');
@@ -248,12 +251,12 @@ function startMeter(element, label, fix, complete) {
     b.classList.add(open ? 'measured-open' : 'measured-ok');
     screen.textContent = open ? 'OL' : '0.0 Ω'; screen.classList.toggle('open', open);
     effects.play(open ? 'click' : 'tool');
-    mark.disabled = false; mark.textContent = `Отметить обрыв на дорожке ${picked + 1}`;
+    mark.disabled = false; mark.textContent = t`Отметить обрыв на дорожке ${picked + 1}`;
   });
   mark.onclick = () => {
     if (picked === fix.broken) { closeRepairInstrument(); complete(); return; }
-    dispatch('dev-slip', `Дорожка ${picked + 1} целая — прибор показывал ноль. Ищи ту, где «OL».`);
-    hint.textContent = 'Эта дорожка звонится. Обрыв там, где прибор показывает «OL».';
+    dispatch('dev-slip', t`Дорожка ${picked + 1} целая — прибор показывал ноль. Ищи ту, где «OL».`);
+    hint.textContent = t('Эта дорожка звонится. Обрыв там, где прибор показывает «OL».');
   };
 }
 // Пайка: держишь паяльник — температура растёт; отпусти в зелёной зоне. Рано — припой не взялся, перегрел — промах.
@@ -261,7 +264,7 @@ const SOLDER = { heatMs: 1700, cool: 0.0012, zone: [0.62, 0.82] };
 function startSolder(element, label, complete) {
   closeRepairInstrument(); partInteraction.close();
   const panel = document.createElement('section'); panel.className = 'part-context solder-panel'; panel.setAttribute('aria-label', label);
-  panel.innerHTML = `<strong>${label}: пайка</strong><button class="part-dismiss" aria-label="Закрыть">×</button><p role="status">Зажми паяльник и отпусти, когда стрелка в зелёной зоне.</p><div class="solder-row"><div class="solder-gauge"><i class="solder-zone"></i><i class="solder-level"></i></div><button class="part-gesture solder-hold"><img src="assets/ui/tools/solder.svg" alt="">Держать паяльник</button></div>`;
+  panel.innerHTML = t`<strong>${label}: пайка</strong><button class="part-dismiss" aria-label="Закрыть">×</button><p role="status">Зажми паяльник и отпусти, когда стрелка в зелёной зоне.</p><div class="solder-row"><div class="solder-gauge"><i class="solder-zone"></i><i class="solder-level"></i></div><button class="part-gesture solder-hold"><img src="assets/ui/tools/solder.svg" alt="">Держать паяльник</button></div>`;
   document.body.append(panel);
   positionInstrument(panel, element);
   element.classList.add('part-selected');
@@ -273,7 +276,7 @@ function startSolder(element, label, complete) {
   const tick = now => {
     const dt = now - last; last = now;
     heat = holding ? heat + dt / SOLDER.heatMs : Math.max(0, heat - dt * SOLDER.cool);
-    if (heat >= 1) { holding = false; heat = 0.35; hold.classList.remove('holding'); effects.play('click'); dispatch('dev-slip', 'Перегрел — плата потемнела у контакта. Дай остыть и попробуй ещё раз.'); hint.textContent = 'Перегрев! Отпускай раньше — в зелёной зоне.'; }
+    if (heat >= 1) { holding = false; heat = 0.35; hold.classList.remove('holding'); effects.play('click'); dispatch('dev-slip', t('Перегрел — плата потемнела у контакта. Дай остыть и попробуй ещё раз.')); hint.textContent = t('Перегрев! Отпускай раньше — в зелёной зоне.'); }
     level.style.height = `${Math.min(1, heat) * 100}%`; level.classList.toggle('hot', heat > SOLDER.zone[1]); level.classList.toggle('ok', heat >= SOLDER.zone[0] && heat <= SOLDER.zone[1]);
     frame = requestAnimationFrame(tick);
   };
@@ -281,15 +284,15 @@ function startSolder(element, label, complete) {
   hold.onpointerup = () => {
     if (!holding) return; holding = false; hold.classList.remove('holding');
     if (heat >= SOLDER.zone[0] && heat <= SOLDER.zone[1]) { closeRepairInstrument(); complete(); }
-    else hint.textContent = 'Припой ещё не расплавился — держи дольше.';
+    else hint.textContent = t('Припой ещё не расплавился — держи дольше.');
   };
   hold.onpointercancel = () => { holding = false; hold.classList.remove('holding'); };
   hold.onclick = e => { if (e.detail === 0) { closeRepairInstrument(); complete(); } }; // клавиатура: без мини-игры
   frame = requestAnimationFrame(tick);
 }
 function screwHint(element) {
-  note('Зажми винт на столе и перетащи его в это отверстие.');
-  partInteraction.open({ element, label: 'Отверстие ждёт винт', blocked: 'Винт лежит на столе рядом с техникой. Зажми его мышкой или пальцем и перетащи сюда — он закрутится.' + (DEVICES[state.order]?.screws.some(x => x[2]) ? ' Винты разной длины: подбери подходящий.' : '') });
+  note(t('Зажми винт на столе и перетащи его в это отверстие.'));
+  partInteraction.open({ element, label: t('Отверстие ждёт винт'), blocked: t('Винт лежит на столе рядом с техникой. Зажми его мышкой или пальцем и перетащи сюда — он закрутится.') + (DEVICES[state.order]?.screws.some(x => x[2]) ? t(' Винты разной длины: подбери подходящий.') : '') });
 }
 // Следы истории рисуются на закрытом корпусе; при открытии корпуса они скрываются вместе с ним.
 const MARK_HOSTS = { laptop: '#lid', cassette: '#cassette-body', remote: '#remote-body' };
@@ -301,12 +304,12 @@ function renderMarks(s) {
     document.querySelectorAll('.story-mark').forEach(m => m.remove());
     for (const mark of client?.marks || []) {
       const b = document.createElement('button'); b.type = 'button'; b.className = 'story-mark'; b.dataset.clue = mark.id;
-      b.setAttribute('aria-label', 'След на корпусе — рассмотреть');
+      b.setAttribute('aria-label', t('След на корпусе — рассмотреть'));
       Object.assign(b.style, { left: `${mark.x}%`, top: `${mark.y}%`, width: `${mark.size}%` });
       b.innerHTML = `<img src="assets/ui/marks/${mark.kind}.svg" alt="">`;
       b.onclick = e => {
         e.stopPropagation();
-        if (tool !== 'inspect') { note('Присмотрись к этому следу — выбери «Осмотр».'); return; }
+        if (tool !== 'inspect') { note(t('Присмотрись к этому следу — выбери «Осмотр».')); return; }
         effects.play('tool'); dispatch('clue', mark.id); note(mark.text);
       };
       $(MARK_HOSTS[s.order] || '#dev-body').append(b);
@@ -351,7 +354,7 @@ function renderLooseScrews(s) {
         // Размер винта (devices.js): длинные и короткие видно на столе, при сборке их берут в руку.
         const size = btn.closest('#dev-body') && DEVICES[s.order]?.screws[Number(btn.dataset.screw)]?.[2];
         if (size) { item.dataset.size = size; item.classList.add(`size-${size}`); }
-        item.setAttribute('role', 'button'); item.setAttribute('aria-label', size ? (size === 'long' ? 'Длинный винт' : 'Короткий винт') : 'Винт');
+        item.setAttribute('role', 'button'); item.setAttribute('aria-label', size ? (size === 'long' ? t('Длинный винт') : t('Короткий винт')) : t('Винт'));
         item.addEventListener('keydown', event => {
           if (!['Enter',' '].includes(event.key) || !item.classList.contains('pickable')) return;
           event.preventDefault();
@@ -392,7 +395,7 @@ function makeDraggable(item, mat) {
   const holeAt = (x, y) => [...mat.querySelectorAll('.screw.removed')].find(h => { const r = h.getBoundingClientRect(); return r.width && x > r.left - 14 && x < r.right + 14 && y > r.top - 14 && y < r.bottom + 14; });
   const reset = () => { item.classList.remove('dragging'); item.style.translate = ''; target?.classList.remove('drop-target'); target = null; start = null; };
   item.addEventListener('pointerdown', e => {
-    if (!item.classList.contains('pickable')) { note('Винт понадобится, когда закроешь корпус.'); return; }
+    if (!item.classList.contains('pickable')) { note(t('Винт понадобится, когда закроешь корпус.')); return; }
     e.preventDefault(); e.stopPropagation(); try { item.setPointerCapture(e.pointerId); } catch {}
     start = { x: e.clientX, y: e.clientY }; item.classList.add('dragging'); effects.play('tool');
   });
@@ -405,7 +408,7 @@ function makeDraggable(item, mat) {
   item.addEventListener('pointerup', e => {
     if (!start) return;
     const hole = holeAt(e.clientX, e.clientY), { action } = screwState(state);
-    if (!hole || !action) { const distance = Math.hypot(e.clientX - start.x, e.clientY - start.y); reset(); if (distance < 6) note('Зажми винт и перетащи его к подсвеченному отверстию.'); return; }
+    if (!hole || !action) { const distance = Math.hypot(e.clientX - start.x, e.clientY - start.y); reset(); if (distance < 6) note(t('Зажми винт и перетащи его к подсвеченному отверстию.')); return; }
     const holeKey = `${state.order}:${hole.closest('[id]').id}:${hole.dataset.screw}`, myKey = [...looseScrews].find(([, v]) => v === item)?.[0];
     // Винт попал не в «своё» отверстие: меняем привязку, чтобы на столе остался винт для другого отверстия.
     if (myKey && myKey !== holeKey && looseScrews.has(holeKey)) { const other = looseScrews.get(holeKey); looseScrews.set(holeKey, item); looseScrews.set(myKey, other); }
@@ -429,14 +432,14 @@ function renderTrays(s) {
 }
 const BENCHES = { laptop: '#bench-laptop', cassette: '#bench-cassette', remote: '#bench-remote' };
 const benchFor = order => BENCHES[order] || (DEVICES[order] ? '#bench-device' : BENCHES.laptop);
-const TOOL_LABELS = { meter: 'Мультиметр', solder: 'Паяльник', inspect: 'Осмотр', screw: 'Отвёртка', clean: 'Спирт', hand: 'Руки', brush: 'Кисть', paste: 'Термопаста', belt: 'Ремень' };
+const TOOL_LABELS = { meter: t('Мультиметр'), solder: t('Паяльник'), inspect: t('Осмотр'), screw: t('Отвёртка'), clean: t('Спирт'), hand: t('Руки'), brush: t('Кисть'), paste: t('Термопаста'), belt: t('Ремень') };
 const MAT_RATIO = 1681 / 936; // высота коврика к ширине
 let devBuilt = '';
 // Точка ремонта; для скрытой поломки добавляется, когда её обнаружила проверка.
 function fixButton(f) {
     const b = document.createElement('button'); b.className = 'dev-fix'; b.dataset.fix = f.id; b.title = f.label; b.setAttribute('aria-label', f.label);
     Object.assign(b.style, { left: `${f.x}%`, top: `${f.y}%`, width: `max(44px, ${f.width || 18}%)`, height: `max(44px, ${f.height || 18}%)` });
-    b.onclick = () => { if (!state.dev.diagnosed) { dispatch('dev-fix', f.id); return; } if (tool !== f.tool) { note(`${f.label}: здесь нужен инструмент «${TOOL_LABELS[f.tool]}».`); return; } effects.play('tool'); dispatch('dev-fix', f.id); };
+    b.onclick = () => { if (!state.dev.diagnosed) { dispatch('dev-fix', f.id); return; } if (tool !== f.tool) { note(t`${f.label}: здесь нужен инструмент «${TOOL_LABELS[f.tool]}».`); return; } effects.play('tool'); dispatch('dev-fix', f.id); };
   return b;
 }
 function buildDevice(order) {
@@ -448,9 +451,9 @@ function buildDevice(order) {
   for (const view of ['open', 'repaired']) new Image().src = viewSrc(order, view);
   body.querySelectorAll('.screw').forEach(b => b.remove());
   cfg.screws.forEach(([x, y], i) => {
-    const b = document.createElement('button'); b.className = 'screw'; b.dataset.screw = i; b.textContent = '✚'; b.setAttribute('aria-label', `Винт корпуса ${i + 1}`);
+    const b = document.createElement('button'); b.className = 'screw'; b.dataset.screw = i; b.textContent = '✚'; b.setAttribute('aria-label', t`Винт корпуса ${i + 1}`);
     Object.assign(b.style, { left: `calc(${x}% - 22px)`, top: `calc(${y}% - 22px)` });
-    b.onclick = () => { if (tool === 'screw') { effects.play('repair'); dispatch('dev-screw', i); } else note('Для винтов нужна отвёртка.'); };
+    b.onclick = () => { if (tool === 'screw') { effects.play('repair'); dispatch('dev-screw', i); } else note(t('Для винтов нужна отвёртка.')); };
     body.prepend(b);
   });
   $('#dev-inside').replaceChildren(...cfg.fixes.map(fixButton));
@@ -469,13 +472,13 @@ function renderDevice(s) {
   // Finds belong to their own tray, never to the repair hit area.
   const mat = $('#bench-device .mat'), find = clientFor(s.order, s.client)?.find;
   let tray = mat.querySelector('.find-tray');
-  if (!tray) { tray = document.createElement('div'); tray.className = 'find-tray'; tray.innerHTML = '<small>НАХОДКА</small>'; mat.append(tray); }
+  if (!tray) { tray = document.createElement('div'); tray.className = 'find-tray'; tray.innerHTML = t('<small>НАХОДКА</small>'); mat.append(tray); }
   let found = tray.querySelector('.inside-find');
   if (found?.dataset.client !== s.client) { found?.remove(); found = null; }
   if (find && !found) {
     found = document.createElement('button'); found.type = 'button'; found.className = `inside-find find-${find.kind}`;
     const icon = document.createElement('img'); icon.src = `assets/ui/finds/${find.kind}.svg`; icon.alt = ''; found.append(icon);
-    found.dataset.client = s.client; found.setAttribute('aria-label','Находка на коврике: осмотреть');
+    found.dataset.client = s.client; found.setAttribute('aria-label',t('Находка на коврике: осмотреть'));
     found.onclick = event => { event.stopPropagation(); effects.play('tool'); openFind(find,found); }; tray.append(found);
   }
   tray.hidden = !find || s.stage !== 'work' || (!d.open && !s.clues.includes('find'));
@@ -484,10 +487,10 @@ function renderDevice(s) {
   box.classList.toggle('is-open', d.open); box.classList.toggle('diagnosed', d.diagnosed); box.classList.toggle('assembling', d.assembling);
   $('#dev-body').style.backgroundImage = `url('${viewSrc(s.order, d.repaired ? 'repaired' : 'closed')}')`;
   $('#dev-open').hidden = d.open || d.assembling || d.screwMask !== (1 << cfg.screws.length) - 1;
-  $('#dev-body').querySelectorAll('.screw').forEach(b => { const removed = Boolean(d.screwMask & (1 << Number(b.dataset.screw))); b.classList.toggle('removed', removed); b.setAttribute('aria-label', `Винт корпуса ${Number(b.dataset.screw) + 1}${removed ? ', снят' : ', установлен'}`); });
+  $('#dev-body').querySelectorAll('.screw').forEach(b => { const removed = Boolean(d.screwMask & (1 << Number(b.dataset.screw))); b.classList.toggle('removed', removed); b.setAttribute('aria-label', t`Винт корпуса ${Number(b.dataset.screw) + 1}${removed ? t(', снят') : t(', установлен')}`); });
   if (cfg.hidden && d.hiddenFound && !$(`#dev-inside [data-fix="${cfg.hidden.fix.id}"]`)) $('#dev-inside').append(fixButton(cfg.hidden.fix));
   const selected = partNavigator.render(s, allFixes(cfg,d), d.open && s.stage === 'work' && !$('#bench-device').hidden);
-  $('#dev-inside').querySelectorAll('.dev-fix').forEach(b => { b.hidden = b.dataset.fix !== selected; const fix = allFixes(cfg, d).find(f => f.id === b.dataset.fix), status = targetState(d, fix, tool); b.dataset.state = status; b.dataset.label = fix.label; b.classList.toggle('done', status === 'done'); b.disabled = status === 'done'; b.setAttribute('aria-label', `${fix.label}${status === 'done' ? ', готово' : status === 'ready' ? ', можно выполнить' : ''}`); });
+  $('#dev-inside').querySelectorAll('.dev-fix').forEach(b => { b.hidden = b.dataset.fix !== selected; const fix = allFixes(cfg, d).find(f => f.id === b.dataset.fix), status = targetState(d, fix, tool); b.dataset.state = status; b.dataset.label = fix.label; b.classList.toggle('done', status === 'done'); b.disabled = status === 'done'; b.setAttribute('aria-label', `${fix.label}${status === 'done' ? t(', готово') : status === 'ready' ? t(', можно выполнить') : ''}`); });
 }
 const partNavigator = createPartNavigator($('#bench-device'), {
   change() { closeRepairInstrument(); partInteraction.close(); render(); },
@@ -515,12 +518,12 @@ new ResizeObserver(fitDeviceAboveDock).observe($('#bench-device'));
 
 const campaignNote = document.createElement('p'); campaignNote.className = 'campaign-note'; $('.panel').append(campaignNote);
 const storyToggle = document.createElement('button');
-storyToggle.type = 'button'; storyToggle.className = 'story-toggle'; storyToggle.textContent = 'История'; storyToggle.setAttribute('aria-expanded', 'false'); storyToggle.setAttribute('aria-controls', 'story');
+storyToggle.type = 'button'; storyToggle.className = 'story-toggle'; storyToggle.textContent = t('История'); storyToggle.setAttribute('aria-expanded', 'false'); storyToggle.setAttribute('aria-controls', 'story');
 storyToggle.onclick = () => { const open = $('.panel').classList.toggle('story-open'); storyToggle.setAttribute('aria-expanded', String(open)); };
-const coinCounter = document.createElement('span'); coinCounter.className = 'coin-counter'; coinCounter.setAttribute('aria-label', 'Монеты');
+const coinCounter = document.createElement('span'); coinCounter.className = 'coin-counter'; coinCounter.setAttribute('aria-label', t('Монеты'));
 coinCounter.innerHTML = '<img src="assets/ui/coin.svg" alt=""><b>0</b>';
 $('.panel-top').append(coinCounter, storyToggle);
-const backMenu = document.createElement('button'); backMenu.type='button'; backMenu.className='back-menu'; backMenu.textContent='☰'; backMenu.setAttribute('aria-label','Главное меню'); backMenu.title='Главное меню';
+const backMenu = document.createElement('button'); backMenu.type='button'; backMenu.className='back-menu'; backMenu.textContent='☰'; backMenu.setAttribute('aria-label',t('Главное меню')); backMenu.title=t('Главное меню');
 backMenu.onclick=()=>{partInteraction.close();effects.play();menuOpen=true;render();};
 $('.panel .bottom').prepend(backMenu);
 // Всё управление — в нижней панели, чтобы окно и комната сверху были открыты.
@@ -531,7 +534,7 @@ benchCats['bench-cat-device'] = createCat($('#bench-cat-device'));
 // Only the cat on the visible bench runs its animation loop.
 function syncCats() { const work = !menuOpen && state.stage === 'work' && !document.hidden; for (const [order, id] of Object.entries(CAT_BY_ORDER)) benchCats[id].setActive(work && state.order === order); benchCats['bench-cat-device'].setActive(work && Boolean(DEVICES[state.order])); }
 let soundOn = false;
-const music = createMusicPlayer(()=>{ soundOn=false;updateSoundButton();note('Не удалось воспроизвести музыку. Попробуй включить её ещё раз.'); });
+const music = createMusicPlayer(()=>{ soundOn=false;updateSoundButton();note(t('Не удалось воспроизвести музыку. Попробуй включить её ещё раз.')); });
 const workshopUI = createWorkshopUI({ getState: () => state, purchase: id => dispatch('buy-decoration', id), close: closeWorkshop, beforeCollection() { closeRepairInstrument(); partInteraction.close(); } });
 function openWorkshop() {
   partInteraction.close();
@@ -555,16 +558,16 @@ function render() {
   workshopUI.render();
   const hasBed = ownedDecorations(s).includes('bed');
   Object.values(benchCats).forEach(cat => cat.setBed(hasBed));
-  $('#menu-balance').innerHTML = `<img src="assets/ui/coin.svg" alt="">${s.coins} монет`;
+  $('#menu-balance').innerHTML = t`<img src="assets/ui/coin.svg" alt="">${s.coins} монет`;
   if (!coinFlight) coinCounter.querySelector('b').textContent = s.coins;
   document.body.classList.toggle('lamp-upgraded', s.upgrade);
   document.body.dataset.roomStage = roomStage(s);  // пар над кружкой и свет лампы — только на этапах, где они нарисованы
-  $('#menu-continue').textContent = s.stage === 'work' ? 'Продолжить ремонт' : 'Принять заказ';
+  $('#menu-continue').textContent = s.stage === 'work' ? t('Продолжить ремонт') : t('Принять заказ');
   $('#menu-new-order').hidden = true;
   const current = s.stage === 'work' && CONTRACTS.find(c => c.order === s.order), next = current || nextContract(s), done = completedOrders(s).length;
   // Заказ с полки «НЕ ГОТОВО» не входит в кампанию — в меню пишем его, а не следующий обычный заказ.
   const shelfItem = s.stage === 'work' && s.shelf && SHELF.find(i => i.id === s.shelf);
-  campaignNote.textContent = shelfItem ? `Истории: ${done}/${CONTRACTS.length} · В работе: ${shelfItem.name.toLowerCase()} с полки «НЕ ГОТОВО» ${shelfItem.tag}` : `Истории: ${done}/${CONTRACTS.length} · ${current ? 'В работе' : 'Далее'}: ${next.name} · Сложность ${next.level}/5. ${next.lesson}`;
+  campaignNote.textContent = shelfItem ? t`Истории: ${done}/${CONTRACTS.length} · В работе: ${shelfItem.name.toLowerCase()} с полки «НЕ ГОТОВО» ${shelfItem.tag}` : t`Истории: ${done}/${CONTRACTS.length} · ${current ? t('В работе') : t('Далее')}: ${next.name} · Сложность ${next.level}/5. ${next.lesson}`;
   $('#menu-campaign').textContent = campaignNote.textContent;
   $('.panel').hidden = menuOpen;
   $('#bench-laptop').hidden = menuOpen || !['work','ending'].includes(s.stage) || s.order !== 'laptop';
@@ -577,7 +580,7 @@ function render() {
   if (s.order === 'remote') {
     $('#remote-device').classList.toggle('is-open', s.rOpen); $('#remote-device').classList.toggle('repaired', s.rRepaired); $('.mat-remote').classList.toggle('open', s.rOpen);
     $('#remote-open').hidden = s.rOpen || s.rAssembling || s.rScrewMask !== 7;
-    document.querySelectorAll('#bench-remote [data-screw]').forEach(b => { const removed = Boolean(s.rScrewMask & (1 << Number(b.dataset.screw))); b.classList.toggle('removed', removed); b.setAttribute('aria-label', `Винт корпуса ${Number(b.dataset.screw)+1}${removed ? ', снят' : ''}`); });
+    document.querySelectorAll('#bench-remote [data-screw]').forEach(b => { const removed = Boolean(s.rScrewMask & (1 << Number(b.dataset.screw))); b.classList.toggle('removed', removed); b.setAttribute('aria-label', t`Винт корпуса ${Number(b.dataset.screw)+1}${removed ? t(', снят') : ''}`); });
     document.querySelectorAll('#bench-remote [data-grime]').forEach(b => { const removed = Boolean(s.rGrimeMask & (1 << Number(b.dataset.grime))); b.classList.toggle('removed', removed); b.disabled = removed; });
     $('#remote-keypad').classList.toggle('clean', s.rKeypadClean);
   }
@@ -589,17 +592,17 @@ function render() {
   } else $('.app').insertBefore($('.panel'), $('footer'));
   storyToggle.hidden = s.stage !== 'work';
   backMenu.hidden = menuOpen;
-  document.querySelectorAll('#bench-laptop [data-screw]').forEach(b => { b.classList.toggle('removed', Boolean(s.screwMask & (1 << Number(b.dataset.screw)))); b.setAttribute('aria-label', `Винт ${Number(b.dataset.screw)+1}${s.screwMask & (1 << Number(b.dataset.screw)) ? ', снят' : ''}`); });
+  document.querySelectorAll('#bench-laptop [data-screw]').forEach(b => { b.classList.toggle('removed', Boolean(s.screwMask & (1 << Number(b.dataset.screw)))); b.setAttribute('aria-label', t`Винт ${Number(b.dataset.screw)+1}${s.screwMask & (1 << Number(b.dataset.screw)) ? t(', снят') : ''}`); });
   document.querySelectorAll('#bench-laptop [data-dust]').forEach(b => { const removed=Boolean(s.dustMask & (1 << Number(b.dataset.dust)));b.classList.toggle('removed',removed);b.disabled=removed; });
-  document.querySelectorAll('#bench-cassette [data-screw]').forEach(b=>{const removed=Boolean(s.cScrewMask & (1 << Number(b.dataset.screw)));b.classList.toggle('removed',removed);b.setAttribute('aria-label',`Винт корпуса ${Number(b.dataset.screw)+1}${removed?', снят':''}`);});
+  document.querySelectorAll('#bench-cassette [data-screw]').forEach(b=>{const removed=Boolean(s.cScrewMask & (1 << Number(b.dataset.screw)));b.classList.toggle('removed',removed);b.setAttribute('aria-label',t`Винт корпуса ${Number(b.dataset.screw)+1}${removed?t(', снят'):''}`);});
   $('#belt').classList.toggle('connected',s.beltReplaced);$('#head').classList.toggle('connected',s.headCleaned);$('#tape-clip').classList.toggle('connected',s.tapeClipFixed);
   $('#wire').classList.toggle('connected', s.fanConnected); $('#radiator').classList.toggle('fixed', s.paste); $('.fan-art').classList.toggle('clean', s.dustCleaned);
-  $('#display').textContent = s.repaired ? 'ПРОВЕРКА ПРОЙДЕНА' : s.poweredOff ? 'ПИТАНИЕ ОТКЛЮЧЕНО' : s.tested ? 'ТЕМПЕРАТУРА: ВЫСОКАЯ' : 'ОЖИДАНИЕ';
+  $('#display').textContent = s.repaired ? t('ПРОВЕРКА ПРОЙДЕНА') : s.poweredOff ? t('ПИТАНИЕ ОТКЛЮЧЕНО') : s.tested ? t('ТЕМПЕРАТУРА: ВЫСОКАЯ') : t('ОЖИДАНИЕ');
   const client = clientFor(s.order, s.client);
-  $('#heading').textContent = client ? `${client.name} · ${client.title}` : s.stage === 'ending' ? 'История продолжается' : s.order === 'cassette' ? 'Музыка на плёнке' : s.order === 'remote' ? 'Вечер у телевизора' : 'Письма из прошлого';
-  $('#story').textContent = client ? [s.stage === 'ending' ? client.ending : client.intro, ...[...client.marks, ...(client.find ? [client.find] : [])].filter(m => s.clues.includes(m.id)).map(m => `• ${m.text}`), ...(s.stage === 'work' && s.clues.length < client.marks.length ? [`Следов на корпусе ещё не найдено: ${client.marks.length - s.clues.length}.`] : [])].join('\n') : s.order === 'remote' ? (s.stage === 'ending' ? '«Работает! Дедушка снова сам переключает свои передачи и больше не зовёт меня каждые пять минут. Спасибо!»' : '«Дедушка пролил чай на пульт, и теперь половина кнопок не нажимается. Он без него как без рук — посмотрите, пожалуйста?»') : s.order === 'cassette' ? (s.stage === 'ending' ? '«Плеер снова работает. Теперь я смогу послушать старую запись. Спасибо!»' : '«Этот плеер не протягивает ленту. На кассете важная для меня запись. Поможете?»') : (s.stage === 'ending' ? '«Он снова работает… Смотрите, это дедушкины фотографии с моря! Я думала, что больше никогда их не увижу. Спасибо вам.»' : '«Это ноутбук моего дедушки. Он включается, но быстро выключается. Там наши семейные фотографии… Пожалуйста, помогите их сохранить.»');
-  $('#status').textContent = s.stage === 'ending' ? `● БАЛАНС: ${s.coins} МОНЕТ` : s.repaired ? '● УСТРОЙСТВО ИСПРАВНО' : s.stage === 'work' ? '● ЗАКАЗ В РАБОТЕ' : '● НОВЫЙ ЗАКАЗ';
-  const actions = s.stage === 'intro' ? [['next-order','Принять заказ']] : s.stage === 'ending' ? [['next-order','Принять заказ'], ['shop','Мастерская']] : DEVICES[s.order] && s.dev ? deviceActions(DEVICES[s.order], s.dev) : s.order === 'remote' ? [['remote-inspect','Осмотр'],['remote-test','Проверить'], ...(s.rOpen ? [['remote-cover','Закрыть корпус']] : []), ...(s.rRepaired ? [['remote-finish','Вернуть клиенту']] : [])] : s.order === 'cassette' ? [['cassette-inspect','Осмотр'],['cassette-test','Проверить'], ...(s.cassetteOpen ? [['cassette-cover','Закрыть крышку']] : []), ...(s.cassetteRepaired ? [['cassette-finish','Вернуть клиенту']] : [])] : [['inspect','Осмотр'],['test','Диагностика'],['power',s.poweredOff?'Включить питание':'Выключить питание'], ...(s.open ? [['cover','Закрыть крышку']] : []), ...(s.repaired ? [['finish','Вернуть клиенту']] : [])];
+  $('#heading').textContent = client ? `${client.name} · ${client.title}` : s.stage === 'ending' ? t('История продолжается') : s.order === 'cassette' ? t('Музыка на плёнке') : s.order === 'remote' ? t('Вечер у телевизора') : t('Письма из прошлого');
+  $('#story').textContent = client ? [s.stage === 'ending' ? client.ending : client.intro, ...[...client.marks, ...(client.find ? [client.find] : [])].filter(m => s.clues.includes(m.id)).map(m => `• ${m.text}`), ...(s.stage === 'work' && s.clues.length < client.marks.length ? [t`Следов на корпусе ещё не найдено: ${client.marks.length - s.clues.length}.`] : [])].join('\n') : s.order === 'remote' ? (s.stage === 'ending' ? t('«Работает! Дедушка снова сам переключает свои передачи и больше не зовёт меня каждые пять минут. Спасибо!»') : t('«Дедушка пролил чай на пульт, и теперь половина кнопок не нажимается. Он без него как без рук — посмотрите, пожалуйста?»')) : s.order === 'cassette' ? (s.stage === 'ending' ? t('«Плеер снова работает. Теперь я смогу послушать старую запись. Спасибо!»') : t('«Этот плеер не протягивает ленту. На кассете важная для меня запись. Поможете?»')) : (s.stage === 'ending' ? t('«Он снова работает… Смотрите, это дедушкины фотографии с моря! Я думала, что больше никогда их не увижу. Спасибо вам.»') : t('«Это ноутбук моего дедушки. Он включается, но быстро выключается. Там наши семейные фотографии… Пожалуйста, помогите их сохранить.»'));
+  $('#status').textContent = s.stage === 'ending' ? t`● БАЛАНС: ${s.coins} МОНЕТ` : s.repaired ? t('● УСТРОЙСТВО ИСПРАВНО') : s.stage === 'work' ? t('● ЗАКАЗ В РАБОТЕ') : t('● НОВЫЙ ЗАКАЗ');
+  const actions = s.stage === 'intro' ? [['next-order',t('Принять заказ')]] : s.stage === 'ending' ? [['next-order',t('Принять заказ')], ['shop',t('Мастерская')]] : DEVICES[s.order] && s.dev ? deviceActions(DEVICES[s.order], s.dev) : s.order === 'remote' ? [['remote-inspect',t('Осмотр')],['remote-test',t('Проверить')], ...(s.rOpen ? [['remote-cover',t('Закрыть корпус')]] : []), ...(s.rRepaired ? [['remote-finish',t('Вернуть клиенту')]] : [])] : s.order === 'cassette' ? [['cassette-inspect',t('Осмотр')],['cassette-test',t('Проверить')], ...(s.cassetteOpen ? [['cassette-cover',t('Закрыть крышку')]] : []), ...(s.cassetteRepaired ? [['cassette-finish',t('Вернуть клиенту')]] : [])] : [['inspect',t('Осмотр')],['test',t('Диагностика')],['power',s.poweredOff?t('Включить питание'):t('Выключить питание')], ...(s.open ? [['cover',t('Закрыть крышку')]] : []), ...(s.repaired ? [['finish',t('Вернуть клиенту')]] : [])];
   $('#actions').replaceChildren(...actions.map(([id,label],i) => { const b=document.createElement('button');b.textContent=label;b.dataset.action=id;if(i===0||id.endsWith('finish'))b.className='primary';b.onclick=()=>{effects.play('click');const open = DEVICES[state.order] ? state.dev?.open : state.order === 'remote' ? state.rOpen : state.cassetteOpen; const diagnosed = DEVICES[state.order] ? state.dev?.diagnosed : state.order === 'remote' ? state.rDiagnosed : state.cassetteDiagnosed; if (id.endsWith('-inspect') && open && !diagnosed) { const target = $(benchFor(state.order)).querySelector('.dev-fix,[data-grime],#head'); if (target) { inspectAtPart(target,id); return; } } dispatch(id);};return b; }));
   $('.lamp').style.color = s.upgrade ? '#ffd883' : '#d4a06a';
   renderMarks(s); renderLooseScrews(s);
@@ -614,7 +617,7 @@ function persist() {
 const shownShelfNotes = new Set();
 function showEndingDialogue() {
   const item = SHELF.find(i => i.order === state.order && i.client === state.client && state.shelfDone?.includes(i.id));
-  showDialog('bye', item && !shownShelfNotes.has(item.id) ? () => { shownShelfNotes.add(item.id); showLetter('Бирка внутри', item.after, 'Положить к письму Лёвы', seasonDone(state) ? () => showLetter(FINALE.title, FINALE.text, FINALE.button) : null); } : null);
+  showDialog('bye', item && !shownShelfNotes.has(item.id) ? () => { shownShelfNotes.add(item.id); showLetter(t('Бирка внутри'), item.after, t('Положить к письму Лёвы'), seasonDone(state) ? () => showLetter(FINALE.title, FINALE.text, FINALE.button) : null); } : null);
 }
 function dispatch(action, target) {
   const coinsBefore = state.coins;
@@ -629,9 +632,9 @@ function dispatch(action, target) {
     const progress = workshopProgress(state), { client } = state, order = state.order || 'laptop';
     state = { ...initialState(), ...progress };
     result = DEVICES[order] ? act(state, 'dev-accept', { order, client }) : act(state, ORDER_ACCEPT[order], client);
-    state = result.state; note('Заказ начат заново. Покупки и монеты сохранены.');
+    state = result.state; note(t('Заказ начат заново. Покупки и монеты сохранены.'));
   } else { result = act(state, action, target); state = result.state; note(result.message); }
-  if (['dev-test','test'].includes(action) && memoryAvailable(state)) note(`${result.message} Устройство оживает. Нажми «Ожило»: можно проверить его в действии и открыть историю владельца.`);
+  if (['dev-test','test'].includes(action) && memoryAvailable(state)) note(t`${result.message} Устройство оживает. Нажми «Ожило»: можно проверить его в действии и открыть историю владельца.`);
   persist();
   const source = rewardSource(), gained = state.coins - coinsBefore;
   if (gained > 0) coinFlight++;
@@ -661,13 +664,13 @@ function showDialog(kind, onClose = null) {
   };
   const options = () => {
     const list = kind === 'hello' ? client.questions.filter(q => !asked.has(q)).map(q => [q.q, () => { asked.add(q); say(q.a); options(); }]) : [];
-    list.push([kind === 'hello' ? 'Беру в работу' : 'До встречи!', () => { clearInterval(typing); box.hidden = true; onClose?.(); }]);
+    list.push([kind === 'hello' ? t('Беру в работу') : t('До встречи!'), () => { clearInterval(typing); box.hidden = true; onClose?.(); }]);
     choices.replaceChildren(...list.map(([label, fn], i) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; if (i === list.length - 1) b.className = 'primary'; b.onclick = () => { effects.play('click'); fn(); }; return b; }));
   };
   if (kind === 'hello') say(client.intro);
   else {
     const found = client.marks.filter(m => state.clues.includes(m.id)).length + (client.find && state.clues.includes('find') ? 1 : 0);
-    const thanks = found && found === client.marks.length ? '«Вы даже это заметили? Спасибо, что отнеслись к вещи так бережно.»' : found ? '«Вы заметили, да? Это наша маленькая история.»' : '';
+    const thanks = found && found === client.marks.length ? t('«Вы даже это заметили? Спасибо, что отнеслись к вещи так бережно.»') : found ? t('«Вы заметили, да? Это наша маленькая история.»') : '';
     const response = state.memoryActionDone ? memoryFor(state)?.response : '';
     // Реакция на экран после ремонта не заменяет прощание клиента: сначала она, потом его последние слова.
     say([response, client.ending, response ? '' : thanks].filter(Boolean).join('\n\n'));
@@ -701,20 +704,29 @@ function flyCoins(amount, from) {
     };
   }
 }
-document.querySelectorAll('#bench-laptop [data-tool]').forEach(b => b.onclick=()=>{ effects.play('tool');tool=b.dataset.tool; document.querySelectorAll('#bench-laptop [data-tool]').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); $('#tool-name').textContent=`Выбран: ${b.querySelector('span').textContent.toLowerCase()}`; });
-document.querySelectorAll('#bench-laptop [data-screw]').forEach(b=>b.onclick=()=>{ if(tool==='screw'){effects.play('repair');dispatch('screw',Number(b.dataset.screw));} else note('Для винта нужна отвёртка.'); });
-document.querySelectorAll('#bench-laptop [data-dust]').forEach(b=>b.onclick=()=>{ if(tool==='brush'){effects.play('tool');dispatch('clean',Number(b.dataset.dust));} else note('Пыль можно удалить кистью.'); });
+document.querySelectorAll('#bench-laptop [data-tool]').forEach(b => b.onclick=()=>{ effects.play('tool');tool=b.dataset.tool; document.querySelectorAll('#bench-laptop [data-tool]').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); $('#tool-name').textContent=t`Выбран: ${b.querySelector('span').textContent.toLowerCase()}`; });
+document.querySelectorAll('#bench-laptop [data-screw]').forEach(b=>b.onclick=()=>{ if(tool==='screw'){effects.play('repair');dispatch('screw',Number(b.dataset.screw));} else note(t('Для винта нужна отвёртка.')); });
+document.querySelectorAll('#bench-laptop [data-dust]').forEach(b=>b.onclick=()=>{ if(tool==='brush'){effects.play('tool');dispatch('clean',Number(b.dataset.dust));} else note(t('Пыль можно удалить кистью.')); });
 $('#lid-open').onclick=()=>{effects.play();dispatch('cover');};
-$('#wire').onclick=()=>{ if(state.fanConnected)note('Разъём вентилятора подключён.'); else {effects.play();dispatch('connect');} };
-$('#radiator').onclick=()=>{effects.play();if(tool==='inspect')dispatch('thermal');else if(tool==='paste')dispatch('paste');else note('Осмотри радиатор или выбери термопасту.');};
-$('#fan').onclick=()=>note('Для ремонта используй рабочий стол ниже.'); $('#connector').onclick=()=>note('Для ремонта используй рабочий стол ниже.');
-$('#cat').onclick=()=>{ effects.play('purr');note('Мурзик довольно жмурится рядом с тобой.'); };
-for (const [id,cat] of Object.entries(benchCats)) $('#'+id).onclick=()=>{ effects.play('purr'); note(cat.pet()==='wake'?'Мурзик просыпается и сладко потягивается.':'Мурзик довольно жмурится и умывается рядом с тобой.'); };
-$('#reset').onclick=()=>{if(confirm('Начать историю заново? Сохранённый прогресс будет удалён.')){state=initialState();try{localStorage.removeItem(KEY);}catch{}$('#message').textContent='На улице дождь. В мастерской ждёт первый заказ.';render();}};
-function updateSoundButton(){const b=$('#sound');b.textContent=soundOn?'♪ ЗВУК ВКЛ.':'♪ ЗВУК ВЫКЛ.';b.setAttribute('aria-label',soundOn?'Выключить музыку':'Включить музыку');b.setAttribute('aria-pressed',String(soundOn));b.title=soundOn?'Выключить музыку':'Включить музыку';const m=$('#menu-music');m.textContent=soundOn?'♪ Музыка: вкл.':'♪ Музыка: выкл.';m.setAttribute('aria-pressed',String(soundOn));}
+$('#wire').onclick=()=>{ if(state.fanConnected)note(t('Разъём вентилятора подключён.')); else {effects.play();dispatch('connect');} };
+$('#radiator').onclick=()=>{effects.play();if(tool==='inspect')dispatch('thermal');else if(tool==='paste')dispatch('paste');else note(t('Осмотри радиатор или выбери термопасту.'));};
+$('#fan').onclick=()=>note(t('Для ремонта используй рабочий стол ниже.')); $('#connector').onclick=()=>note(t('Для ремонта используй рабочий стол ниже.'));
+$('#cat').onclick=()=>{ effects.play('purr');note(t('Мурзик довольно жмурится рядом с тобой.')); };
+for (const [id,cat] of Object.entries(benchCats)) $('#'+id).onclick=()=>{ effects.play('purr'); note(cat.pet()==='wake'?t('Мурзик просыпается и сладко потягивается.'):t('Мурзик довольно жмурится и умывается рядом с тобой.')); };
+const settingsUI = createSettingsUI({beforeChange(){clearInterval(typing);closeRepairInstrument();partInteraction.close();memoryUI.close();persist();},restart(){
+  const fresh = resetSavedGame(localStorage);
+  clearTimeout(cloudTimer); clearInterval(typing); closeRepairInstrument();partInteraction.close();
+  state=fresh;tool='inspect';menuOpen=true;shopOpen=false;shownShelfNotes.clear();
+  document.querySelectorAll('dialog[open]').forEach(dialog=>dialog.close());
+  persist();location.reload();
+}});
+$('#menu-restart').onclick=settingsUI.confirmRestart;
+$('#reset').onclick=settingsUI.confirmRestart;
+$('#menu-languages').onclick=settingsUI.showLanguages;
+function updateSoundButton(){const b=$('#sound');b.textContent=soundOn?t('♪ ЗВУК ВКЛ.'):t('♪ ЗВУК ВЫКЛ.');b.setAttribute('aria-label',soundOn?t('Выключить музыку'):t('Включить музыку'));b.setAttribute('aria-pressed',String(soundOn));b.title=soundOn?t('Выключить музыку'):t('Включить музыку');const m=$('#menu-music');m.textContent=soundOn?t('♪ Музыка: вкл.'):t('♪ Музыка: выкл.');m.setAttribute('aria-pressed',String(soundOn));}
 async function toggleMusic(){if(soundOn){music.disable();soundOn=false;}else soundOn=await music.enable();updateSoundButton();}
 $('#sound').onclick=toggleMusic;$('#menu-music').onclick=toggleMusic;
-$('#menu-effects').onclick=()=>{effects.setEnabled(!effects.enabled);const b=$('#menu-effects');b.textContent=effects.enabled?'◉ Звуки: вкл.':'◉ Звуки: выкл.';b.setAttribute('aria-pressed',String(effects.enabled));effects.play();};
+$('#menu-effects').onclick=()=>{effects.setEnabled(!effects.enabled);const b=$('#menu-effects');b.textContent=effects.enabled?t('◉ Звуки: вкл.'):t('◉ Звуки: выкл.');b.setAttribute('aria-pressed',String(effects.enabled));effects.play();};
 $('#menu-continue').onclick=()=>{effects.play();if(state.stage !== 'work') acceptNextContract();else {menuOpen=false;render();}};
 // Письмо Лёвы и бирки с полки — в том же окне диалога, без вариантов ответа.
 function showLetter(title, text, button, onClose = null) {
@@ -726,24 +738,24 @@ function showLetter(title, text, button, onClose = null) {
   const off = new MutationObserver(() => { if (box.hidden) { box.classList.remove('letter'); off.disconnect(); } }); off.observe(box, { attributes: true, attributeFilter: ['hidden'] });
 }
 // Полка «НЕ ГОТОВО»: бирки Лёвы; открытый предмет берётся в работу как особый заказ.
-const shelfButton = document.createElement('button'); shelfButton.id = 'menu-shelf'; shelfButton.className = 'secondary'; shelfButton.textContent = 'Полка «НЕ ГОТОВО»';
+const shelfButton = document.createElement('button'); shelfButton.id = 'menu-shelf'; shelfButton.className = 'secondary'; shelfButton.textContent = t('Полка «НЕ ГОТОВО»');
 $('#menu-shop').after(shelfButton);
 const chapterLabel = document.createElement('p'); chapterLabel.className = 'menu-chapter'; $('#menu-campaign').before(chapterLabel);
-const shelfPanel = document.createElement('div'); shelfPanel.className = 'dialog shelf-panel'; shelfPanel.hidden = true; shelfPanel.setAttribute('role', 'dialog'); shelfPanel.setAttribute('aria-label', 'Полка «НЕ ГОТОВО»');
+const shelfPanel = document.createElement('div'); shelfPanel.className = 'dialog shelf-panel'; shelfPanel.hidden = true; shelfPanel.setAttribute('role', 'dialog'); shelfPanel.setAttribute('aria-label', t('Полка «НЕ ГОТОВО»'));
 document.body.append(shelfPanel);
 function openShelf() {
   const card = document.createElement('div'); card.className = 'dialog-card shelf-card';
-  card.innerHTML = '<div class="dialog-name">Полка «НЕ ГОТОВО»</div><p class="dialog-text">Вещи, которые Лёва не успел вернуть. На каждой — бирка.</p>';
+  card.innerHTML = t('<div class="dialog-name">Полка «НЕ ГОТОВО»</div><p class="dialog-text">Вещи, которые Лёва не успел вернуть. На каждой — бирка.</p>');
   const list = document.createElement('div'); list.className = 'shelf-items';
   for (const item of SHELF) {
     const status = shelfStatus(state, item), row = document.createElement('div'); row.className = `shelf-item ${status}`;
-    row.innerHTML = `<span class="shelf-tag">${item.tag}</span><b>${status === 'locked' ? 'Глава ' + item.chapter : item.name}</b>`;
+    row.innerHTML = `<span class="shelf-tag">${item.tag}</span><b>${status === 'locked' ? t('Глава ') + item.chapter : item.name}</b>`;
     const b = document.createElement('button'); b.type = 'button';
-    if (status === 'ready') { b.textContent = state.stage === 'work' ? 'После текущего заказа' : 'Взять в работу'; b.disabled = state.stage === 'work'; b.onclick = () => { effects.play('click'); shelfPanel.hidden = true; state = { ...initialState(), ...workshopProgress(state) }; menuOpen = false; tool = 'inspect'; dispatch('shelf-take', item.id); }; }
-    else { b.textContent = status === 'done' ? 'Возвращено ✓' : shelfLockReason(state, item); b.disabled = true; }
+    if (status === 'ready') { b.textContent = state.stage === 'work' ? t('После текущего заказа') : t('Взять в работу'); b.disabled = state.stage === 'work'; b.onclick = () => { effects.play('click'); shelfPanel.hidden = true; state = { ...initialState(), ...workshopProgress(state) }; menuOpen = false; tool = 'inspect'; dispatch('shelf-take', item.id); }; }
+    else { b.textContent = status === 'done' ? t('Возвращено ✓') : shelfLockReason(state, item); b.disabled = true; }
     row.append(b); list.append(row);
   }
-  const close = document.createElement('button'); close.type = 'button'; close.className = 'primary'; close.textContent = 'Закрыть'; close.onclick = () => { shelfPanel.hidden = true; };
+  const close = document.createElement('button'); close.type = 'button'; close.className = 'primary'; close.textContent = t('Закрыть'); close.onclick = () => { shelfPanel.hidden = true; };
   card.append(list, close); shelfPanel.replaceChildren(card); shelfPanel.hidden = false;
 }
 shelfButton.onclick = () => { effects.play('click'); openShelf(); };

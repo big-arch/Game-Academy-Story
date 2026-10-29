@@ -1,3 +1,4 @@
+import { t } from './i18n.js';
 import { CONTRACTS, completedOrders } from './campaign.js';
 import { DEVICES, viewSrc } from './devices.js';
 import { SHELF, storyProgress } from './story.js';
@@ -32,12 +33,12 @@ function miniature(item) {
 }
 
 export function createRoomCollection({ getState, beforeOpen = () => {} }) {
-  const viewer = document.createElement('dialog'); viewer.className = 'collection-dialog'; viewer.setAttribute('aria-label','Стеллаж мастерской'); document.body.append(viewer);
+  const viewer = document.createElement('dialog'); viewer.className = 'collection-dialog'; viewer.setAttribute('aria-label',t('Стеллаж мастерской')); document.body.append(viewer);
   const shelves = new Set();
   function frame(title) {
     viewer.replaceChildren();
     const header = document.createElement('header'), h = document.createElement('h2'), close = document.createElement('button');
-    h.textContent = title; close.textContent = '×'; close.setAttribute('aria-label','Закрыть стеллаж'); close.onclick = () => viewer.close();
+    h.textContent = title; close.textContent = '×'; close.setAttribute('aria-label',t('Закрыть стеллаж')); close.onclick = () => viewer.close();
     header.append(h,close); viewer.append(header);
   }
   function inspect(item) {
@@ -45,20 +46,20 @@ export function createRoomCollection({ getState, beforeOpen = () => {} }) {
     const figure = document.createElement('div'); figure.className = 'collection-figure'; figure.append(miniature(item)); viewer.append(figure);
     const state = getState(), progress = memoryProgress(state);
     const stories = progress.memories.filter(key => key.split(':')[0] === item.order);
-    if (!stories.length) { const p = document.createElement('p'); p.textContent = 'Вещь починена и возвращена владельцу. Её место в истории мастерской осталось здесь.'; viewer.append(p); }
+    if (!stories.length) { const p = document.createElement('p'); p.textContent = t('Вещь починена и возвращена владельцу. Её место в истории мастерской осталось здесь.'); viewer.append(p); }
     for (const key of stories) {
       const [order,client] = key.split(':'), memory = memoryFor({order,client}); if (!memory) continue;
       const h = document.createElement('h3'); h.textContent = `${memory.client} · ${memory.title}`;
       const text = document.createElement('p'); text.textContent = progress.memoryActions.includes(key) ? `${memory.body}\n\n${memory.result}` : memory.body;
       viewer.append(h,text);
     }
-    const back = document.createElement('button'); back.textContent = 'К стеллажу'; back.className = 'collection-back'; back.onclick = open; viewer.append(back);
+    const back = document.createElement('button'); back.textContent = t('К стеллажу'); back.className = 'collection-back'; back.onclick = open; viewer.append(back);
     viewer.scrollTop = 0;
   }
   function open() {
-    beforeOpen(); frame('Стеллаж мастерской');
+    beforeOpen(); frame(t('Стеллаж мастерской'));
     const items = collectionItems(getState());
-    const note = document.createElement('p'); note.className = 'collection-note'; note.textContent = items.length ? 'Вещи, которым ты вернул жизнь. Выбери предмет.' : 'После первого ремонта здесь появится твоя первая вещь.'; viewer.append(note);
+    const note = document.createElement('p'); note.className = 'collection-note'; note.textContent = items.length ? t('Вещи, которым ты вернул жизнь. Выбери предмет.') : t('После первого ремонта здесь появится твоя первая вещь.'); viewer.append(note);
     const grid = document.createElement('div'); grid.className = 'collection-grid';
     for (const item of items) {
       const button = document.createElement('button'); button.setAttribute('aria-label',item.name); button.dataset.order = item.order;
@@ -74,7 +75,7 @@ export function createRoomCollection({ getState, beforeOpen = () => {} }) {
     render() {
       const items = collectionItems(getState()), signature = items.map(item=>item.order).join(',');
       for (const shelf of shelves) {
-        shelf.setAttribute('aria-label',`Стеллаж мастерской. Собрано: ${items.length}. Рассмотреть`);
+        shelf.setAttribute('aria-label',t`Стеллаж мастерской. Собрано: ${items.length}. Рассмотреть`);
         if (shelf.dataset.collection === signature && shelf.children.length) continue;
         shelf.dataset.collection = signature;
         const contents = document.createElement('span'); contents.className = 'cabinet-contents'; contents.setAttribute('aria-hidden','true');

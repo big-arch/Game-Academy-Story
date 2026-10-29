@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Мастерская историй</string>
-    <string name="title_activity_main">Мастерская историй</string>
+    <string name="app_name">Workshop Stories</string>
+    <string name="title_activity_main">Workshop Stories</string>
     <string name="package_name">com.bigarch.workshopstories</string>
     <string name="custom_url_scheme">com.bigarch.workshopstories</string>
 </resources>

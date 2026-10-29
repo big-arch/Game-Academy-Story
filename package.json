@@ -7,6 +7,7 @@
     "prestart": "node scripts/build.mjs vendor",
     "start": "node server.js",
     "test": "node --test",
+    "audit:locales": "node scripts/audit-locales.mjs",
     "audit:art": "python scripts/audit-device-layout.py",
     "build": "node scripts/build.mjs",
     "assets": "capacitor-assets generate --assetPath resources --iconBackgroundColor #2d211a --iconBackgroundColorDark #2d211a --splashBackgroundColor #2d211a --splashBackgroundColorDark #2d211a",
@@ -24,6 +25,7 @@
   "devDependencies": {
     "@capacitor/assets": "3.0.5",
     "@capacitor/cli": "8.5.3",
+    "acorn": "8.15.0",
     "esbuild": "0.28.2"
   }
 }

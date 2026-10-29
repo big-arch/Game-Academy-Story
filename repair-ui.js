@@ -1,21 +1,22 @@
+import { t } from './i18n.js';
 // Stage-specific controls: an essential action must never live off-screen in a carousel.
 export function deviceActions(config, repair) {
   if (repair.open) {
-    const actions = [['dev-cover', 'Закрыть корпус']];
-    actions.push(['dev-inspect', 'Осмотр внутри']);
+    const actions = [['dev-cover', t('Закрыть корпус')]];
+    actions.push(['dev-inspect', t('Осмотр внутри')]);
     return actions;
   }
   return [
-    ['dev-inspect', 'Осмотр'],
-    ['dev-test', 'Проверить'],
-    ...(repair.repaired ? [['dev-finish', 'Вернуть клиенту']] : []),
+    ['dev-inspect', t('Осмотр')],
+    ['dev-test', t('Проверить')],
+    ...(repair.repaired ? [['dev-finish', t('Вернуть клиенту')]] : []),
   ];
 }
 
 export function diagnosisChoices(order, config) {
-  if (config) return config.causes.map(c => [`ddiag-${c.id}`, `Причина: ${c.label}`]);
-  const labels = order === 'remote' ? [['battery','батарейки'],['led','светодиод'],['contacts','контакты']] : [['battery','батарея'],['head','головка'],['belt','ремень']];
-  return labels.map(([id,label]) => [`${order === 'remote' ? 'rdiag-' : 'diagnose-'}${id}`, `Причина: ${label}`]);
+  if (config) return config.causes.map(c => [`ddiag-${c.id}`, t`Причина: ${c.label}`]);
+  const labels = order === 'remote' ? [['battery',t('батарейки')],['led',t('светодиод')],['contacts',t('контакты')]] : [['battery',t('батарея')],['head',t('головка')],['belt',t('ремень')]];
+  return labels.map(([id,label]) => [`${order === 'remote' ? 'rdiag-' : 'diagnose-'}${id}`, t`Причина: ${label}`]);
 }
 
 export function targetState(repair, fix, tool) {

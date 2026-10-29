@@ -1,9 +1,10 @@
+import { t } from './i18n.js';
 import { sceneKind } from './memories.js';
 // A small live test bench. No timers survive a closed story or a different order.
 export function createObjectScene(order, sound, memoryKey) {
   const kind = ({'pda:ira':'map','laptop:oleg':'render','laptop:nina':'message'})[memoryKey] || (order === 'phone' && memoryKey !== 'phone:dima' ? 'message' : sceneKind(order)), root = document.createElement('section');
   root.className = 'object-scene'; root.dataset.scene = kind;
-  root.setAttribute('aria-label', 'Живая проверка устройства');
+  root.setAttribute('aria-label', t('Живая проверка устройства'));
   const visual = document.createElement('div'); visual.className = 'scene-visual';
 
   const art = {
@@ -21,29 +22,29 @@ export function createObjectScene(order, sound, memoryKey) {
   };
   const landscape='<rect x="12" y="8" width="136" height="72" fill="#355567"/><path fill="#82a5a1" d="M15 14H145V50H15Z"/><path fill="#b9b083" d="M15 50H145V73H15Z"/><path fill="#855d48" d="M60 40 80 25 100 40V62H60Z"/><rect x="76" y="48" width="9" height="14" fill="#d5bf80"/>';
   visual.innerHTML='<svg viewBox="0 0 160 90" role="img" aria-label="'+labelsForArt(kind)+'" shape-rendering="crispEdges">'+(art[kind]||landscape)+'</svg>';
-  function labelsForArt(k){return {game:'Тестовая игра: герой, звезда и платформа',tape:'Лента и две катушки',call:'Входящий звонок',air:'Прозрачный стенд проверки тяги',remote:'Пульт и тестовый телевизор',sketch:'Восстановленный эскиз моста',map:'Восстановленный маршрут к озеру',render:'Общежитие с садом на крыше',archive:'Две фотографии из семейного архива',message:'Сохранённое сообщение',waltz:'Механизм музыкальной шкатулки'}[k]||'Восстановленная запись';}
+  function labelsForArt(k){return {game:t('Тестовая игра: герой, звезда и платформа'),tape:t('Лента и две катушки'),call:t('Входящий звонок'),air:t('Прозрачный стенд проверки тяги'),remote:t('Пульт и тестовый телевизор'),sketch:t('Восстановленный эскиз моста'),map:t('Восстановленный маршрут к озеру'),render:t('Общежитие с садом на крыше'),archive:t('Две фотографии из семейного архива'),message:t('Сохранённое сообщение'),waltz:t('Механизм музыкальной шкатулки')}[k]||t('Восстановленная запись');}
   const status = document.createElement('p'); status.setAttribute('role','status');
   const control = document.createElement('button'); control.type = 'button';
   root.append(visual,status,control);
   let finish = null, count = 0, completed = false;
-  const labels = {map:'Выбрать маршрут',render:'Завершить рендер',game:'Прыгнуть к звезде',tape:'Настроить скорость ленты',remote:'Нажать кнопку пульта',air:'Включить мотор',call:'Ответить на звонок',message:'Открыть сообщение',sketch:'Показать эскиз',archive:'Восстановить файл',video:'Запустить запись',waltz:'Завести ключ'};
+  const labels = {map:t('Выбрать маршрут'),render:t('Завершить рендер'),game:t('Прыгнуть к звезде'),tape:t('Настроить скорость ленты'),remote:t('Нажать кнопку пульта'),air:t('Включить мотор'),call:t('Ответить на звонок'),message:t('Открыть сообщение'),sketch:t('Показать эскиз'),archive:t('Восстановить файл'),video:t('Запустить запись'),waltz:t('Завести ключ')};
   control.textContent = labels[kind]; control.disabled = true; control.hidden=true;
   let slider;
   if (['tape','video','game'].includes(kind)) {
     slider = document.createElement('input'); slider.type='range'; slider.min='0';slider.max='100';slider.value='15';
-    slider.setAttribute('aria-label',kind === 'game' ? 'Сила прыжка' : kind === 'tape' ? 'Скорость ленты' : 'Настройка изображения');
+    slider.setAttribute('aria-label',kind === 'game' ? t('Сила прыжка') : kind === 'tape' ? t('Скорость ленты') : t('Настройка изображения'));
     slider.disabled=true; root.insertBefore(slider,control);
-    slider.oninput=()=>{root.style.setProperty('--signal',String(1-Math.abs(Number(slider.value)-50)/60)); status.textContent=kind==='game'?`Сила прыжка: ${slider.value}. Цель: ${[35,65,50][count]}.`:Math.abs(Number(slider.value)-50)<=8?'Сигнал ровный. Можно воспроизводить.':'Совмести настройку с центральной меткой 50.';};
+    slider.oninput=()=>{root.style.setProperty('--signal',String(1-Math.abs(Number(slider.value)-50)/60)); status.textContent=kind==='game'?t`Сила прыжка: ${slider.value}. Цель: ${[35,65,50][count]}.`:Math.abs(Number(slider.value)-50)<=8?t('Сигнал ровный. Можно воспроизводить.'):t('Совмести настройку с центральной меткой 50.');};
   }
   control.onclick=()=>{
     if (!finish || completed) return;
     const target=kind==='game'?[35,65,50][count]:50;
-    if(slider && Math.abs(Number(slider.value)-target)>8){status.textContent=kind==='game'?`Недолёт или перелёт. Подбери силу прыжка около ${target}.`:'Сигнал плывёт. Подстрой ползунок к метке 50.';sound('tool');return;}
+    if(slider && Math.abs(Number(slider.value)-target)>8){status.textContent=kind==='game'?t`Недолёт или перелёт. Подбери силу прыжка около ${target}.`:t('Сигнал плывёт. Подстрой ползунок к метке 50.');sound('tool');return;}
     sound('object-'+kind); count++; root.dataset.active='true';
-    if(kind==='game' && count<3){root.style.setProperty('--jump',`${count*20}px`);status.textContent=`Звёзды: ${count}/3. Следующий прыжок: сила ${[35,65,50][count]}.`;return;}
+    if(kind==='game' && count<3){root.style.setProperty('--jump',`${count*20}px`);status.textContent=t`Звёзды: ${count}/3. Следующий прыжок: сила ${[35,65,50][count]}.`;return;}
     root.style.setProperty('--jump','65px');
-    status.textContent=kind==='call'?'Соединение установлено. Клиент снова на связи.':'Проверка пройдена. Можно прочитать историю.';
+    status.textContent=kind==='call'?t('Соединение установлено. Клиент снова на связи.'):t('Проверка пройдена. Можно прочитать историю.');
     completed=true;control.disabled=true;control.hidden=true;if(slider)slider.disabled=true;finish();
   };
-  return {element:root,start(done){if(kind==='call')sound('object-call');finish=done;control.hidden=false;control.disabled=false;if(slider)slider.disabled=false;status.textContent=kind==='game'?'Подбери силу первого прыжка: 35. Затем нажми «Прыгнуть».':slider?'Настрой сигнал ползунком, затем запусти воспроизведение.':'Нажми кнопку и посмотри, как оживает вещь.';root.dataset.active='ready';control.focus();},complete(){root.dataset.active='true';control.hidden=true;if(slider)slider.hidden=true;status.textContent='Проверка сохранена в альбоме.';}};
+  return {element:root,start(done){if(kind==='call')sound('object-call');finish=done;control.hidden=false;control.disabled=false;if(slider)slider.disabled=false;status.textContent=kind==='game'?t('Подбери силу первого прыжка: 35. Затем нажми «Прыгнуть».'):slider?t('Настрой сигнал ползунком, затем запусти воспроизведение.'):t('Нажми кнопку и посмотри, как оживает вещь.');root.dataset.active='ready';control.focus();},complete(){root.dataset.active='true';control.hidden=true;if(slider)slider.hidden=true;status.textContent=t('Проверка сохранена в альбоме.');}};
 }

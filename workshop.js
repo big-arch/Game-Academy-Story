@@ -1,3 +1,4 @@
+import { t } from './i18n.js';
 import { campaignProgress } from './campaign.js';
 import { memoryProgress, memoryExtras } from './memories.js';
 import { storyProgress } from './story.js';
@@ -5,15 +6,15 @@ import { storyProgress } from './story.js';
 // целиком нарисованную картинку assets/room/stage-N.png (ТЗ — docs/ROOM-ART-BRIEF.md).
 // Лежанка и гирлянда — отдельные вещи поверх любой картинки.
 export const DECORATIONS = [
-  { id: 'desk-mat', stage: 1, name: 'Рабочий коврик', price: 60, description: 'Резиновый коврик с сеткой: винты не укатываются, а на клетках удобно раскладывать детали.' },
-  { id: 'desk-lamp', stage: 2, name: 'Лампа на приёмнике', price: 120, description: 'Старая латунная лампа Лёвы на радиоприёмнике. Лупа ×1.4 при ремонте и тёплый свет на весь стол.' },
-  { id: 'desk-tea', stage: 3, name: 'Чайный уголок', price: 60, description: 'Кружка с ёлками, стакан с карандашами и новая оранжевая лампа вместо латунной. Чай остывает, пока ты паяешь, — это традиция.' },
-  { id: 'desk-tools', stage: 4, name: 'Порядок в инструментах', price: 90, description: 'Коробочка с винтами, любимая красная отвёртка, катушка припоя и ящичек с деталями.' },
-  { id: 'desk-plants', stage: 5, name: 'Зелень', price: 70, description: 'Плющ на подоконнике, горшочек на углу стола и стакан с кистями.' },
-  { id: 'analyzer', name: 'Диагностический стенд', price: 140, description: 'Сравнивает все измерения при диагностике: помогает сопоставить симптомы до выбора причины.' },
-  { id: 'archive-deck', name: 'Архивный стенд', price: 180, description: 'Позволяет искать дополнительные записи после живой проверки устройства. Не нужен для обычного ремонта.' },
-  { id: 'bed', name: 'Лежанка Мурзика', price: 80, description: 'Своя зона отдыха вдали от техники. Мурзик устраивается здесь вместо прогулок над ремонтом.' },
-  { id: 'garland', name: 'Огоньки у окна', price: 100, description: 'Тёплая гирлянда над дождливым городом.' },
+  { id: 'desk-mat', stage: 1, name: t('Рабочий коврик'), price: 60, description: t('Резиновый коврик с сеткой: винты не укатываются, а на клетках удобно раскладывать детали.') },
+  { id: 'desk-lamp', stage: 2, name: t('Лампа на приёмнике'), price: 120, description: t('Старая латунная лампа Лёвы на радиоприёмнике. Лупа ×1.4 при ремонте и тёплый свет на весь стол.') },
+  { id: 'desk-tea', stage: 3, name: t('Чайный уголок'), price: 60, description: t('Кружка с ёлками, стакан с карандашами и новая оранжевая лампа вместо латунной. Чай остывает, пока ты паяешь, — это традиция.') },
+  { id: 'desk-tools', stage: 4, name: t('Порядок в инструментах'), price: 90, description: t('Коробочка с винтами, любимая красная отвёртка, катушка припоя и ящичек с деталями.') },
+  { id: 'desk-plants', stage: 5, name: t('Зелень'), price: 70, description: t('Плющ на подоконнике, горшочек на углу стола и стакан с кистями.') },
+  { id: 'analyzer', name: t('Диагностический стенд'), price: 140, description: t('Сравнивает все измерения при диагностике: помогает сопоставить симптомы до выбора причины.') },
+  { id: 'archive-deck', name: t('Архивный стенд'), price: 180, description: t('Позволяет искать дополнительные записи после живой проверки устройства. Не нужен для обычного ремонта.') },
+  { id: 'bed', name: t('Лежанка Мурзика'), price: 80, description: t('Своя зона отдыха вдали от техники. Мурзик устраивается здесь вместо прогулок над ремонтом.') },
+  { id: 'garland', name: t('Огоньки у окна'), price: 100, description: t('Тёплая гирлянда над дождливым городом.') },
 ];
 export const ROOM_STAGES = 1 + Math.max(...DECORATIONS.map(item => item.stage || 0));
 // Старые сохранения: лампа-улучшение и предметы прошлого каталога переводятся в этапы.
@@ -41,15 +42,15 @@ export function workshopProgress(state) {
 
 export function purchaseDecoration(state, id) {
   const item = find(id);
-  if (!item) return { state, message: 'Такого предмета нет в каталоге.' };
+  if (!item) return { state, message: t('Такого предмета нет в каталоге.') };
   const owned = ownedDecorations(state);
-  if (owned.includes(item.id)) return { state, message: 'Это уже есть в мастерской.' };
-  if (item.stage && roomStage(state) < item.stage - 1) return { state, message: `Сначала: ${DECORATIONS.find(d => d.stage === item.stage - 1).name.toLowerCase()}.` };
+  if (owned.includes(item.id)) return { state, message: t('Это уже есть в мастерской.') };
+  if (item.stage && roomStage(state) < item.stage - 1) return { state, message: t`Сначала: ${DECORATIONS.find(d => d.stage === item.stage - 1).name.toLowerCase()}.` };
   if (!Number.isSafeInteger(state.coins) || state.coins < item.price) {
-    return { state, message: `Не хватает монет: нужно ${item.price}.` };
+    return { state, message: t`Не хватает монет: нужно ${item.price}.` };
   }
   return {
     state: { ...state, coins: state.coins - item.price, furniture: [...owned, item.id], upgrade: state.upgrade || item.id === 'desk-lamp' },
-    message: `${item.name} — теперь в твоей мастерской.`,
+    message: t`${item.name} — теперь в твоей мастерской.`,
   };
 }

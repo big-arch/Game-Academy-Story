@@ -1,3 +1,4 @@
+import { t } from './i18n.js';
 // Supabase client integration for "Мастерская историй"
 // Проект big-arch's Project, таблицы игры с префиксом ws_ (см. docs/supabase-schema.sql).
 // Publishable key публичный по назначению: доступ ограничен политиками RLS.
@@ -17,7 +18,7 @@ const ready = import('./vendor/supabase.js')
     return client;
   })
   .catch(err => {
-    console.warn('[Supabase] Не удалось инициализировать клиент:', err);
+    console.warn(t('[Supabase] Не удалось инициализировать клиент:'), err);
     return null;
   });
 
@@ -33,7 +34,7 @@ async function currentUser() {
   const { data, error } = await signingIn;
   if (error) {
     signInFailed = true;
-    console.log('[Supabase] Вход не выполнен, облачное сохранение пропущено:', error.message);
+    console.log(t('[Supabase] Вход не выполнен, облачное сохранение пропущено:'), error.message);
     return null;
   }
   return data.user;
@@ -47,12 +48,12 @@ export async function saveProgress(gameState) {
       .from('ws_saves')
       .upsert({ user_id: user.id, data: gameState, version: SAVE_VERSION }, { onConflict: 'user_id,version' });
     if (error) {
-      console.error('[Supabase] Ошибка сохранения:', error);
+      console.error(t('[Supabase] Ошибка сохранения:'), error);
       return false;
     }
     return true;
   } catch (err) {
-    console.error('[Supabase] Исключение при сохранении:', err);
+    console.error(t('[Supabase] Исключение при сохранении:'), err);
     return false;
   }
 }
@@ -70,7 +71,7 @@ export async function loadProgress() {
     if (error || !data) return null;
     return data;
   } catch (err) {
-    console.error('[Supabase] Исключение при загрузке:', err);
+    console.error(t('[Supabase] Исключение при загрузке:'), err);
     return null;
   }
 }
@@ -83,12 +84,12 @@ export async function saveSettings(settings) {
       .from('ws_player_settings')
       .upsert({ user_id: user.id, ...settings }, { onConflict: 'user_id' });
     if (error) {
-      console.error('[Supabase] Ошибка сохранения настроек:', error);
+      console.error(t('[Supabase] Ошибка сохранения настроек:'), error);
       return false;
     }
     return true;
   } catch (err) {
-    console.error('[Supabase] Исключение при сохранении настроек:', err);
+    console.error(t('[Supabase] Исключение при сохранении настроек:'), err);
     return false;
   }
 }
@@ -105,7 +106,7 @@ export async function loadSettings() {
     if (error || !data) return null;
     return data;
   } catch (err) {
-    console.error('[Supabase] Исключение при загрузке настроек:', err);
+    console.error(t('[Supabase] Исключение при загрузке настроек:'), err);
     return null;
   }
 }
@@ -116,12 +117,12 @@ export async function trackEvent(eventType, eventData = {}) {
     if (!user) return false;
     const { error } = await client.from('ws_game_events').insert({ user_id: user.id, event_type: eventType, data: eventData });
     if (error) {
-      console.error('[Supabase] Ошибка события:', error);
+      console.error(t('[Supabase] Ошибка события:'), error);
       return false;
     }
     return true;
   } catch (err) {
-    console.error('[Supabase] Исключение события:', err);
+    console.error(t('[Supabase] Исключение события:'), err);
     return false;
   }
 }

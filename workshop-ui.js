@@ -1,3 +1,4 @@
+import { t } from './i18n.js';
 import { DECORATIONS, ownedDecorations, roomStage } from './workshop.js';
 import { createRoomCollection } from './room-collection.js';
 import { CONTRACTS, completedOrders } from './campaign.js';
@@ -34,9 +35,9 @@ export function createWorkshopUI({ getState, purchase, close, beforeCollection =
   const choices = DECORATIONS.map(item => {
     const b = document.createElement('button'); b.type = 'button'; b.dataset.decoration = item.id;
     const title = document.createElement('span'); title.textContent = item.name;
-    const price = document.createElement('span'); price.textContent = `${item.price} монет`;
+    const price = document.createElement('span'); price.textContent = t`${item.price} монет`;
     b.append(title, price);
-    b.onclick = () => { selected = item.id; notice.textContent = 'Предпросмотр — монеты пока не потрачены.'; render(); };
+    b.onclick = () => { selected = item.id; notice.textContent = t('Предпросмотр — монеты пока не потрачены.'); render(); };
     return b;
   });
   shop.querySelector('#shop-catalog').replaceChildren(...choices);
@@ -50,24 +51,24 @@ export function createWorkshopUI({ getState, purchase, close, beforeCollection =
   const show = (layer, stage, items) => { layer.dataset.items = items.join(' '); layer.dataset.stage = String(stage); layer.querySelector('.room-stage').style.backgroundImage = `url('assets/room/stage-${stage}.png')`; };
   function render() {
     const state = getState(), owned = ownedDecorations(state), stage = roomStage(state), item = DECORATIONS.find(item => item.id === selected);
-    balance.textContent = `${state.coins} монет`;
+    balance.textContent = t`${state.coins} монет`;
     const locked = entry => entry.stage && !owned.includes(entry.id) && stage < entry.stage - 1;
     const next = DECORATIONS.find(entry => entry.stage === stage + 1);
-    shop.querySelector('#shop-description').textContent = item.description + (locked(item) ? ` Сначала купи «${next.name}». Улучшения стола устанавливаются по порядку.` : '');
+    shop.querySelector('#shop-description').textContent = item.description + (locked(item) ? t` Сначала купи «${next.name}». Улучшения стола устанавливаются по порядку.` : '');
     choices.forEach((b, i) => {
       const entry = DECORATIONS[i]; b.setAttribute('aria-pressed', String(entry.id === selected));
       const prerequisite = DECORATIONS.find(d => d.stage === entry.stage - 1);
-      b.lastChild.textContent = owned.includes(entry.id) ? 'Есть ✓' : locked(entry) ? `${entry.price} монет · после «${prerequisite.name}»` : `${entry.price} монет`;
+      b.lastChild.textContent = owned.includes(entry.id) ? t('Есть ✓') : locked(entry) ? t`${entry.price} монет · после «${prerequisite.name}»` : t`${entry.price} монет`;
       b.classList.toggle('owned', owned.includes(entry.id)); b.classList.toggle('locked', locked(entry));
     });
     const bought = owned.includes(selected), missing = bought ? 0 : Math.max(0, item.price - state.coins);
     buy.disabled = bought || locked(item) || missing > 0;
-    buy.textContent = bought ? 'Уже в мастерской' : locked(item) ? `Сначала: ${DECORATIONS.find(d => d.stage === stage + 1).name.toLowerCase()}` : missing ? `Не хватает ${missing} монет` : `Купить · ${item.price} монет`;
+    buy.textContent = bought ? t('Уже в мастерской') : locked(item) ? t`Сначала: ${DECORATIONS.find(d => d.stage === stage + 1).name.toLowerCase()}` : missing ? t`Не хватает ${missing} монет` : t`Купить · ${item.price} монет`;
     // Предпросмотр: выбранный этап стола (или текущий, если выбрана вещь поверх него).
     show(previewDecor, item.stage ? Math.max(stage, item.stage) : stage, [...new Set([...owned, selected])]);
     roomDecor.forEach(layer => show(layer, stage, owned));
     collection.render();
-    shop.querySelector('h2').textContent = `Мастерская · истории ${completedOrders(state).length}/${CONTRACTS.length}`;
+    shop.querySelector('h2').textContent = t`Мастерская · истории ${completedOrders(state).length}/${CONTRACTS.length}`;
   }
-  return { render, focus() { notice.textContent = 'Улучшения стола покупаются по порядку. Лежанку и огоньки можно купить отдельно.'; back.focus(); } };
+  return { render, focus() { notice.textContent = t('Улучшения стола покупаются по порядку. Лежанку и огоньки можно купить отдельно.'); back.focus(); } };
 }

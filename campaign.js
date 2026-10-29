@@ -1,17 +1,18 @@
+import { t } from './i18n.js';
 // Each contract introduces a small new demand before the next device appears.
 export const CONTRACTS = [
-  { order: 'pager', name: 'Пейджер', level: 1, lesson: 'Контакты и установка батарейки' },
-  { order: 'remote', name: 'Пульт', level: 1, lesson: 'Разборка, плата и резиновая клавиатура' },
-  { order: 'phone', name: 'Телефон', level: 2, lesson: 'Разъём питания и аккумулятор' },
-  { order: 'console', name: 'Приставка', level: 2, lesson: 'Три зоны очистки, два инструмента' },
-  { order: 'pda', name: 'КПК', level: 3, lesson: 'Последовательность работы со шлейфом' },
-  { order: 'cassette', name: 'Кассетный плеер', level: 3, lesson: 'Лента, ремень и магнитная головка' },
-  { order: 'boombox', name: 'Магнитофон', level: 3, lesson: 'Механизм протяжки и ролик' },
-  { order: 'vcr', name: 'Видеоплеер', level: 4, lesson: 'Механизм загрузки кассеты' },
-  { order: 'video-camera', name: 'Видеокамера', level: 4, lesson: 'Шлейф и точная установка деталей' },
-  { order: 'vacuum', name: 'Пылесос', level: 4, lesson: 'Фильтр и мотор, несколько этапов очистки' },
-  { order: 'laptop', name: 'Ноутбук', level: 5, lesson: 'Питание, охлаждение, разъём и термопаста' },
-  { order: 'television', name: 'Телевизор', level: 5, lesson: 'Провод динамика и итоговая проверка' },
+  { order: 'pager', name: t('Пейджер'), level: 1, lesson: t('Контакты и установка батарейки') },
+  { order: 'remote', name: t('Пульт'), level: 1, lesson: t('Разборка, плата и резиновая клавиатура') },
+  { order: 'phone', name: t('Телефон'), level: 2, lesson: t('Разъём питания и аккумулятор') },
+  { order: 'console', name: t('Приставка'), level: 2, lesson: t('Три зоны очистки, два инструмента') },
+  { order: 'pda', name: t('КПК'), level: 3, lesson: t('Последовательность работы со шлейфом') },
+  { order: 'cassette', name: t('Кассетный плеер'), level: 3, lesson: t('Лента, ремень и магнитная головка') },
+  { order: 'boombox', name: t('Магнитофон'), level: 3, lesson: t('Механизм протяжки и ролик') },
+  { order: 'vcr', name: t('Видеоплеер'), level: 4, lesson: t('Механизм загрузки кассеты') },
+  { order: 'video-camera', name: t('Видеокамера'), level: 4, lesson: t('Шлейф и точная установка деталей') },
+  { order: 'vacuum', name: t('Пылесос'), level: 4, lesson: t('Фильтр и мотор, несколько этапов очистки') },
+  { order: 'laptop', name: t('Ноутбук'), level: 5, lesson: t('Питание, охлаждение, разъём и термопаста') },
+  { order: 'television', name: t('Телевизор'), level: 5, lesson: t('Провод динамика и итоговая проверка') },
 ];
 export function completedOrders(state) {
   return [...new Set((Array.isArray(state.completedOrders) ? state.completedOrders : []).filter(id => CONTRACTS.some(c => c.order === id)))];
