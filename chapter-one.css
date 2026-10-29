@@ -20,7 +20,10 @@
 .chapter-lit-window{position:absolute;left:58%;top:8%;width:6%;height:5%;background:#ffd06b;box-shadow:0 0 18px 5px #eeb64f99;z-index:2;clip-path:polygon(0 0,45% 0,45% 45%,0 45%,0 55%,45% 55%,45% 100%,0 100%,0 0,55% 0,100% 0,100% 100%,55% 100%,55% 55%,100% 55%,100% 45%,55% 45%);animation:chapter-window 1.5s ease-out both}.chapter-lit-window[hidden]{display:none}
 .chapter-rain{position:absolute;left:26%;top:0;width:49%;height:20%;pointer-events:none;z-index:2}.chapter-cat{position:absolute;z-index:5}.chapter-focus[data-playing=true]>.chapter-art{animation:chapter-playing 1.3s ease-in-out infinite alternate}
 .menu-play-row{display:grid;grid-template-columns:1fr 1fr;gap:6px}.menu-play-row button{min-width:0;min-height:44px;font-size:11px;padding:7px}
-.chapter-prop{z-index:4}.chapter-prop-guest{z-index:2}.chapter-prop-radio:after{content:'FM';position:absolute;right:5px;bottom:7px;padding:2px;color:#e3c57c;background:#2c3027;font:9px Consolas,monospace}
+.chapter-prop{z-index:4}.chapter-prop-guest{z-index:2}
+.chapter-prop-radio:before{content:'';position:absolute;inset:0;clip-path:polygon(25% 0,100% 8%,100% 100%,0 85%,0 22%);background:linear-gradient(135deg,#f3c27624,#eab15c0a);backdrop-filter:brightness(1.25);box-shadow:inset 2px 0 7px #f3c27688;pointer-events:none}
+.chapter-prop-radio:after{content:'';position:absolute;left:35%;top:54%;width:4px;height:4px;background:#e3c57c;box-shadow:0 0 5px 2px #e3c57c88;pointer-events:none}
+.chapter-prop-radio:hover:before,.chapter-prop-radio:focus-visible:before{background:#f3c27630;backdrop-filter:brightness(1.45)}
 .room-chapter .chapter-cat{bottom:calc(100% - var(--cat-floor));width:var(--cat-size);height:auto;aspect-ratio:48/34;margin:0;padding:0;min-height:0;border:0;background:none;transform:translateX(-50%);z-index:3}
 .chapter-cat .cat-sprite{position:absolute;inset:0;background:url('assets/sprites/cat/idle.png') 0 0/1100% 100% no-repeat;image-rendering:pixelated;filter:drop-shadow(0 3px 0 #20180c80)}
 .chapter-lit-window{left:58%;top:15%;width:7%;height:6%;background:none;border:2px solid #415775;clip-path:none;box-shadow:0 0 15px 4px #edb25d88}

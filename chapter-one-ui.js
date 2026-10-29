@@ -74,7 +74,7 @@ export function createChapterOneUI({getState,dispatch,sound,beforeOpen,onClose})
       addHotspot('photo',C.photo,[13,45,21,10],()=>{doAction('photo');focus('photo');});
       addHotspot('tape',C.tape,[74,57,18,8],()=>focus('tape'));
     }
-    addHotspot('radio',C.radio,[86,29,14,15],()=>focus('radio'));
+    addHotspot('radio',C.radio,[85,26.5,15,13.5],()=>focus('radio'));
     if(visitor) {
       addHotspot('guest',C.guest,[8,15,59,29],()=>focus('guest'));
       if(has('tea')){const cup=addHotspot('tea',C.tea,[68,35,12,9],()=>focus('guest'));cup.classList.add('chapter-hot-tea');}
