@@ -2,6 +2,7 @@ import { t } from './i18n.js';
 import { createChapterOneUI } from './chapter-one-ui.js';
 import { createChapterTwoUI } from './chapter-two-ui.js';
 import { createChapterThreeUI } from './chapter-three-ui.js';
+import { createChapterFourUI } from './chapter-four-ui.js';
 import { resetSavedGame } from './save-reset.js';
 import { createSettingsUI } from './settings-ui.js';
 import { diagnosticEvidence } from './diagnostics.js';
@@ -567,7 +568,8 @@ roomStoriesList.append(chapterOneButton);
 const chapterUI = createChapterOneUI(chapterOptions);
 const chapterTwoUI = createChapterTwoUI(chapterOptions);
 const chapterThreeUI = createChapterThreeUI(chapterOptions);
-roomStoriesList.append($('#menu-chapter-two'), $('#menu-chapter-three'), roomStoriesBack);
+const chapterFourUI = createChapterFourUI(chapterOptions);
+roomStoriesList.append($('#menu-chapter-two'), $('#menu-chapter-three'), $('#menu-chapter-four'), roomStoriesBack);
 // Открытие главы закрывает меню глав; «Назад» и Escape возвращают в главное меню.
 roomStoriesList.addEventListener('click', event => { if (event.target.closest('button:not(:disabled)')) showRoomStories(false); }, true);
 chapterOneButton.onclick=()=>chapterUI.open();
@@ -638,6 +640,7 @@ function render() {
   chapterUI.render();
   chapterTwoUI.render();
   chapterThreeUI.render();
+  chapterFourUI.render();
   syncCats();
 }
 function persist() {
