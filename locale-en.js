@@ -1358,6 +1358,7 @@ export const EN = {
   "Лента легла ровно. Теперь запись можно воспроизвести.": "The tape lies flat. The recording is ready to play.",
   "Пианино, неровный детский хор, затем аплодисменты. Детский голос: «Спасибо, что научили нас не бояться первого концерта!» На кассете — подарок музыкальной учительнице.": "A piano, an uneven children's choir, then applause. A child's voice: “Thank you for teaching us not to be afraid of our first concert!” The cassette was a gift to a music teacher.",
   "Кому вернуть коробку?": "Who owns the parcel?",
+  "«Ну вот, теперь всё сходится. Открывай книжку Лёвы и решай, кому звонить. А я чай допью.»": "“There, now it all fits. Open Lev's book and decide who to call. I'll finish my tea.”",
   "Сопоставь объявление по радио, фотографию с рассказом Михалыча и запись на кассете. В книжке Лёвы три адресата.": "Compare the broadcast, Mikhalych's recollection of the photograph, and the tape. Lev's address book has three possible owners.",
   "Анна Сергеевна · учительница музыки": "Anna Sergeyevna · music teacher",
   "Нина Павловна · портниха": "Nina Pavlovna · dressmaker",

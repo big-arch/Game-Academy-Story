@@ -63,6 +63,8 @@ export function createChapterOneUI({getState,dispatch,sound,beforeOpen,onClose})
   function showArt(name) {focusArea.append(art(name));}
   function render() {
     const state=getState(), p=chapterProgress(state).chapterOne, has=fact=>hasChapterFact(state,fact);
+    // Все улики собраны — Михалыч и комната сами ведут к записной книжке, а не молчат.
+    const evidenceReady=()=>['radio','testimony','recording'].every(has);
     document.querySelector('#menu-chapter').textContent=has('delivered')?C.menuDone:C.menu;
     if(root.hidden || tracing)return;
     const visitor=has('guest')&&!has('delivered');
@@ -84,13 +86,15 @@ export function createChapterOneUI({getState,dispatch,sound,beforeOpen,onClose})
     hotspots.inert=mode!=='room';catHost.hidden=mode!=='room';cat.setActive(mode==='room'&&!visitor);cabinet.inert=mode!=='room';
     focusArea.replaceChildren();actions.replaceChildren();focusArea.hidden=mode==='room'||mode==='guest';focusArea.dataset.playing=String(mode==='tape'&&has('recording'));
     objective.textContent=chapterGoal(state);
-    narrative.textContent=notice || ({room:has('delivered')?C.endingShort:has('parcel')?C.opened:C.intro,parcel:C.opened,photo:reversed?C.reverse:C.front,radio:has('radio')?C.broadcast:C.static,guest:has('testimony')?C.testimony:has('tea')?C.teaDone:C.welcome,tape:has('recording')?C.recording:has('tape')?C.repaired:C.tapeHelp,journal:C.evidenceHelp,postcard:C.ending})[mode];
+    narrative.textContent=notice || ({room:has('delivered')?C.endingShort:has('parcel')?C.opened:C.intro,parcel:C.opened,photo:reversed?C.reverse:C.front,radio:has('radio')?C.broadcast:C.static,guest:has('testimony')?(evidenceReady()?C.ready:C.testimony):has('tea')?C.teaDone:C.welcome,tape:has('recording')?C.recording:has('tape')?C.repaired:C.tapeHelp,journal:C.evidenceHelp,postcard:C.ending})[mode];
     if(mode!=='room')actions.append(button(C.room,()=>focus('room')));
     if(mode==='room'){
       if(has('delivered'))actions.append(button(C.postcard,()=>focus('postcard')),button(C.back,close));
       else if(!has('parcel'))actions.append(button(C.open,()=>doAction('open')));
       else actions.append(button(C.photo,()=>{doAction('photo');focus('photo');}),button(C.radio,()=>focus('radio')));
       if(has('parcel')&&!has('guest'))actions.append(button(C.invite,()=>{doAction('invite');focus('guest');}));
+      if(evidenceReady()&&!has('owner'))actions.prepend(button(C.evidence,()=>focus('journal')));
+      if(has('owner')&&!has('delivered'))actions.prepend(button(C.deliver,()=>{doAction('return');mode='room';render();}));
     }
     if(mode==='parcel'){
       showArt('opened');actions.append(button(C.photo,()=>{doAction('photo');focus('photo');}),button(C.tape,()=>focus('tape')));
@@ -112,7 +116,8 @@ export function createChapterOneUI({getState,dispatch,sound,beforeOpen,onClose})
     if(mode==='guest'){
       if(!has('guest'))actions.append(button(C.invite,()=>doAction('invite')));
       else if(!has('tea'))actions.append(...[['lemon',C.lemon],['sugar',C.sugar],['jam',C.jam]].map(([id,label])=>button(label,()=>doAction('tea',id))));
-      else actions.append(button(C.showPhoto,()=>{if(!has('photo')){notice=C.teaFirst;render();}else doAction('show-photo');}));
+      else if(!has('testimony'))actions.append(button(C.showPhoto,()=>{if(!has('photo')){notice=C.teaFirst;render();}else doAction('show-photo');}));
+      if(has('testimony')&&!has('owner'))actions.append(button(C.evidence,()=>focus('journal')));
     }
     if(mode==='tape'){
       showArt('tape');focusArea.dataset.playing=String(has('recording'));
