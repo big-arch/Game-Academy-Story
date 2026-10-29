@@ -3,12 +3,8 @@ import { chapterThreeProgress,chapterThreeAvailable,chapterThreeGoal,BATTERIES,C
 import { roomStage } from './workshop.js';
 import { createCat } from './cat.js';
 
-// Атлас главы 3: assets/room/chapter-three-atlas-v1.png (1536×1024, сетка 3×2).
-const ART = {radio:[60,10,420,490], open:[540,90,470,380], dial:[1040,20,490,470], batteries:[40,600,450,300], map:[540,530,460,470], drawing:[1050,530,460,460]};
-function art(name){
-  const [x,y,w,h]=ART[name],el=document.createElement('i');el.className='chapter-three-art';el.dataset.sprite=name;el.setAttribute('aria-hidden','true');
-  Object.assign(el.style,{aspectRatio:`${w}/${h}`,backgroundSize:`${1536/w*100}% ${1024/h*100}%`,backgroundPosition:`${x/(1536-w)*100}% ${y/(1024-h)*100}%`});return el;
-}
+// Предметы главы 3 — отдельные спрайты на прозрачном фоне: assets/room/chapter-three/<name>.png.
+function art(name){const el=document.createElement('img');el.src=`assets/room/chapter-three/${name}.png`;el.alt='';el.className='chapter-three-art';el.dataset.sprite=name;return el;}
 function button(label,run){const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=run;return b;}
 function text(value,className=''){const p=document.createElement('p');p.textContent=value;p.className=className;return p;}
 export function createChapterThreeUI({getState,dispatch,sound,beforeOpen,onClose}){
@@ -34,8 +30,8 @@ export function createChapterThreeUI({getState,dispatch,sound,beforeOpen,onClose
     if(root.hidden)return;
     frame.dataset.mode=mode;world.style.backgroundImage=`url('assets/room/stage-${roomStage(state)}.png')`;
     props.replaceChildren();panel.replaceChildren();actions.replaceChildren();panel.hidden=mode==='room';catHost.hidden=mode!=='room';cat.setActive(mode==='room');props.inert=mode!=='room';
-    if(p.call)prop(C3.drawing,'drawing',[30,44,40,22],()=>focus('drawing')).classList.add('chapter-three-pinned');
-    else{prop(C3.radio,p.powered?'radio':'open',[36,47,28,15],()=>focus(p.powered?'dial':'batteries'));prop(C3.batteries,'batteries',[5,62,27,8],()=>focus('batteries'));prop(C3.map,'map',[69,59,25,11],()=>focus('map'));}
+    if(p.call)prop(C3.drawing,'drawing',[30,40,40,24],()=>focus('drawing')).classList.add('chapter-three-pinned');
+    else{prop(C3.radio,p.powered?'radio':'open',[36,40,28,24],()=>focus(p.powered?'dial':'batteries'));prop(C3.batteries,'batteries',[5,60,26,10],()=>focus('batteries'));prop(C3.map,'map',[69,57,26,14],()=>focus('map'));}
     goal.textContent=chapterThreeGoal(state);
     narrative.textContent=notice||({room:p.call?C3.done:C3.intro,tag:C3.tagDone,batteries:p.powered?C3.powered:C3.batteryHelp,map:p.mapped?C3.mapDone:C3.mapHelp,dial:p.tuned?C3.tuned:C3.dialHelp,call:C3.callHelp,drawing:p.call==='anna'?C3.endingAnna:C3.endingMikhalych,journal:chapterThreeGoal(state)})[mode];
     if(mode!=='room')actions.append(button(C3.room,()=>focus('room')));

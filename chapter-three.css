@@ -1,7 +1,7 @@
-.chapter-three-art{display:block;width:100%;max-width:240px;flex-shrink:0;background:url('assets/room/chapter-three-atlas-v1.png') no-repeat;image-rendering:pixelated;border-radius:6px}
-.chapter-prop>.chapter-three-art{max-width:none;height:100%;width:auto;margin:auto;border-radius:10px;box-shadow:0 4px 8px #1a0f0788}
+.chapter-three-art{display:block;width:100%;max-width:220px;max-height:150px;object-fit:contain;flex-shrink:0;image-rendering:pixelated}
+.chapter-prop>.chapter-three-art{max-width:none;max-height:none;width:100%;height:100%;filter:drop-shadow(0 6px 4px #1a0f07aa)}
 .chapter-three-pinned{rotate:-3deg}
 .chapter-three-sign{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%}
 .chapter-three-sign p{margin:0;font:700 13px Georgia,serif}
 .chapter-three-sign select{min-height:44px;flex:1;max-width:60%;background:#372b20;color:#efd6a8;border:1px solid #93764f;font:13px Georgia,serif}
-@media(max-height:650px){.chapter-three-art{max-width:150px}}
+@media(max-height:650px){.chapter-three-art{max-height:100px}}
