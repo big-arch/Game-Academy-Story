@@ -77,7 +77,7 @@ export function createChapterOneUI({getState,dispatch,sound,beforeOpen,onClose})
     addHotspot('radio',C.radio,[86,29,14,15],()=>focus('radio'));
     if(visitor) {
       addHotspot('guest',C.guest,[8,15,59,29],()=>focus('guest'));
-      if(has('tea')){const cup=addHotspot('tea',C.tea,[65,43,13,10],()=>focus('guest'));cup.classList.add('chapter-hot-tea');}
+      if(has('tea')){const cup=addHotspot('tea',C.tea,[68,35,12,9],()=>focus('guest'));cup.classList.add('chapter-hot-tea');}
     }
     if(has('delivered'))addHotspot('postcard',C.postcard,[39,55,28,14],()=>focus('postcard'));
     warmWindow.hidden=!has('delivered');

@@ -28,7 +28,7 @@
 .chapter-frame:is([data-stage="0"],[data-stage="1"]) :is(.chapter-prop,.chapter-focus>.chapter-art){filter:brightness(.8) saturate(.8)}
 .chapter-frame[data-visitor=true] .chapter-rain{left:50%;width:25%;height:19%}
 .chapter-world .room-collection[hidden]{display:none!important}
-.chapter-visitor-paint{position:absolute;inset:0;z-index:1;background:url('assets/room/chapter-one-visitor-v2.png') center/100% 100% no-repeat;pointer-events:none;clip-path:polygon(15% 9%,52% 9%,52% 24%,65% 26%,73% 35%,77% 43%,72% 46%,0 46%,0 31%,8% 25%,20% 23%)}
+.chapter-visitor-paint{position:absolute;inset:0;z-index:1;background:url('assets/room/chapter-one-visitor-v3.png') center/100% 100% no-repeat;pointer-events:none;clip-path:inset(0 0 50% 0)}
 .chapter-visitor-paint[hidden]{display:none}.chapter-frame:is([data-stage="0"],[data-stage="1"]) .chapter-visitor-paint{filter:brightness(.72) saturate(.68)}
 .chapter-frame[data-visitor=true] .chapter-cat{left:87%!important;--cat-floor:49%!important}
 .chapter-frame[data-mode=room] .chapter-narrative{max-height:42px}
