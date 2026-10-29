@@ -555,16 +555,26 @@ const chapterOptions = {getState:()=>state,dispatch,sound:name=>effects.play(nam
   closeRepairInstrument();partInteraction.close();memoryUI.close();$('#dialog').hidden=true;persist();
   roomChapterOpen=true;document.querySelector('main.app').inert=true;music.setMode('game');effects.setWorkshop(true);
 },onClose(){roomChapterOpen=false;document.querySelector('main.app').inert=false;render();}};
-// Главы комнаты прячутся под одной кнопкой «Истории комнаты» и разворачиваются списком.
-const roomStories = document.createElement('div'); roomStories.id = 'menu-room-stories'; roomStories.className = 'menu-room-stories'; roomStories.hidden = true;
+// «Комнаты историй» — отдельное меню: только главы и кнопка «Назад».
+const roomStories = document.createElement('section'); roomStories.id = 'menu-room-stories'; roomStories.className = 'menu-room-stories'; roomStories.hidden = true; roomStories.setAttribute('aria-label', t('Комнаты историй'));
+const roomStoriesList = roomStories;
+const roomStoriesBack = document.createElement('button'); roomStoriesBack.type = 'button'; roomStoriesBack.className = 'primary'; roomStoriesBack.textContent = t('Назад');
+const roomStoriesTitle = document.createElement('h2'); roomStoriesTitle.className = 'menu-room-title'; roomStoriesTitle.textContent = t('Комнаты историй');
+roomStories.append(roomStoriesTitle); $('.menu-play-row').after(roomStories);
+const showRoomStories = open => { roomStories.hidden = !open; $('#main-menu').classList.toggle('rooms-open', open); };
 const chapterOneButton = document.createElement('button'); chapterOneButton.id = 'menu-chapter-one'; chapterOneButton.className = 'secondary';
-roomStories.append(chapterOneButton); $('.menu-play-row').after(roomStories);
+roomStoriesList.append(chapterOneButton);
 const chapterUI = createChapterOneUI(chapterOptions);
 const chapterTwoUI = createChapterTwoUI(chapterOptions);
 const chapterThreeUI = createChapterThreeUI(chapterOptions);
-roomStories.append($('#menu-chapter-two'), $('#menu-chapter-three'));
+roomStoriesList.append($('#menu-chapter-two'), $('#menu-chapter-three'), roomStoriesBack);
+// Открытие главы закрывает меню глав; «Назад» и Escape возвращают в главное меню.
+roomStoriesList.addEventListener('click', event => { if (event.target.closest('button:not(:disabled)')) showRoomStories(false); }, true);
 chapterOneButton.onclick=()=>chapterUI.open();
-$('#menu-chapter').onclick=()=>{ effects.play('click'); roomStories.hidden=!roomStories.hidden; $('#menu-chapter').setAttribute('aria-expanded', String(!roomStories.hidden)); };
+const closeRoomStories = () => { showRoomStories(false); $('#menu-chapter').focus(); };
+roomStoriesBack.onclick = () => { effects.play('click'); closeRoomStories(); };
+roomStories.addEventListener('keydown', event => { if (event.key === 'Escape') { event.preventDefault(); closeRoomStories(); } });
+$('#menu-chapter').onclick=()=>{ effects.play('click'); showRoomStories(true); roomStoriesBack.focus(); };
 function render() {
   if (menuOpen) { closeRepairInstrument(); partInteraction.close(); $('#dialog').hidden = true; }
   const s = state; $('#base').classList.toggle('open', s.open); $('#fan').classList.toggle('clean', s.dustCleaned); $('#connector').classList.toggle('connected', s.fanConnected);

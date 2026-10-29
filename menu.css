@@ -50,4 +50,5 @@ body.fullscreen .menu-controls button#menu-fullscreen{background:#c28b54;border-
 @media(max-height:520px){.menu-top p,.menu-top small,.menu-small{display:none}.menu-top h1{font-size:22px;margin-top:0}.menu-controls{bottom:6px}.menu-controls .campaign-note{font-size:9px}}
 
 /* «Истории комнаты»: главы разворачиваются под кнопкой. */
-.menu-room-stories{display:grid;gap:6px;padding:6px;border:1px solid #93764f;background:#2a2019d9}.menu-room-stories[hidden]{display:none}.menu-room-stories button{width:100%}
+.menu-room-stories{display:grid;gap:8px}.menu-room-stories[hidden]{display:none}.menu-room-stories button{width:100%}.menu-room-title{margin:0 0 4px;text-align:center;font:700 18px Georgia,serif;color:#f7e8cb;text-shadow:0 2px 0 #1d1511}
+#main-menu.rooms-open .menu-controls>:not(.menu-room-stories){display:none}

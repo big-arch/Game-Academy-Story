@@ -1443,5 +1443,5 @@ export const EN = {
   "Позывные разгаданы": "Call signs solved",
   "Канал найден": "Channel found",
   "Канал": "Channel",
-  "Истории комнаты": "Room stories"
+  "Комнаты историй": "Story rooms"
 };
