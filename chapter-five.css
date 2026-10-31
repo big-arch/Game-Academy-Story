@@ -1,0 +1,21 @@
+.chapter-five-art{display:block;width:100%;max-width:240px;height:180px;flex-shrink:0;image-rendering:pixelated;pointer-events:none}
+.chapter-prop>.chapter-five-art{max-width:none;width:100%;height:100%;filter:drop-shadow(1px 5px 3px #1a0f0788)}
+.chapter-five .chapter-two-panel{top:23%;max-height:43%;overflow-x:hidden;gap:8px}
+.chapter-five .chapter-dock{max-height:35%}.chapter-five .chapter-narrative{max-height:86px}
+.chapter-five-detail{position:relative;width:min(100%,260px);flex-shrink:0}.chapter-five-detail>.chapter-five-art{max-width:none;height:195px}
+.chapter-five-glow{position:absolute;z-index:1;pointer-events:none;width:55%;height:26%;background:radial-gradient(ellipse,#ffd47a55 0,#eaa34220 38%,transparent 72%);opacity:.9}
+.chapter-five-glow[hidden]{display:none}.chapter-frame[data-placement=desk] .chapter-five-glow{left:24%;top:45%}.chapter-frame[data-placement=window] .chapter-five-glow{left:40%;top:12%;width:35%;height:20%}
+.chapter-five-lit>.chapter-five-art,.chapter-five-detail[data-lit=true]>.chapter-five-art{filter:brightness(1.14) drop-shadow(0 0 8px #ffd37a77) drop-shadow(1px 5px 3px #1a0f0788)}
+.chapter-five-detail[data-lit=true]:after{content:'';position:absolute;left:2%;top:20%;width:45%;height:30%;background:radial-gradient(ellipse,#ffe4aa99,transparent 70%);pointer-events:none;animation:chapter-five-light .7s ease-out both}
+.chapter-frame[data-bulb="25"] .chapter-five-glow{opacity:.55}.chapter-frame[data-bulb="25"] .chapter-five-detail[data-lit=true]:after{opacity:.6}
+.chapter-five-sign{rotate:-3deg}.chapter-five-sign-text{position:absolute;left:14%;top:32%;width:65%;margin:0;color:#59412c;font:700 8px/1.2 Consolas,monospace;rotate:7deg;text-align:center;pointer-events:none}
+.chapter-five-tag{position:relative;width:min(100%,260px)}.chapter-five-tag>.chapter-five-art{max-width:none}.chapter-five-rating{position:absolute;left:37%;top:39%;margin:0;color:#59412c;font:700 24px Consolas,monospace;rotate:-12deg}
+.chapter-five-souvenir-sign{position:relative;width:190px;flex-shrink:0}.chapter-five-souvenir-sign>.chapter-five-art{height:110px}.chapter-five-souvenir-sign>.chapter-five-sign-text{font-size:13px;left:20%;width:58%;top:35%}
+.chapter-five-joint{display:none;position:absolute;left:89%;top:56%;width:8%;height:5%;border-radius:35%;background:#d5c8a7;box-shadow:inset 0 2px #f7e9ca,0 0 4px #d6af75;rotate:-8deg}.chapter-five-detail[data-repaired=true]>.chapter-five-joint{display:block}
+.chapter-five-wire{position:absolute;right:0;top:42%;width:44px;height:44px;background:#eeb65717!important;border:1px solid #d7a75a!important;box-shadow:0 0 6px #d7a75a44;border-radius:5px}
+.chapter-five-heat{height:14px;position:relative;flex-shrink:0;width:95%;box-sizing:border-box;border:1px solid #9c8057;background:#3c332a}.chapter-five-heat>i{position:absolute;left:55%;width:27%;inset-block:0;background:#adbe7999}.chapter-five-heat>b{position:absolute;left:0;top:-4px;width:3px;height:20px;background:#f4d398;transform:translateX(-50%)}
+.chapter-five-hold{touch-action:none;user-select:none}.chapter-five-hold:active{background:#79613c}.chapter-five .chapter-two-panel>.chapter-five-gesture-help{font:11px/1.4 Georgia,serif;margin:0;color:#d2bc94}
+@keyframes chapter-five-light{from{opacity:0}to{opacity:1}}
+@media(max-height:650px){.chapter-five-art{height:125px}.chapter-five-detail>.chapter-five-art{height:120px}.chapter-five .chapter-two-panel{top:20%;max-height:41%;gap:6px}.chapter-five .chapter-dock{max-height:36%}.chapter-five .chapter-narrative{max-height:60px}.chapter-five-souvenir-sign{width:145px}.chapter-five-souvenir-sign>.chapter-five-art{height:80px}.chapter-five-souvenir-sign>.chapter-five-sign-text{font-size:10px}.chapter-five-rating{font-size:20px}.chapter-five-heat{height:10px}.chapter-five-heat>b{height:16px}}
+@media(prefers-reduced-motion:reduce){.chapter-five-detail[data-lit=true]:after{animation:none}}
+.chapter-five-sign-text{white-space:pre-line}.chapter-five-souvenir-sign>.chapter-five-sign-text{font-size:11px;line-height:1.25;top:33%}.chapter-five .chapter-frame[data-mode=souvenir] .chapter-five-detail>.chapter-five-art{height:155px}@media(max-height:650px){.chapter-five .chapter-frame[data-mode=souvenir] .chapter-five-detail>.chapter-five-art{height:100px}.chapter-five-souvenir-sign>.chapter-five-sign-text{font-size:9px}}

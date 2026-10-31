@@ -3,6 +3,7 @@ import { chapterProgress } from './chapter-one.js';
 import { chapterTwoProgress } from './chapter-two.js';
 import { chapterThreeProgress } from './chapter-three.js';
 import { chapterFourProgress } from './chapter-four.js';
+import { chapterFiveProgress } from './chapter-five.js';
 import { campaignProgress } from './campaign.js';
 import { memoryProgress, memoryExtras } from './memories.js';
 import { storyProgress } from './story.js';
@@ -41,7 +42,7 @@ export function roomStage(state) {
 
 // Room purchases belong to the workshop, not to the currently repaired device.
 export function workshopProgress(state) {
-  return { coins: state.coins, upgrade: Boolean(state.upgrade), furniture: ownedDecorations(state), ...chapterProgress(state), ...chapterTwoProgress(state), ...chapterThreeProgress(state), ...chapterFourProgress(state), ...campaignProgress(state), ...memoryProgress(state), ...memoryExtras(state), ...storyProgress(state) };
+  return { coins: state.coins, upgrade: Boolean(state.upgrade), furniture: ownedDecorations(state), ...chapterProgress(state), ...chapterTwoProgress(state), ...chapterThreeProgress(state), ...chapterFourProgress(state), ...chapterFiveProgress(state), ...campaignProgress(state), ...memoryProgress(state), ...memoryExtras(state), ...storyProgress(state) };
 }
 
 export function purchaseDecoration(state, id) {
